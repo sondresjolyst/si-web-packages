@@ -1,0 +1,58 @@
+version: 2
+updates:
+- package-ecosystem: github-actions
+  directory: /
+  groups:
+    github-actions:
+      patterns:
+      - '*'
+  schedule:
+    interval: weekly
+    day: sunday
+    time: '03:00'
+    timezone: Europe/Oslo
+  cooldown:
+    default-days: 7
+  commit-message:
+    prefix: ci(github-actions)
+- package-ecosystem: npm
+  directory: /
+  groups:
+    react:
+      patterns:
+      - react
+      - react-dom
+      - '@types/react'
+      - '@types/react-dom'
+    next:
+      patterns:
+      - next
+      - next-auth
+    eslint:
+      patterns:
+      - eslint
+      - '@eslint/*'
+      - eslint-plugin-*
+      - typescript-eslint
+    testing:
+      patterns:
+      - vitest
+      - '@vitejs/*'
+      - '@testing-library/*'
+      - jsdom
+    types:
+      patterns:
+      - '@types/*'
+  ignore:
+  # typescript-eslint throws on any TypeScript 7 major, so the pin is deliberate.
+  - dependency-name: typescript
+    update-types: ["version-update:semver-major"]
+  schedule:
+    interval: weekly
+    day: sunday
+    time: '03:00'
+    timezone: Europe/Oslo
+  cooldown:
+    default-days: 7
+  commit-message:
+    prefix: chore(deps)
