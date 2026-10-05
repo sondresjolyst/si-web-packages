@@ -1,12 +1,10 @@
-name: ✅ CI
+name: CI
 
 on:
   pull_request:
   push:
     branches:
       - main
-      # A pull request opened by GITHUB_TOKEN does not trigger pull_request workflows, so the
-      # release PR would otherwise carry no checks at all.
       - 'release-please--**'
 
 permissions: {}
