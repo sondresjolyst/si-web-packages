@@ -66,25 +66,48 @@ interface BodyMessages {
 }
 
 function readBody(response: AxiosResponse): BodyMessages {
-  const data: unknown = response.data;
+  const data = parseIfJson(response.data);
   if (typeof data === "string") return { specific: singleLine(data) };
-  if (!data || typeof data !== "object") return {};
+  // Only a parsed JSON object has fields to read. A Document, Blob or ArrayBuffer does not.
+  if (!isPlainObject(data)) return {};
 
-  const body = data as Record<string, unknown>;
   return {
-    specific: singleLine(body.message) ?? firstValidationError(body.errors) ?? singleLine(body.detail),
-    title: singleLine(body.title),
+    specific: firstText(data.message) ?? firstValidationError(data.errors) ?? singleLine(data.detail),
+    title: singleLine(data.title),
   };
+}
+
+/** Axios leaves a JSON body as a string when the request asked for text, so parse it here. */
+function parseIfJson(data: unknown): unknown {
+  if (typeof data !== "string") return data;
+  const text = data.trim();
+  if (!/^[{["]/.test(text)) return data;
+  try {
+    return JSON.parse(text);
+  } catch {
+    return data;
+  }
+}
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  if (!value || typeof value !== "object") return false;
+  const prototype = Object.getPrototypeOf(value);
+  return prototype === Object.prototype || prototype === null;
 }
 
 /** Reads the first message from `errors`, whether its values are string arrays or strings. */
 function firstValidationError(errors: unknown): string | undefined {
   if (!errors || typeof errors !== "object") return undefined;
   for (const value of Object.values(errors)) {
-    const message = singleLine(Array.isArray(value) ? value[0] : value);
+    const message = firstText(value);
     if (message) return message;
   }
   return undefined;
+}
+
+/** A single line of text, or the first entry when the value is a list of them. */
+function firstText(value: unknown): string | undefined {
+  return singleLine(Array.isArray(value) ? value[0] : value);
 }
 
 /** The trimmed text, when it is one line of text and not HTML. */

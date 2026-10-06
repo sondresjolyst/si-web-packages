@@ -208,6 +208,9 @@ A default that points at another variable, such as `--color-input-focus-ring` at
 is read once for the whole page. A scoped theme that changes `--color-primary` should set
 `--color-input-focus-ring` in the same selector.
 
+An app that clears a whole Tailwind namespace, such as `--color-*: initial`, clears these variables
+with it and has to set the ones it uses itself.
+
 ## Requirements
 
 - Next.js 16, React 19, next-auth 4 and axios 1, as peer dependencies the app installs itself.

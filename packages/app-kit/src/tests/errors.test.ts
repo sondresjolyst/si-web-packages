@@ -164,6 +164,28 @@ describe("formatApiError", () => {
     expect(formatApiError(new CanceledError(), "fallback", messages)).toBe("fallback");
   });
 
+  it("reads a message given as a list of strings", () => {
+    const error = axiosError({ statusCode: 400, message: ["email must be an email"], error: "Bad Request" });
+    expect(formatApiError(error, "fallback")).toBe("email must be an email");
+  });
+
+  it("parses a JSON body that axios left as text", () => {
+    const problem = JSON.stringify({ title: "One or more validation errors occurred.", errors: { Email: ["Email is invalid"] } });
+    expect(formatApiError(axiosError(problem, 400, "application/problem+json"), "fallback")).toBe("Email is invalid");
+    expect(formatApiError(axiosError(JSON.stringify("Area parameter is required."), 400), "fallback")).toBe(
+      "Area parameter is required.",
+    );
+  });
+
+  it("does not read fields off a Document or binary body", () => {
+    const page = new DOMParser().parseFromString(
+      "<html><head><title>502 Bad Gateway</title></head><body></body></html>",
+      "text/html",
+    );
+    expect(formatApiError(axiosError(page, 502, "text/html"), "fallback")).toBe("fallback");
+    expect(formatApiError(axiosError(new ArrayBuffer(8), 400, "application/json"), "fallback")).toBe("fallback");
+  });
+
   it("uses the message of a plain Error", () => {
     expect(formatApiError(new Error("Network down"), "fallback")).toBe("Network down");
   });
