@@ -27,9 +27,10 @@ const NO_RESPONSE_CODES = new Set([
  * Turns a failed request into one line a user can read.
  *
  * On a 4xx response the body's own message comes first: a text body, then `message`, the first
- * validation error and `detail` from a JSON body. After that come `statusMessages` for the status,
- * the JSON `title` and `fallback`. On a 5xx the caller's status message comes first, because the
- * body may be a proxy's "Bad Gateway" rather than the API's own words.
+ * validation error and `detail` from a JSON body. After that come `statusMessages` for the status
+ * and `fallback`. On a 5xx the caller's status message comes first, because the body may be a
+ * proxy's "Bad Gateway" rather than the API's own words. A problem details `title` is never used:
+ * ASP.NET Core fills it with generic text such as "Bad Request", which says less than `fallback`.
  *
  * Only single line text counts as a message. Axios's own message, such as "Request failed with
  * status code 500", is never shown, and a cancelled request gives `fallback`. Any other `Error`
@@ -46,35 +47,22 @@ export function formatApiError(
     if (!response) {
       return NO_RESPONSE_CODES.has(error.code ?? "") ? (statusMessages[0] ?? fallback) : fallback;
     }
-    const body = readBody(response);
+    const message = readBody(response);
     const forStatus = statusMessages[response.status];
-    if (response.status >= 500) return forStatus ?? body.specific ?? body.title ?? fallback;
-    return body.specific ?? forStatus ?? body.title ?? fallback;
+    if (response.status >= 500) return forStatus ?? message ?? fallback;
+    return message ?? forStatus ?? fallback;
   }
   if (error instanceof Error) return singleLine(error.message) ?? fallback;
   return fallback;
 }
 
-interface BodyMessages {
-  /** A message written for this failure. */
-  specific?: string;
-  /**
-   * A problem details title. ASP.NET Core sends a generic one, such as "Conflict", for every bare
-   * status result, so it ranks below the caller's status messages.
-   */
-  title?: string;
-}
-
-function readBody(response: AxiosResponse): BodyMessages {
+/** The message the body carries for this failure, if it carries one. */
+function readBody(response: AxiosResponse): string | undefined {
   const data = parseIfJson(response.data);
-  if (typeof data === "string") return { specific: singleLine(data) };
+  if (typeof data === "string") return singleLine(data);
   // Only a parsed JSON object has fields to read. A Document, Blob or ArrayBuffer does not.
-  if (!isPlainObject(data)) return {};
-
-  return {
-    specific: firstText(data.message) ?? firstValidationError(data.errors) ?? singleLine(data.detail),
-    title: singleLine(data.title),
-  };
+  if (!isPlainObject(data)) return undefined;
+  return firstText(data.message) ?? firstValidationError(data.errors) ?? singleLine(data.detail);
 }
 
 /**
