@@ -26,6 +26,25 @@ describe("PasswordInput", () => {
     expect(input).toHaveAttribute("type", "password");
   });
 
+  it("puts the toggle in the tab order right after the input", async () => {
+    const user = userEvent.setup();
+    render(
+      <>
+        <PasswordInput label="Password" name="password" />
+        <button type="submit">Sign in</button>
+      </>,
+    );
+
+    await user.tab();
+    expect(screen.getByLabelText("Password")).toHaveFocus();
+    await user.tab();
+    expect(screen.getByRole("button", { name: "Show password" })).toHaveFocus();
+    await user.keyboard("{Enter}");
+    expect(screen.getByLabelText("Password")).toHaveAttribute("type", "text");
+    await user.tab();
+    expect(screen.getByRole("button", { name: "Sign in" })).toHaveFocus();
+  });
+
   it("takes the button labels as props", async () => {
     const user = userEvent.setup();
     render(
@@ -56,6 +75,6 @@ describe("PasswordInput", () => {
   it("shows the error", () => {
     render(<PasswordInput label="Password" name="password" error="Too short" />);
     expect(screen.getByText("Too short")).toBeInTheDocument();
-    expect(screen.getByLabelText("Password")).toHaveClass("border-red-400");
+    expect(screen.getByLabelText("Password")).toHaveClass("border-input-border-error");
   });
 });

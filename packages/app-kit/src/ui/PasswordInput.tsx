@@ -30,9 +30,9 @@ export function PasswordInput({
 
   return (
     <div>
-      <label htmlFor={inputId} className="block text-sm font-medium text-gray-700 mb-1">
+      <label htmlFor={inputId} className="block text-field-label font-medium text-field-label-text mb-field-label">
         {label}
-        {required && <span className="text-red-600"> *</span>}
+        {required && <span className="text-field-required"> *</span>}
       </label>
       <div className="relative">
         <input
@@ -40,21 +40,21 @@ export function PasswordInput({
           type={visible ? "text" : "password"}
           required={required}
           aria-required={required || undefined}
-          className={`w-full rounded-lg border px-3 py-2 pr-10 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary ${
-            error ? "border-red-400" : "border-gray-300"
+          className={`w-full rounded-input border px-3 py-input-y pr-10 text-sm bg-input-bg text-input-text placeholder-input-placeholder focus:outline-none focus:ring-(length:--input-focus-ring-width) focus:ring-input-focus-ring ${
+            error ? "border-input-border-error" : "border-input-border focus:border-input-focus-border"
           }`}
           {...props}
         />
         <button
           type="button"
           onClick={() => setVisible((v) => !v)}
-          className="absolute inset-y-0 right-0 px-3 text-gray-400 hover:text-gray-600"
+          className="absolute inset-y-0 right-0 px-3 text-input-toggle hover:text-input-toggle-hover"
           aria-label={visible ? hidePasswordLabel : showPasswordLabel}
         >
           {visible ? <EyeSlashIcon className="h-4 w-4" /> : <EyeIcon className="h-4 w-4" />}
         </button>
       </div>
-      {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
+      {error && <p className="mt-1 text-xs text-field-error">{error}</p>}
     </div>
   );
 }

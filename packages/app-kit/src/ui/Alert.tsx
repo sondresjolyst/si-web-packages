@@ -7,19 +7,27 @@ export interface AlertProps {
    * changing, such as a countdown, so it is not announced on every tick.
    */
   role?: "alert" | "status";
+  /**
+   * Extra classes for placing the alert, such as a margin. They are added alongside the alert's own
+   * classes and do not override them, so restyle the alert through the theme variables instead.
+   */
+  className?: string;
   children: ReactNode;
 }
 
 const styles: Record<NonNullable<AlertProps["variant"]>, string> = {
-  error: "bg-red-50 border-red-200 text-red-700",
-  success: "bg-green-50 border-green-200 text-green-700",
-  info: "bg-gray-50 border-gray-200 text-gray-700",
-  warning: "bg-amber-50 border-amber-200 text-amber-900",
+  error: "bg-alert-error-bg border-alert-error-border text-alert-error-text",
+  success: "bg-alert-success-bg border-alert-success-border text-alert-success-text",
+  info: "bg-alert-info-bg border-alert-info-border text-alert-info-text",
+  warning: "bg-alert-warning-bg border-alert-warning-border text-alert-warning-text",
 };
 
-export function Alert({ variant = "info", role = "alert", children }: AlertProps) {
+export function Alert({ variant = "info", role = "alert", className, children }: AlertProps) {
   return (
-    <div className={`rounded-lg border px-3 py-2 text-sm ${styles[variant]}`} role={role}>
+    <div
+      className={["rounded-alert border px-3 py-2 text-sm", styles[variant], className].filter(Boolean).join(" ")}
+      role={role}
+    >
       {children}
     </div>
   );
