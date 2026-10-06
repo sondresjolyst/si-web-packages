@@ -24,8 +24,8 @@ const nextConfig: NextConfig = {
 };
 ```
 
-The components in `@sjolystinnovation/app-kit/ui` are styled with Tailwind CSS. Tailwind skips
-`node_modules` when it scans for class names, so import the package's stylesheet after Tailwind:
+The components in `@sjolystinnovation/app-kit/ui` are styled with Tailwind CSS. Import the
+package's stylesheet after Tailwind:
 
 ```css
 /* src/app/globals.css */

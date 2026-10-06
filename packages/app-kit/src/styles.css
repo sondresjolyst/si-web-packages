@@ -1,3 +1,2 @@
-/* Registers this package's components with Tailwind, which skips node_modules when it scans. The
-   path is relative to this file, so it holds wherever the app keeps its own stylesheet. */
+/* Adds this package's components to the files Tailwind scans for class names. */
 @source ".";
