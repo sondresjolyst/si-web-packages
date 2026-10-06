@@ -1,2 +1,43 @@
 /* Adds this package's components to the files Tailwind scans for class names. */
 @source ".";
+
+/*
+ * Design tokens for the components. Each default matches a stock Tailwind value, so an app that
+ * sets none of them gets the look below. Set any of them in the app's own @theme to restyle, or in
+ * a selector such as .dark for a scoped theme.
+ */
+@theme default {
+  --radius-alert: var(--radius-lg);
+  --color-alert-error-bg: var(--color-red-50);
+  --color-alert-error-border: var(--color-red-200);
+  --color-alert-error-text: var(--color-red-700);
+  --color-alert-success-bg: var(--color-green-50);
+  --color-alert-success-border: var(--color-green-200);
+  --color-alert-success-text: var(--color-green-700);
+  --color-alert-info-bg: var(--color-gray-50);
+  --color-alert-info-border: var(--color-gray-200);
+  --color-alert-info-text: var(--color-gray-700);
+  --color-alert-warning-bg: var(--color-amber-50);
+  --color-alert-warning-border: var(--color-amber-200);
+  --color-alert-warning-text: var(--color-amber-900);
+
+  --text-field-label: var(--text-sm);
+  --text-field-label--line-height: var(--text-sm--line-height);
+  --color-field-label-text: var(--color-gray-700);
+  --spacing-field-label: calc(var(--spacing) * 1);
+  --color-field-required: var(--color-red-600);
+  --color-field-error: var(--color-red-600);
+
+  --radius-input: var(--radius-lg);
+  --spacing-input-y: calc(var(--spacing) * 2);
+  --color-input-bg: transparent;
+  --color-input-border: var(--color-gray-300);
+  --color-input-border-error: var(--color-red-400);
+  --color-input-focus-border: var(--color-gray-300);
+  --color-input-text: var(--color-gray-900);
+  --color-input-placeholder: var(--color-gray-400);
+  --color-input-focus-ring: var(--color-primary);
+  --input-focus-ring-width: 2px;
+  --color-input-toggle: var(--color-gray-400);
+  --color-input-toggle-hover: var(--color-gray-600);
+}

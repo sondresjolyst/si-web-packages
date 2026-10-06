@@ -9,6 +9,19 @@ describe("PasswordInput", () => {
     expect(screen.getByLabelText("Password")).toHaveAttribute("type", "password");
   });
 
+  it("ties each label to its own input when two fields share a name", () => {
+    render(
+      <>
+        <PasswordInput label="Password" name="password" />
+        <PasswordInput label="Choose a password" name="password" />
+      </>,
+    );
+    const signIn = screen.getByLabelText("Password");
+    const signUp = screen.getByLabelText("Choose a password");
+    expect(signIn).not.toBe(signUp);
+    expect(signIn.id).not.toBe(signUp.id);
+  });
+
   it("ties the label to the input even without an id or a name", () => {
     render(<PasswordInput label="Password" />);
     expect(screen.getByLabelText("Password")).toBeInTheDocument();
@@ -24,6 +37,25 @@ describe("PasswordInput", () => {
 
     await user.click(screen.getByRole("button", { name: "Hide password" }));
     expect(input).toHaveAttribute("type", "password");
+  });
+
+  it("puts the toggle in the tab order right after the input", async () => {
+    const user = userEvent.setup();
+    render(
+      <>
+        <PasswordInput label="Password" name="password" />
+        <button type="submit">Sign in</button>
+      </>,
+    );
+
+    await user.tab();
+    expect(screen.getByLabelText("Password")).toHaveFocus();
+    await user.tab();
+    expect(screen.getByRole("button", { name: "Show password" })).toHaveFocus();
+    await user.keyboard("{Enter}");
+    expect(screen.getByLabelText("Password")).toHaveAttribute("type", "text");
+    await user.tab();
+    expect(screen.getByRole("button", { name: "Sign in" })).toHaveFocus();
   });
 
   it("takes the button labels as props", async () => {
@@ -46,6 +78,36 @@ describe("PasswordInput", () => {
     expect(screen.getByLabelText("Password")).not.toHaveAttribute("showPasswordLabel");
   });
 
+  it("puts className on the outer element, so a margin does not move the toggle", () => {
+    render(<PasswordInput label="Password" name="password" className="mt-2" />);
+    expect(screen.getByLabelText("Password")).not.toHaveClass("mt-2");
+    expect(screen.getByText("Password", { selector: "label" }).parentElement).toHaveClass("mt-2");
+  });
+
+  it("links the error to the input for screen readers", () => {
+    render(<PasswordInput label="Password" name="password" error="Too short" />);
+    const input = screen.getByLabelText("Password");
+    expect(input).toHaveAttribute("aria-invalid", "true");
+    expect(input).toHaveAccessibleDescription("Too short");
+  });
+
+  it("links the error even when the name has a space in it", () => {
+    render(<PasswordInput label="New password" name="new password" error="Too short" />);
+    expect(screen.getByLabelText("New password")).toHaveAccessibleDescription("Too short");
+  });
+
+  it("keeps an aria-required the caller passes without required", () => {
+    render(<PasswordInput label="Password" name="password" aria-required="true" />);
+    expect(screen.getByLabelText("Password")).toHaveAttribute("aria-required", "true");
+  });
+
+  it("keeps its own id even when the caller passes other attributes", () => {
+    render(<PasswordInput label="Password" id="pw" name="password" autoComplete="current-password" />);
+    const input = screen.getByLabelText("Password");
+    expect(input).toHaveAttribute("id", "pw");
+    expect(input).toHaveAttribute("autocomplete", "current-password");
+  });
+
   it("marks a required field", () => {
     render(<PasswordInput label="Password" name="password" required />);
     const input = screen.getByLabelText(/Password/);
@@ -56,6 +118,6 @@ describe("PasswordInput", () => {
   it("shows the error", () => {
     render(<PasswordInput label="Password" name="password" error="Too short" />);
     expect(screen.getByText("Too short")).toBeInTheDocument();
-    expect(screen.getByLabelText("Password")).toHaveClass("border-red-400");
+    expect(screen.getByLabelText("Password")).toHaveClass("border-input-border-error");
   });
 });

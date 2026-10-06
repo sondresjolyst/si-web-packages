@@ -16,11 +16,16 @@ describe("Alert", () => {
 
   it("styles by variant", () => {
     render(<Alert variant="error">Failed</Alert>);
-    expect(screen.getByRole("alert")).toHaveClass("bg-red-50");
+    expect(screen.getByRole("alert")).toHaveClass("bg-alert-error-bg");
+  });
+
+  it("adds a className alongside its own classes", () => {
+    render(<Alert className="mt-3">Saved</Alert>);
+    expect(screen.getByRole("alert")).toHaveClass("mt-3", "rounded-alert");
   });
 
   it("defaults to the info variant", () => {
     render(<Alert>Note</Alert>);
-    expect(screen.getByRole("alert")).toHaveClass("bg-gray-50");
+    expect(screen.getByRole("alert")).toHaveClass("bg-alert-info-bg");
   });
 });
