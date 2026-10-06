@@ -82,5 +82,4 @@ npm stage list @sjolystinnovation/app-kit
 npm stage approve <stage-id>
 ```
 
-If a tagged release never reached npm, run the Release workflow by hand and give it the package
-path, such as `packages/app-kit`.
+If a tagged release never reached npm, run the Release workflow by hand and pick the package.
