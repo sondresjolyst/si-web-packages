@@ -98,6 +98,12 @@ describe("formatApiError", () => {
     expect(formatApiError(axiosError(trace, 400, "text/plain"), "fallback")).toBe("fallback");
   });
 
+  it("treats a carriage return or a Unicode line separator as a line break", () => {
+    for (const body of ["Line one\rLine two", "Line one\u2028Line two", "Line one\u2029Line two"]) {
+      expect(formatApiError(axiosError(body, 400, "text/plain"), "fallback")).toBe("fallback");
+    }
+  });
+
   it("skips fields that are not text", () => {
     expect(formatApiError(axiosError({ message: { code: "E42" }, title: "Title text" }), "fallback")).toBe(
       "Title text",

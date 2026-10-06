@@ -30,11 +30,10 @@ export function PasswordInput({
   ...props
 }: PasswordInputProps) {
   const [visible, setVisible] = useState(false);
-  // Fall back to a generated id so the label is always tied to its control. Without it, a call
-  // site that passes neither id nor name renders a label pointing at nothing, which leaves
-  // screen reader users with an unidentified field.
+  // Fall back to a generated id so the label is always tied to its own control. Not the name: two
+  // fields named "password" on one page, such as sign in next to sign up, would share an id.
   const generated = useId();
-  const inputId = id ?? props.name ?? generated;
+  const inputId = id ?? generated;
   // Built from useId rather than the name, since an id list in aria-describedby splits on spaces.
   const errorId = `${generated}-error`;
 

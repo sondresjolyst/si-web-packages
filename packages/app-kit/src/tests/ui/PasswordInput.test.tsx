@@ -9,6 +9,19 @@ describe("PasswordInput", () => {
     expect(screen.getByLabelText("Password")).toHaveAttribute("type", "password");
   });
 
+  it("ties each label to its own input when two fields share a name", () => {
+    render(
+      <>
+        <PasswordInput label="Password" name="password" />
+        <PasswordInput label="Choose a password" name="password" />
+      </>,
+    );
+    const signIn = screen.getByLabelText("Password");
+    const signUp = screen.getByLabelText("Choose a password");
+    expect(signIn).not.toBe(signUp);
+    expect(signIn.id).not.toBe(signUp.id);
+  });
+
   it("ties the label to the input even without an id or a name", () => {
     render(<PasswordInput label="Password" />);
     expect(screen.getByLabelText("Password")).toBeInTheDocument();

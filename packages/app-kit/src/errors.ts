@@ -115,6 +115,6 @@ function firstText(value: unknown): string | undefined {
 function singleLine(value: unknown): string | undefined {
   if (typeof value !== "string") return undefined;
   const text = value.trim();
-  if (!text || text.includes("\n") || text.startsWith("<")) return undefined;
+  if (!text || /[\r\n\u2028\u2029]/.test(text) || text.startsWith("<")) return undefined;
   return text;
 }
