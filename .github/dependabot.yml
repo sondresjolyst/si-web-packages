@@ -28,10 +28,23 @@ updates:
       patterns:
       - next
       - next-auth
+      - eslint-config-next
+    expo:
+      patterns:
+      - expo
+      - expo-*
+      - '@expo/*'
+    react-native:
+      patterns:
+      - react-native
+      - react-native-*
+      - '@react-native/*'
+      - '@react-navigation/*'
     eslint:
       patterns:
-      - eslint
       - '@eslint/*'
+      - eslint
+      - eslint-config-*
       - eslint-plugin-*
       - typescript-eslint
     testing:
@@ -40,13 +53,17 @@ updates:
       - '@vitejs/*'
       - '@testing-library/*'
       - jsdom
+      - jest
+      - jest-*
+      - babel-jest
+    tailwind:
+      patterns:
+      - tailwindcss
+      - '@tailwindcss/*'
+      - postcss
     types:
       patterns:
       - '@types/*'
-  ignore:
-  # typescript-eslint throws on any TypeScript 7 major, so the pin is deliberate.
-  - dependency-name: typescript
-    update-types: ["version-update:semver-major"]
   schedule:
     interval: weekly
     day: sunday
@@ -55,4 +72,4 @@ updates:
   cooldown:
     default-days: 7
   commit-message:
-    prefix: chore(deps)
+    prefix: deps(npm)
