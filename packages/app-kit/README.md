@@ -102,12 +102,13 @@ On a 4xx response it uses the first of:
 1. The body's own message: a text body, such as the one `BadRequest("...")` sends from ASP.NET Core,
    or `message`, the first validation error or `detail` from a JSON body.
 2. The entry in `statusMessages` for the status.
-3. `title` from a JSON body. It ranks below `statusMessages` because ASP.NET Core sends a generic
-   title, such as "Conflict", for every bare status result.
-4. `fallback`.
+3. `fallback`.
 
 On a 5xx response the entry in `statusMessages` comes first, then the body, then `fallback`. A 5xx
 body can come from a proxy, such as "Bad Gateway", so the caller's own words win when it has them.
+
+A problem details `title` is never shown. ASP.NET Core fills it with generic text, such as "Bad
+Request" or "An error occurred while processing your request.", which says less than `fallback`.
 
 Key `0` in `statusMessages` covers a request that got no response, because of a dropped connection
 or a timeout. Only text on a single line counts as a message. Axios's own message, such as "Request

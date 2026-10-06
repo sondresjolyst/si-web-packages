@@ -28,14 +28,13 @@ describe("formatApiError", () => {
     expect(formatApiError(error, "fallback")).toBe("Email is invalid");
   });
 
-  it("falls through to detail, then title", () => {
+  it("falls through to detail", () => {
     expect(formatApiError(axiosError({ detail: "Detail text" }), "fallback")).toBe("Detail text");
-    expect(formatApiError(axiosError({ title: "Title text" }), "fallback")).toBe("Title text");
   });
 
   it("skips an empty validation list", () => {
-    const error = axiosError({ errors: { Email: [] }, title: "Title text" });
-    expect(formatApiError(error, "fallback")).toBe("Title text");
+    const error = axiosError({ errors: { Email: [] }, detail: "Detail text" });
+    expect(formatApiError(error, "fallback")).toBe("Detail text");
   });
 
   it("reads a plain text body", () => {
@@ -105,8 +104,8 @@ describe("formatApiError", () => {
   });
 
   it("skips fields that are not text", () => {
-    expect(formatApiError(axiosError({ message: { code: "E42" }, title: "Title text" }), "fallback")).toBe(
-      "Title text",
+    expect(formatApiError(axiosError({ message: { code: "E42" }, detail: "Detail text" }), "fallback")).toBe(
+      "Detail text",
     );
     expect(formatApiError(axiosError({ title: 404 }), "fallback")).toBe("fallback");
   });
@@ -143,10 +142,12 @@ describe("formatApiError", () => {
     expect(formatApiError(badUrl, "fallback", { 0: "Check your connection and try again." })).toBe("fallback");
   });
 
-  it("ranks a generic problem details title below the status message", () => {
+  it("never shows a problem details title, which ASP.NET Core fills with generic text", () => {
     const conflict = axiosError({ title: "Conflict", status: 409 }, 409);
-    expect(formatApiError(conflict, "fallback", { 409: "That email is taken." })).toBe("That email is taken.");
-    expect(formatApiError(conflict, "fallback")).toBe("Conflict");
+    const crash = axiosError({ title: "An error occurred while processing your request.", status: 500 }, 500);
+    expect(formatApiError(conflict, "Could not save.", { 409: "That email is taken." })).toBe("That email is taken.");
+    expect(formatApiError(conflict, "Could not save.")).toBe("Could not save.");
+    expect(formatApiError(crash, "Could not save.")).toBe("Could not save.");
   });
 
   it("ranks detail above the status message", () => {
