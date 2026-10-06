@@ -91,20 +91,29 @@ resolveJwtSecret(sessionConfig, {});
 The environment is a parameter rather than a read of `process.env`, which keeps Node types out of a
 package that also runs in the browser.
 
-### `formatApiError(error, fallback)`
+### `formatApiError(error, fallback, statusMessages?)`
 
-`(error: unknown, fallback: string) => string`
+`(error: unknown, fallback: string, statusMessages?: StatusMessages) => string`
 
-Turns a failed request into one line a user can read. For an axios error it takes the first of
-`message`, the first validation error, `detail` and `title` from the response body, which covers
-plain JSON errors and ASP.NET Core problem details alike. Otherwise it uses the error's own message,
-then `fallback`.
+Turns a failed request into one line a user can read. For an axios error it uses the first of:
+
+1. A text body on a 4xx response, such as the one `BadRequest("...")` sends from ASP.NET Core, as
+   long as it is a single line. Text on a 5xx is skipped, since that is a proxy's "Bad Gateway" or a
+   server's stack trace rather than a message.
+2. `message`, the first validation error, `detail` or `title` from a JSON body, which covers plain
+   JSON errors and ASP.NET Core problem details alike.
+3. The entry in `statusMessages` for the response status. Key `0` covers a request that got no
+   response at all, such as a timeout or a dropped connection.
+4. `fallback`.
+
+Axios's own message, such as "Request failed with status code 500", is never shown. Any other
+`Error` gives its own message.
 
 ```ts
 try {
   await api.post("/users", form);
 } catch (error) {
-  setError(formatApiError(error, "Could not create the user."));
+  setError(formatApiError(error, "Could not create the user.", { 409: "That email is taken." }));
 }
 ```
 
@@ -120,6 +129,7 @@ import { Alert } from "@sjolystinnovation/app-kit/ui";
 | --- | --- | --- | --- |
 | `variant` | `"error" \| "success" \| "info" \| "warning"` | `"info"` | Colour of the box. |
 | `role` | `"alert" \| "status"` | `"alert"` | Use `status` for text that keeps changing, such as a countdown, so a screen reader does not announce every change. |
+| `className` | `string` | | Extra classes for placing the alert, such as a margin. They do not override the alert's own classes, so restyle it through the theme variables instead. |
 | `children` | `ReactNode` | | Content. |
 
 ### `PasswordInput`
@@ -142,11 +152,54 @@ import { PasswordInput } from "@sjolystinnovation/app-kit/ui";
 
 Pass the two toggle labels in the app's language. The defaults are English.
 
+## Theming
+
+The components draw every colour, corner radius and label size from theme variables with a light
+default. Set any of them in the app's own `@theme` to restyle every component at once:
+
+```css
+/* src/app/globals.css */
+@import "tailwindcss";
+@import "@sjolystinnovation/app-kit/styles.css";
+
+@theme {
+  --color-alert-error-bg: color-mix(in oklab, var(--color-red-500) 10%, transparent);
+  --color-alert-error-text: var(--color-red-400);
+  --radius-alert: var(--radius-xl);
+  --color-input-focus-ring: var(--color-sky-500);
+}
+```
+
+| Variable | Default |
+| --- | --- |
+| `--radius-alert` | `var(--radius-lg)` |
+| `--color-alert-error-bg`, `-border`, `-text` | red 50, 200, 700 |
+| `--color-alert-success-bg`, `-border`, `-text` | green 50, 200, 700 |
+| `--color-alert-info-bg`, `-border`, `-text` | gray 50, 200, 700 |
+| `--color-alert-warning-bg`, `-border`, `-text` | amber 50, 200, 900 |
+| `--text-field-label` | `var(--text-sm)`, with its line height |
+| `--color-field-label-text` | gray 700 |
+| `--spacing-field-label` | gap under the label, `calc(var(--spacing) * 1)` |
+| `--color-field-required` | red 600, the asterisk on a required field |
+| `--color-field-error` | red 600, the message under a field |
+| `--radius-input` | `var(--radius-lg)` |
+| `--spacing-input-y` | `calc(var(--spacing) * 2)` |
+| `--color-input-bg` | `transparent` |
+| `--color-input-border` | gray 300 |
+| `--color-input-border-error` | red 400 |
+| `--color-input-focus-border` | gray 300 |
+| `--color-input-text` | gray 900 |
+| `--color-input-placeholder` | gray 400 |
+| `--color-input-focus-ring` | `var(--color-primary)` |
+| `--input-focus-ring-width` | `2px` |
+| `--color-input-toggle` | gray 400, the show password icon |
+| `--color-input-toggle-hover` | gray 600 |
+
 ## Requirements
 
 - Next.js 16, React 19, next-auth 4 and axios 1, as peer dependencies the app installs itself.
-- For `@sjolystinnovation/app-kit/ui`: Tailwind CSS 4 with a `primary` colour in the theme, which the
-  focus ring uses, and `@heroicons/react` 2.
+- For `@sjolystinnovation/app-kit/ui`: Tailwind CSS 4 and `@heroicons/react` 2. The focus ring uses
+  the theme's `primary` colour unless `--color-input-focus-ring` is set.
 - TypeScript with `"moduleResolution": "bundler"`. Relative imports here are extensionless, which
   `node16` and `nodenext` reject.
 
