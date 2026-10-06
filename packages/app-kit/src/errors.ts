@@ -77,13 +77,14 @@ function readBody(response: AxiosResponse): BodyMessages {
   };
 }
 
-/** Axios leaves a JSON body as a string when the request asked for text, so parse it here. */
+/**
+ * Axios leaves a JSON body as a string when the request asked for text, so parse it here. Plain text
+ * such as "Invalid email or password." is not valid JSON and stays as it is.
+ */
 function parseIfJson(data: unknown): unknown {
   if (typeof data !== "string") return data;
-  const text = data.trim();
-  if (!/^[{["]/.test(text)) return data;
   try {
-    return JSON.parse(text);
+    return JSON.parse(data);
   } catch {
     return data;
   }

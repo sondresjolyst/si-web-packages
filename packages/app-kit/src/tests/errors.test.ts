@@ -177,6 +177,12 @@ describe("formatApiError", () => {
     );
   });
 
+  it("gives the fallback for a bare JSON value that axios left as text", () => {
+    for (const body of ["null", "true", "42"]) {
+      expect(formatApiError(axiosError(body, 400, "application/json"), "fallback")).toBe("fallback");
+    }
+  });
+
   it("does not read fields off a Document or binary body", () => {
     const page = new DOMParser().parseFromString(
       "<html><head><title>502 Bad Gateway</title></head><body></body></html>",
