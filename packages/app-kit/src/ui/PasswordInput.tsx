@@ -2,6 +2,7 @@
 
 import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline";
 import { useId, useState, type InputHTMLAttributes } from "react";
+import { cx } from "./cx";
 
 /** The input's type is left out: the component switches it to show and hide the value. */
 export interface PasswordInputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, "type"> {
@@ -12,8 +13,8 @@ export interface PasswordInputProps extends Omit<InputHTMLAttributes<HTMLInputEl
   /** Accessible name of the toggle while the password is visible. */
   hidePasswordLabel?: string;
   /**
-   * Extra classes for the input, such as a margin. They are added alongside the input's own classes
-   * and do not override them, so restyle it through the theme variables instead.
+   * Classes for placing the field, such as a margin. They go on the outer element, which holds the
+   * label, the input and the error. Restyle the field through the theme variables instead.
    */
   className?: string;
 }
@@ -34,9 +35,10 @@ export function PasswordInput({
   // screen reader users with an unidentified field.
   const generated = useId();
   const inputId = id ?? props.name ?? generated;
+  const errorId = `${inputId}-error`;
 
   return (
-    <div>
+    <div className={className}>
       <label htmlFor={inputId} className="block text-field-label font-medium text-field-label-text mb-field-label">
         {label}
         {required && <span className="text-field-required"> *</span>}
@@ -47,14 +49,13 @@ export function PasswordInput({
           id={inputId}
           type={visible ? "text" : "password"}
           required={required}
-          aria-required={required || undefined}
-          className={[
-            "w-full rounded-input border px-3 py-input-y pr-10 text-sm bg-input-bg text-input-text placeholder-input-placeholder focus:outline-none focus:ring-(length:--input-focus-ring-width) focus:ring-input-focus-ring",
+          aria-required={required ? true : props["aria-required"]}
+          aria-invalid={error ? true : props["aria-invalid"]}
+          aria-describedby={cx(props["aria-describedby"], error && errorId) || undefined}
+          className={cx(
+            "w-full rounded-input border px-3 py-input-y pr-10 text-sm bg-input-bg text-input-text placeholder-input-placeholder focus:outline-hidden focus:ring-(length:--input-focus-ring-width) focus:ring-input-focus-ring",
             error ? "border-input-border-error" : "border-input-border focus:border-input-focus-border",
-            className,
-          ]
-            .filter(Boolean)
-            .join(" ")}
+          )}
         />
         <button
           type="button"
@@ -65,7 +66,11 @@ export function PasswordInput({
           {visible ? <EyeSlashIcon className="h-4 w-4" /> : <EyeIcon className="h-4 w-4" />}
         </button>
       </div>
-      {error && <p className="mt-1 text-xs text-field-error">{error}</p>}
+      {error && (
+        <p id={errorId} className="mt-1 text-xs text-field-error">
+          {error}
+        </p>
+      )}
     </div>
   );
 }

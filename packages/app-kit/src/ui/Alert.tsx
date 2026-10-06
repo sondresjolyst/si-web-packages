@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { cx } from "./cx";
 
 export interface AlertProps {
   variant?: "error" | "success" | "info" | "warning";
@@ -8,8 +9,9 @@ export interface AlertProps {
    */
   role?: "alert" | "status";
   /**
-   * Extra classes for placing the alert, such as a margin. They are added alongside the alert's own
-   * classes and do not override them, so restyle the alert through the theme variables instead.
+   * Classes for placing the alert, such as a margin. Restyle it through the theme variables
+   * instead: whether a class that clashes with the alert's own wins depends on the order Tailwind
+   * emits them in.
    */
   className?: string;
   children: ReactNode;
@@ -24,10 +26,7 @@ const styles: Record<NonNullable<AlertProps["variant"]>, string> = {
 
 export function Alert({ variant = "info", role = "alert", className, children }: AlertProps) {
   return (
-    <div
-      className={["rounded-alert border px-3 py-2 text-sm", styles[variant], className].filter(Boolean).join(" ")}
-      role={role}
-    >
+    <div className={cx("rounded-alert border px-3 py-2 text-sm", styles[variant], className)} role={role}>
       {children}
     </div>
   );

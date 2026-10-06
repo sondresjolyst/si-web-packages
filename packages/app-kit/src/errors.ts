@@ -1,17 +1,39 @@
 import axios, { type AxiosResponse } from "axios";
 
 /**
- * Messages to show for a status code when the response carries no specific message of its own. Key 0
- * covers a request that got no response at all, such as a timeout or a dropped connection.
+ * Messages to show for a status code. On a 4xx they are used when the response carries no specific
+ * message of its own. On a 5xx they win over the body. Key 0 covers a request that got no response,
+ * because of a dropped connection or a timeout.
  */
 export type StatusMessages = Partial<Record<number, string>>;
 
 /**
- * Turns a failed request into one line a user can read. For an axios error that is the first of: a
- * text body on a 4xx response, then `message`, the first validation error and `detail` from a JSON
- * body, then `statusMessages` for the status, then the JSON `title`, then `fallback`. Only single
- * line text counts as a message. Axios's own message, such as "Request failed with status code
- * 500", is never shown, and a cancelled request gives `fallback`. Any other `Error` gives its message.
+ * Axios codes for a request that never got a response from the network. A browser reports every
+ * network failure as ERR_NETWORK. On the server, Node reports the cause instead.
+ */
+const NO_RESPONSE_CODES = new Set([
+  "ERR_NETWORK",
+  "ECONNABORTED",
+  "ETIMEDOUT",
+  "ECONNREFUSED",
+  "ECONNRESET",
+  "ENOTFOUND",
+  "EAI_AGAIN",
+  "EHOSTUNREACH",
+  "ENETUNREACH",
+]);
+
+/**
+ * Turns a failed request into one line a user can read.
+ *
+ * On a 4xx response the body's own message comes first: a text body, then `message`, the first
+ * validation error and `detail` from a JSON body. After that come `statusMessages` for the status,
+ * the JSON `title` and `fallback`. On a 5xx the caller's status message comes first, because the
+ * body may be a proxy's "Bad Gateway" rather than the API's own words.
+ *
+ * Only single line text counts as a message. Axios's own message, such as "Request failed with
+ * status code 500", is never shown, and a cancelled request gives `fallback`. Any other `Error`
+ * gives its message.
  */
 export function formatApiError(
   error: unknown,
@@ -20,11 +42,16 @@ export function formatApiError(
 ): string {
   if (axios.isCancel(error)) return fallback;
   if (axios.isAxiosError(error)) {
-    const status = error.response?.status ?? 0;
-    const body = readBody(error.response);
-    return body.specific ?? statusMessages[status] ?? body.title ?? fallback;
+    const response = error.response;
+    if (!response) {
+      return NO_RESPONSE_CODES.has(error.code ?? "") ? (statusMessages[0] ?? fallback) : fallback;
+    }
+    const body = readBody(response);
+    const forStatus = statusMessages[response.status];
+    if (response.status >= 500) return forStatus ?? body.specific ?? body.title ?? fallback;
+    return body.specific ?? forStatus ?? body.title ?? fallback;
   }
-  if (error instanceof Error) return error.message;
+  if (error instanceof Error) return singleLine(error.message) ?? fallback;
   return fallback;
 }
 
@@ -38,16 +65,9 @@ interface BodyMessages {
   title?: string;
 }
 
-function readBody(response: AxiosResponse | undefined): BodyMessages {
-  if (!response) return {};
+function readBody(response: AxiosResponse): BodyMessages {
   const data: unknown = response.data;
-
-  if (typeof data === "string") {
-    // On a 4xx a text body is the API's own message, such as BadRequest("..."). On a 5xx it is a
-    // proxy's "Bad Gateway" or a server's stack trace.
-    const status = response.status;
-    return status >= 400 && status < 500 ? { specific: singleLine(data) } : {};
-  }
+  if (typeof data === "string") return { specific: singleLine(data) };
   if (!data || typeof data !== "object") return {};
 
   const body = data as Record<string, unknown>;

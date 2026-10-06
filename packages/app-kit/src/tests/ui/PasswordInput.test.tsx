@@ -65,9 +65,22 @@ describe("PasswordInput", () => {
     expect(screen.getByLabelText("Password")).not.toHaveAttribute("showPasswordLabel");
   });
 
-  it("adds a className alongside its own classes", () => {
+  it("puts className on the outer element, so a margin does not move the toggle", () => {
     render(<PasswordInput label="Password" name="password" className="mt-2" />);
-    expect(screen.getByLabelText("Password")).toHaveClass("mt-2", "rounded-input", "pr-10");
+    expect(screen.getByLabelText("Password")).not.toHaveClass("mt-2");
+    expect(screen.getByText("Password", { selector: "label" }).parentElement).toHaveClass("mt-2");
+  });
+
+  it("links the error to the input for screen readers", () => {
+    render(<PasswordInput label="Password" name="password" error="Too short" />);
+    const input = screen.getByLabelText("Password");
+    expect(input).toHaveAttribute("aria-invalid", "true");
+    expect(input).toHaveAccessibleDescription("Too short");
+  });
+
+  it("keeps an aria-required the caller passes without required", () => {
+    render(<PasswordInput label="Password" name="password" aria-required="true" />);
+    expect(screen.getByLabelText("Password")).toHaveAttribute("aria-required", "true");
   });
 
   it("keeps its own id even when the caller passes other attributes", () => {

@@ -73,12 +73,24 @@ describe("formatApiError", () => {
     expect(formatApiError(networkError(), "Could not save.")).toBe("Could not save.");
   });
 
-  it("ignores a text body on a 5xx, so a proxy's answer does not hide the status message", () => {
-    const messages = { 502: "Payment provider unreachable." };
-    expect(formatApiError(axiosError("Bad Gateway", 502, "text/plain"), "fallback", messages)).toBe(
-      "Payment provider unreachable.",
+  it("on a 5xx puts the caller's status message above the body", () => {
+    expect(
+      formatApiError(axiosError("Bad Gateway", 502, "text/plain"), "fallback", { 502: "Payment provider unreachable." }),
+    ).toBe("Payment provider unreachable.");
+    expect(
+      formatApiError(axiosError({ message: "Endpoint request timed out" }, 504), "fallback", { 504: "The server is slow." }),
+    ).toBe("The server is slow.");
+  });
+
+  it("on a 5xx shows the API's own message when the caller has none for that status", () => {
+    const text = axiosError("Failed to regenerate invoice.", 500, "text/plain; charset=utf-8");
+    const problem = axiosError(
+      { title: "Bad Gateway", detail: "Failed to fetch email stats from Brevo.", status: 502 },
+      502,
+      "application/problem+json",
     );
-    expect(formatApiError(axiosError("no healthy upstream", 503, "text/plain"), "fallback")).toBe("fallback");
+    expect(formatApiError(text, "fallback")).toBe("Failed to regenerate invoice.");
+    expect(formatApiError(problem, "fallback")).toBe("Failed to fetch email stats from Brevo.");
   });
 
   it("ignores a text body that spans lines, such as a stack trace", () => {
@@ -107,7 +119,22 @@ describe("formatApiError", () => {
 
   it("uses status 0 for a request that got no response", () => {
     const messages = { 0: "Check your connection and try again." };
+    const timeout = new AxiosError("timeout of 10000ms exceeded", "ECONNABORTED", { headers: new AxiosHeaders() });
     expect(formatApiError(networkError(), "fallback", messages)).toBe("Check your connection and try again.");
+    expect(formatApiError(timeout, "fallback", messages)).toBe("Check your connection and try again.");
+  });
+
+  it("uses status 0 for the network failures Node reports on the server", () => {
+    const messages = { 0: "Check your connection and try again." };
+    for (const code of ["ECONNREFUSED", "ENOTFOUND", "ECONNRESET"]) {
+      const error = new AxiosError(`connect ${code}`, code, { headers: new AxiosHeaders() });
+      expect(formatApiError(error, "fallback", messages)).toBe("Check your connection and try again.");
+    }
+  });
+
+  it("does not blame the connection for a request the app set up wrong", () => {
+    const badUrl = new AxiosError("Invalid URL", "ERR_INVALID_URL", { headers: new AxiosHeaders() });
+    expect(formatApiError(badUrl, "fallback", { 0: "Check your connection and try again." })).toBe("fallback");
   });
 
   it("ranks a generic problem details title below the status message", () => {
@@ -124,10 +151,8 @@ describe("formatApiError", () => {
   });
 
   it("ignores JSON fields that span lines, such as an exception in detail", () => {
-    const error = axiosError({ detail: "System.NullReferenceException: boom\n   at Api.Users.Create()" }, 500);
-    expect(formatApiError(error, "fallback", { 500: "Something went wrong on our side." })).toBe(
-      "Something went wrong on our side.",
-    );
+    const error = axiosError({ detail: "System.NullReferenceException: boom\n   at Api.Users.Create()" }, 400);
+    expect(formatApiError(error, "fallback")).toBe("fallback");
   });
 
   it("trims a JSON message", () => {
@@ -141,6 +166,11 @@ describe("formatApiError", () => {
 
   it("uses the message of a plain Error", () => {
     expect(formatApiError(new Error("Network down"), "fallback")).toBe("Network down");
+  });
+
+  it("gives the fallback for an Error whose message is empty or spans lines", () => {
+    expect(formatApiError(new Error(), "fallback")).toBe("fallback");
+    expect(formatApiError(new Error("[\n  { \"code\": \"invalid_type\" }\n]"), "fallback")).toBe("fallback");
   });
 
   it("returns the fallback for anything else", () => {
