@@ -3,9 +3,10 @@
 
 /*
  * Design tokens for the components. Each default matches a stock Tailwind value, so an app that
- * sets none of them gets the look below. Set any of them in the app's own @theme to restyle.
+ * sets none of them gets the look below. Set any of them in the app's own @theme to restyle, or in
+ * a selector such as .dark for a scoped theme.
  */
-@theme default inline {
+@theme default {
   --radius-alert: var(--radius-lg);
   --color-alert-error-bg: var(--color-red-50);
   --color-alert-error-border: var(--color-red-200);

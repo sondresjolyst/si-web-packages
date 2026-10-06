@@ -65,6 +65,18 @@ describe("PasswordInput", () => {
     expect(screen.getByLabelText("Password")).not.toHaveAttribute("showPasswordLabel");
   });
 
+  it("adds a className alongside its own classes", () => {
+    render(<PasswordInput label="Password" name="password" className="mt-2" />);
+    expect(screen.getByLabelText("Password")).toHaveClass("mt-2", "rounded-input", "pr-10");
+  });
+
+  it("keeps its own id even when the caller passes other attributes", () => {
+    render(<PasswordInput label="Password" id="pw" name="password" autoComplete="current-password" />);
+    const input = screen.getByLabelText("Password");
+    expect(input).toHaveAttribute("id", "pw");
+    expect(input).toHaveAttribute("autocomplete", "current-password");
+  });
+
   it("marks a required field", () => {
     render(<PasswordInput label="Password" name="password" required />);
     const input = screen.getByLabelText(/Password/);

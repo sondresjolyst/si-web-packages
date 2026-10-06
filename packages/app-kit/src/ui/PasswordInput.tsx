@@ -3,13 +3,19 @@
 import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline";
 import { useId, useState, type InputHTMLAttributes } from "react";
 
-export interface PasswordInputProps extends InputHTMLAttributes<HTMLInputElement> {
+/** The input's type is left out: the component switches it to show and hide the value. */
+export interface PasswordInputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, "type"> {
   label: string;
   error?: string;
   /** Accessible name of the toggle while the password is hidden. */
   showPasswordLabel?: string;
   /** Accessible name of the toggle while the password is visible. */
   hidePasswordLabel?: string;
+  /**
+   * Extra classes for the input, such as a margin. They are added alongside the input's own classes
+   * and do not override them, so restyle it through the theme variables instead.
+   */
+  className?: string;
 }
 
 export function PasswordInput({
@@ -17,6 +23,7 @@ export function PasswordInput({
   error,
   id,
   required,
+  className,
   showPasswordLabel = "Show password",
   hidePasswordLabel = "Hide password",
   ...props
@@ -36,14 +43,18 @@ export function PasswordInput({
       </label>
       <div className="relative">
         <input
+          {...props}
           id={inputId}
           type={visible ? "text" : "password"}
           required={required}
           aria-required={required || undefined}
-          className={`w-full rounded-input border px-3 py-input-y pr-10 text-sm bg-input-bg text-input-text placeholder-input-placeholder focus:outline-none focus:ring-(length:--input-focus-ring-width) focus:ring-input-focus-ring ${
-            error ? "border-input-border-error" : "border-input-border focus:border-input-focus-border"
-          }`}
-          {...props}
+          className={[
+            "w-full rounded-input border px-3 py-input-y pr-10 text-sm bg-input-bg text-input-text placeholder-input-placeholder focus:outline-none focus:ring-(length:--input-focus-ring-width) focus:ring-input-focus-ring",
+            error ? "border-input-border-error" : "border-input-border focus:border-input-focus-border",
+            className,
+          ]
+            .filter(Boolean)
+            .join(" ")}
         />
         <button
           type="button"

@@ -1,4 +1,4 @@
-import { AxiosError, AxiosHeaders } from "axios";
+import { AxiosError, AxiosHeaders, CanceledError } from "axios";
 import { describe, expect, it } from "vitest";
 import { formatApiError } from "../errors";
 
@@ -108,6 +108,35 @@ describe("formatApiError", () => {
   it("uses status 0 for a request that got no response", () => {
     const messages = { 0: "Check your connection and try again." };
     expect(formatApiError(networkError(), "fallback", messages)).toBe("Check your connection and try again.");
+  });
+
+  it("ranks a generic problem details title below the status message", () => {
+    const conflict = axiosError({ title: "Conflict", status: 409 }, 409);
+    expect(formatApiError(conflict, "fallback", { 409: "That email is taken." })).toBe("That email is taken.");
+    expect(formatApiError(conflict, "fallback")).toBe("Conflict");
+  });
+
+  it("ranks detail above the status message", () => {
+    const error = axiosError({ title: "Conflict", detail: "That email is already registered." }, 409);
+    expect(formatApiError(error, "fallback", { 409: "That email is taken." })).toBe(
+      "That email is already registered.",
+    );
+  });
+
+  it("ignores JSON fields that span lines, such as an exception in detail", () => {
+    const error = axiosError({ detail: "System.NullReferenceException: boom\n   at Api.Users.Create()" }, 500);
+    expect(formatApiError(error, "fallback", { 500: "Something went wrong on our side." })).toBe(
+      "Something went wrong on our side.",
+    );
+  });
+
+  it("trims a JSON message", () => {
+    expect(formatApiError(axiosError({ message: "  Name is taken\n" }), "fallback")).toBe("Name is taken");
+  });
+
+  it("gives the fallback for a cancelled request, not the no response message", () => {
+    const messages = { 0: "Check your connection and try again." };
+    expect(formatApiError(new CanceledError(), "fallback", messages)).toBe("fallback");
   });
 
   it("uses the message of a plain Error", () => {

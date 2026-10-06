@@ -97,17 +97,18 @@ package that also runs in the browser.
 
 Turns a failed request into one line a user can read. For an axios error it uses the first of:
 
-1. A text body on a 4xx response, such as the one `BadRequest("...")` sends from ASP.NET Core, as
-   long as it is a single line. Text on a 5xx is skipped, since that is a proxy's "Bad Gateway" or a
-   server's stack trace rather than a message.
-2. `message`, the first validation error, `detail` or `title` from a JSON body, which covers plain
-   JSON errors and ASP.NET Core problem details alike.
+1. A text body on a 4xx response, such as the one `BadRequest("...")` sends from ASP.NET Core. Text on
+   a 5xx is skipped, since that is a proxy's "Bad Gateway" or a server's stack trace.
+2. `message`, the first validation error or `detail` from a JSON body.
 3. The entry in `statusMessages` for the response status. Key `0` covers a request that got no
    response at all, such as a timeout or a dropped connection.
-4. `fallback`.
+4. `title` from a JSON body. It ranks below `statusMessages` because ASP.NET Core sends a generic
+   title, such as "Conflict", for every bare status result.
+5. `fallback`.
 
-Axios's own message, such as "Request failed with status code 500", is never shown. Any other
-`Error` gives its own message.
+Only text on a single line counts as a message. Axios's own message, such as "Request failed with
+status code 500", is never shown, and a cancelled request gives `fallback`. Any other `Error` gives
+its own message.
 
 ```ts
 try {
@@ -149,13 +150,15 @@ import { PasswordInput } from "@sjolystinnovation/app-kit/ui";
 | `error` | `string` | | Message shown under the field, which also turns the border red. |
 | `showPasswordLabel` | `string` | `"Show password"` | Accessible name of the toggle while the value is hidden. |
 | `hidePasswordLabel` | `string` | `"Hide password"` | Accessible name of the toggle while the value is visible. |
+| `className` | `string` | | Extra classes for the input, such as a margin. They do not override its own classes, so restyle it through the theme variables instead. |
 
 Pass the two toggle labels in the app's language. The defaults are English.
 
 ## Theming
 
 The components draw every colour, corner radius and label size from theme variables with a light
-default. Set any of them in the app's own `@theme` to restyle every component at once:
+default. Set any of them in the app's own `@theme` to restyle every component at once, or in a
+selector such as `.dark` for a scoped theme:
 
 ```css
 /* src/app/globals.css */
@@ -177,7 +180,7 @@ default. Set any of them in the app's own `@theme` to restyle every component at
 | `--color-alert-success-bg`, `-border`, `-text` | green 50, 200, 700 |
 | `--color-alert-info-bg`, `-border`, `-text` | gray 50, 200, 700 |
 | `--color-alert-warning-bg`, `-border`, `-text` | amber 50, 200, 900 |
-| `--text-field-label` | `var(--text-sm)`, with its line height |
+| `--text-field-label`, `--text-field-label--line-height` | `var(--text-sm)` and its line height. Set both together. |
 | `--color-field-label-text` | gray 700 |
 | `--spacing-field-label` | gap under the label, `calc(var(--spacing) * 1)` |
 | `--color-field-required` | red 600, the asterisk on a required field |
@@ -194,6 +197,10 @@ default. Set any of them in the app's own `@theme` to restyle every component at
 | `--input-focus-ring-width` | `2px` |
 | `--color-input-toggle` | gray 400, the show password icon |
 | `--color-input-toggle-hover` | gray 600 |
+
+A default that points at another variable, such as `--color-input-focus-ring` at `--color-primary`,
+is read once for the whole page. A scoped theme that changes `--color-primary` should set
+`--color-input-focus-ring` in the same selector.
 
 ## Requirements
 
