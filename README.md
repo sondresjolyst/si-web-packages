@@ -18,7 +18,7 @@ The packages ship TypeScript source and the consuming app compiles them, which i
 
 | Package | Version | Description |
 | --- | --- | --- |
-| [`@sjolystinnovation/app-kit`](packages/app-kit) | [![npm](https://img.shields.io/npm/v/@sjolystinnovation/app-kit.svg)](https://www.npmjs.com/package/@sjolystinnovation/app-kit) | Session configuration for next-auth against a JWT API |
+| [`@sjolystinnovation/app-kit`](packages/app-kit) | [![npm](https://img.shields.io/npm/v/@sjolystinnovation/app-kit.svg)](https://www.npmjs.com/package/@sjolystinnovation/app-kit) | Session, error handling and form building blocks for next-auth against a JWT API |
 
 ## Contributing
 

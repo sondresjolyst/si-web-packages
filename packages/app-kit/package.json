@@ -1,7 +1,7 @@
 {
   "name": "@sjolystinnovation/app-kit",
   "version": "0.1.0",
-  "description": "Session configuration for Next.js apps that sign in against a JWT API through next-auth",
+  "description": "Building blocks for Next.js apps that sign in against a JWT API through next-auth",
   "license": "Apache-2.0",
   "author": "Sjølyst Innovation AS",
   "repository": {
@@ -13,7 +13,8 @@
   "type": "module",
   "sideEffects": false,
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./ui": "./src/ui/index.ts"
   },
   "files": [
     "src",
@@ -27,6 +28,7 @@
     "test": "vitest run"
   },
   "peerDependencies": {
+    "@heroicons/react": "^2",
     "axios": "^1",
     "next": "^16",
     "next-auth": "^4.24",
@@ -34,6 +36,7 @@
     "react-dom": "^19"
   },
   "devDependencies": {
+    "@heroicons/react": "^2.2.0",
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.3",
     "@testing-library/user-event": "^14.6.7",
@@ -54,6 +57,7 @@
     "next-auth",
     "session",
     "jwt",
-    "react"
+    "react",
+    "tailwindcss"
   ]
 }
