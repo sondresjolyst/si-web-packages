@@ -11,10 +11,13 @@
   },
   "homepage": "https://github.com/sondresjolyst/si-web-packages#readme",
   "type": "module",
-  "sideEffects": false,
+  "sideEffects": [
+    "*.css"
+  ],
   "exports": {
     ".": "./src/index.ts",
-    "./ui": "./src/ui/index.ts"
+    "./ui": "./src/ui/index.ts",
+    "./styles.css": "./src/styles.css"
   },
   "files": [
     "src",
