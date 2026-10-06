@@ -78,6 +78,11 @@ describe("PasswordInput", () => {
     expect(input).toHaveAccessibleDescription("Too short");
   });
 
+  it("links the error even when the name has a space in it", () => {
+    render(<PasswordInput label="New password" name="new password" error="Too short" />);
+    expect(screen.getByLabelText("New password")).toHaveAccessibleDescription("Too short");
+  });
+
   it("keeps an aria-required the caller passes without required", () => {
     render(<PasswordInput label="Password" name="password" aria-required="true" />);
     expect(screen.getByLabelText("Password")).toHaveAttribute("aria-required", "true");

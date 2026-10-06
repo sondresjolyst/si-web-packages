@@ -112,7 +112,8 @@ body can come from a proxy, such as "Bad Gateway", so the caller's own words win
 Key `0` in `statusMessages` covers a request that got no response, because of a dropped connection
 or a timeout. Only text on a single line counts as a message. Axios's own message, such as "Request
 failed with status code 500", is never shown, and a cancelled request gives `fallback`. Any other
-`Error` gives its own message.
+`Error` gives its own message. A body requested as an `arraybuffer` or a `blob`, as for a file
+download, is not read, so a failed download gets `statusMessages` or `fallback`.
 
 ```ts
 try {
@@ -139,8 +140,9 @@ import { Alert } from "@sjolystinnovation/app-kit/ui";
 
 ### `PasswordInput`
 
-A labelled password field with a button that shows and hides the value. Accepts every `<input>`
-attribute as well.
+A labelled password field with a button that shows and hides the value. It also takes the other
+`<input>` attributes, apart from `type`, which the component switches itself. `className` goes on
+the outer element, see below.
 
 ```tsx
 import { PasswordInput } from "@sjolystinnovation/app-kit/ui";

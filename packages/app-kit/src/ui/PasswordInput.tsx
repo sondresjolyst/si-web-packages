@@ -35,7 +35,8 @@ export function PasswordInput({
   // screen reader users with an unidentified field.
   const generated = useId();
   const inputId = id ?? props.name ?? generated;
-  const errorId = `${inputId}-error`;
+  // Built from useId rather than the name, since an id list in aria-describedby splits on spaces.
+  const errorId = `${generated}-error`;
 
   return (
     <div className={className}>
