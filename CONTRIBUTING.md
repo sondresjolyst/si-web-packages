@@ -71,6 +71,16 @@ Branch from `main`, keep the description to a sentence or two, and make sure CI 
 
 ## Releases
 
-Maintainers handle these. Merging to `main` opens a release pull request, and merging that tags the
-release and publishes to npm through OIDC
+Maintainers handle these. Merging to `main` opens a release pull request. Merging that tags the
+release and stages it on npm through OIDC
 [trusted publishing](https://docs.npmjs.com/trusted-publishers), so no npm token is stored here.
+
+A staged version cannot be installed until a maintainer approves it with two-factor authentication:
+
+```sh
+npm stage list @sjolystinnovation/app-kit
+npm stage approve <stage-id>
+```
+
+If a tagged release never reached npm, run the Release workflow by hand and give it the package
+path, such as `packages/app-kit`.
