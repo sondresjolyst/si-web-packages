@@ -13,13 +13,33 @@ export interface SessionConfig {
    * something like "/en/login", one without uses "/login".
    */
   loginRoute: string;
-  /** Prefix for the localStorage keys holding form drafts. */
+  /**
+   * Prefix for the localStorage keys holding form drafts, usually the app's name, such as
+   * "example". Drafts are stored under `<prefix>:draft:<owner>:<scope>`, so the prefix itself
+   * has no trailing colon.
+   */
   draftStoragePrefix: string;
 }
 
-/** Identity helper, so an app can declare its config as a typed constant. */
+/**
+ * Declares an app's config as a typed constant. Throws when `draftStoragePrefix` is not a bare name,
+ * so a bad value fails when the app starts rather than when a form first opens.
+ */
 export function defineSessionConfig(config: SessionConfig): SessionConfig {
+  draftPrefix(config);
   return config;
+}
+
+/**
+ * The key prefix for form drafts. A colon or an empty name builds keys such as "app:draft::draft:",
+ * which match none of the drafts already saved under "app:draft:".
+ */
+export function draftPrefix(config: Pick<SessionConfig, "draftStoragePrefix">): string {
+  const name = config.draftStoragePrefix;
+  if (!name || name.includes(":")) {
+    throw new Error(`draftStoragePrefix must be a bare name such as "example", not "${name}".`);
+  }
+  return `${name}:draft:`;
 }
 
 /**

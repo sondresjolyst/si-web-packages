@@ -16,6 +16,9 @@
   ],
   "exports": {
     ".": "./src/index.ts",
+    "./session": "./src/session/index.ts",
+    "./session/react": "./src/session/react/index.ts",
+    "./forms": "./src/forms/index.ts",
     "./ui": "./src/ui/index.ts",
     "./styles.css": "./src/styles.css"
   },
