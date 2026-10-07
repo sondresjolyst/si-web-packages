@@ -7,6 +7,14 @@ const config = defineSessionConfig({
   draftStoragePrefix: "example",
 });
 
+describe("defineSessionConfig", () => {
+  it("rejects a draft prefix that would orphan the drafts already saved", () => {
+    for (const draftStoragePrefix of ["example:draft:", "example:", ""]) {
+      expect(() => defineSessionConfig({ ...config, draftStoragePrefix })).toThrow("bare name");
+    }
+  });
+});
+
 describe("resolveJwtSecret", () => {
   it("reads the variable named by the config", () => {
     expect(resolveJwtSecret(config, { API_JWT_SECRET: "s3cret" })).toBe("s3cret");

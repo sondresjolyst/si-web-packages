@@ -64,14 +64,14 @@ const secret = resolveJwtSecret(sessionConfig, process.env);
 | --- | --- | --- |
 | `jwtSecretEnvVar` | `string` | Name of the environment variable holding the API JWT secret, such as `API_JWT_SECRET`. |
 | `loginRoute` | `string` | Where an expired session sends the browser, such as `/en/login` or `/login`. |
-| `draftStoragePrefix` | `string` | Prefix for the `localStorage` keys holding form drafts. |
+| `draftStoragePrefix` | `string` | Bare name for the `localStorage` keys holding form drafts, such as `example`. Drafts are stored under `example:draft:<owner>:<scope>`. |
 
 ### `defineSessionConfig(config)`
 
 `(config: SessionConfig) => SessionConfig`
 
 Returns the config unchanged, so TypeScript checks its shape where it is declared rather than at
-every call site.
+every call site. Throws when `draftStoragePrefix` is empty or contains a colon.
 
 ### `resolveJwtSecret(config, env)`
 
@@ -123,6 +123,151 @@ try {
   setError(formatApiError(error, "Could not create the user.", { 409: "That email is taken." }));
 }
 ```
+
+### `@sjolystinnovation/app-kit/session`
+
+Decides when a user has to sign in again. Safe to import from server code, such as the next-auth
+callbacks.
+
+The gate reads `session.error`. The app's `jwt` callback sets `token.error`, and its `session`
+callback copies it across:
+
+```ts
+callbacks: {
+  session({ session, token }) {
+    session.error = token.error;
+    return session;
+  },
+},
+```
+
+For that to compile, `error` has to be on next-auth's `Session` and `JWT` types. Add it to
+the app's existing next-auth type declarations, or create them:
+
+```ts
+// src/types/next-auth.d.ts
+import "next-auth";
+import "next-auth/jwt";
+
+declare module "next-auth" {
+  interface Session {
+    error?: string | undefined;
+  }
+}
+
+declare module "next-auth/jwt" {
+  interface JWT {
+    error?: string | undefined;
+  }
+}
+```
+
+`SESSION_ERRORS` holds the values the jwt callback puts in `token.error` when the session cannot be
+recovered: `AbsoluteSessionExpired`, `RefreshTokenRejected` and `NoRefreshToken`. `SessionError`
+is their union type. `isTerminalSessionError(error)` is true for those three only, so a transient
+refresh failure keeps the session.
+
+The re-sign-in prompt is a flag outside React, so an axios interceptor can raise it:
+
+| Function | Description |
+| --- | --- |
+| `openSessionPrompt()` | Asks the user to sign in again without leaving the page. |
+| `closeSessionPrompt()` | Hides the prompt. Call it when the component showing the prompt unmounts, or the flag stays open and the gate never redirects. |
+| `subscribeSessionPrompt(listener)` | Calls `listener` when the prompt opens or closes. Returns an unsubscribe function. |
+| `getSessionPromptOpen()` | Whether the prompt is showing. |
+
+Copies of the package installed side by side share the one flag, as long as their releases use the
+same prompt state format. A release that changes the format says so in its changelog. An app's own
+copy of these functions does not, so an app moving to them moves every import at once: the
+interceptor, the prompt and every gate.
+
+### `useSessionGate()`
+
+From `@sjolystinnovation/app-kit/session/react`. Tells a protected page whether it may render. It
+reads `useSession`, so it needs a `SessionProvider` above it.
+
+A page that rendered on a healthy session stays rendered when the session gets a terminal error,
+while the session is re-read and while the prompt recovers it, so an open form keeps its values. A
+session that turns signed out with no prompt open blanks the page. A page the user opens
+on a dead session does not render. Use `mayRender` in every gate and layout on the way down, so
+none of them blanks a page that another one kept.
+
+The hook does not navigate. The gate sends the user to the login page itself, and never while the
+prompt is open. The app passes the login URL in, so an app with a locale in the path can build it
+for the current locale:
+
+```tsx
+"use client";
+
+import { useSessionGate } from "@sjolystinnovation/app-kit/session/react";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
+
+export function ProtectedGate({
+  loginHref,
+  children,
+}: {
+  loginHref: string;
+  children: React.ReactNode;
+}) {
+  const router = useRouter();
+  const { status, promptOpen, usable, wasUsable, mayRender } = useSessionGate();
+
+  useEffect(() => {
+    if (promptOpen) return;
+    if (status === "unauthenticated" || (status === "authenticated" && !usable && !wasUsable)) {
+      router.push(loginHref);
+    }
+  }, [status, usable, wasUsable, promptOpen, router, loginHref]);
+
+  return mayRender ? children : <p>Loading…</p>;
+}
+```
+
+| Field | Description |
+| --- | --- |
+| `mayRender` | Whether the page may render. |
+| `session`, `status` | As `useSession` returns them. |
+| `usable` | The session is signed in and has no terminal error. |
+| `wasUsable` | This page has rendered on a usable session. |
+| `promptOpen` | The re-sign-in prompt is showing. |
+| `recovering` | The prompt is showing over a page that was usable. |
+
+`SessionGate` is the type of the result.
+
+### `useFormDraft(config, options)`
+
+From `@sjolystinnovation/app-kit/forms`. Keeps a form's values in `localStorage`, so a sign-out,
+reload or closed tab does not lose them. Values are written half a second after the last change, so
+only that last half second is at risk.
+
+```tsx
+// userId is the signed-in user's id, from wherever the app's session keeps it.
+const draft = useFormDraft(sessionConfig, {
+  owner: userId,
+  scope: recipe ? `recipe:${recipe.id}` : "recipe:new",
+  value: form,
+});
+```
+
+| Option | Type | Description |
+| --- | --- | --- |
+| `owner` | `string \| undefined` | The signed-in user's id. Drafts are stored per user, and nothing is stored until it is known. The last known owner is kept when the session stops reporting one. |
+| `scope` | `string` | The form and the entity it edits, such as `recipe:42`. |
+| `value` | `T` | The form's current values. They must survive `JSON.stringify`. |
+
+Mount an edit form once the entity has loaded, with its values already in `value`. The hook treats
+the values it first sees under a key as the untouched form, so values that arrive later count as an
+edit and are written over the draft being offered.
+
+It returns `pending`, the stored draft, which the page offers instead of applying. It is read when the
+owner is first known and again whenever the owner or `scope` changes, so it can appear after the form mounts. It
+also returns `dismiss()` to stop offering it, and `clear()` to drop the stored draft after a
+successful save.
+
+Drafts are stored under `<draftStoragePrefix>:draft:<owner>:<scope>`. The hook throws when
+`draftStoragePrefix` is empty or contains a colon. A draft older than 7 days is not offered, and is
+removed when its form next reads it.
 
 ### `Alert`
 
