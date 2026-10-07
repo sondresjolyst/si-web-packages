@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.0](https://github.com/sondresjolyst/si-web-packages/compare/app-kit-v0.3.0...app-kit-v0.4.0) (2026-10-07)
+
+
+### Features
+
+* **session:** add the session gate and form drafts ([#7](https://github.com/sondresjolyst/si-web-packages/issues/7)) ([6e23bc3](https://github.com/sondresjolyst/si-web-packages/commit/6e23bc3955dd7f079bd91188d753645df8433398))
+
 ## [0.3.0](https://github.com/sondresjolyst/si-web-packages/compare/app-kit-v0.2.0...app-kit-v0.3.0) (2026-10-06)
 
 
