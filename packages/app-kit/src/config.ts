@@ -1,6 +1,6 @@
 /**
  * The values that differ between the apps using this package. Everything else in the session layer
- * is identical across them, so it stays hardcoded rather than becoming an option.
+ * is the same in every app, so it is hardcoded.
  */
 export interface SessionConfig {
   /**
@@ -10,7 +10,7 @@ export interface SessionConfig {
   jwtSecretEnvVar: string;
   /**
    * Where an expired or rejected session sends the browser. An app with a locale prefix uses
-   * something like "/en/login", one without uses "/login".
+   * something like "/en/login". An app without one uses "/login".
    */
   loginRoute: string;
   /**
@@ -23,7 +23,7 @@ export interface SessionConfig {
 
 /**
  * Declares an app's config as a typed constant. Throws when `draftStoragePrefix` is not a bare name,
- * so a bad value fails when the app starts rather than when a form first opens.
+ * so a bad value fails at app start, before any form opens.
  */
 export function defineSessionConfig(config: SessionConfig): SessionConfig {
   draftPrefix(config);
@@ -31,8 +31,8 @@ export function defineSessionConfig(config: SessionConfig): SessionConfig {
 }
 
 /**
- * The key prefix for form drafts. A colon or an empty name builds keys such as "app:draft::draft:",
- * which match none of the drafts already saved under "app:draft:".
+ * The key prefix for form drafts. Throws on a colon or an empty name. Those build keys such as
+ * "app:draft::draft:", which match no draft saved under "app:draft:".
  */
 export function draftPrefix(config: Pick<SessionConfig, "draftStoragePrefix">): string {
   const name = config.draftStoragePrefix;
@@ -43,11 +43,22 @@ export function draftPrefix(config: Pick<SessionConfig, "draftStoragePrefix">): 
 }
 
 /**
- * Reads the API JWT secret named by the config. Throws rather than returning undefined, because a
- * missing secret silently breaks token verification at runtime instead of at boot.
+ * Returns `value`, or throws when it is unset or empty. Pass `process.env.NAME` directly, so Next.js
+ * can inline public variables at build time.
+ */
+export function requireEnv(name: string, value: string | undefined): string {
+  if (!value) {
+    throw new Error(`Missing ${name}.`);
+  }
+  return value;
+}
+
+/**
+ * Reads the API JWT secret named by the config. Throws when it is missing, with a message that names
+ * the variable.
  *
- * The caller passes the environment, usually `process.env`. Reading it here would put
- * `@types/node` in the type surface of a package that ends up in a browser bundle.
+ * The caller passes the environment, usually `process.env`, so this entry point needs no Node
+ * types and stays safe to import in browser code.
  */
 export function resolveJwtSecret(
   config: SessionConfig,

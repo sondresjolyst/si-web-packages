@@ -71,8 +71,8 @@ describe("useSessionGate", () => {
     sessionState = { data: session(), status: "authenticated" };
     const { result, rerender } = gate();
 
-    // next-auth reports 'loading' during a refetch. Blanking the page here would unmount the
-    // form and lose everything typed into it.
+    // next-auth reports 'loading' during a refetch. The page stays, so the form keeps what the
+    // user typed.
     sessionState = { data: session(), status: "loading" };
     rerender();
 

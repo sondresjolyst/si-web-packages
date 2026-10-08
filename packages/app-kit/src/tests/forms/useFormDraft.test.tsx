@@ -14,8 +14,7 @@ const config = defineSessionConfig({
 // Changing this format orphans every draft already saved.
 const KEY = `example:draft:${OWNER}:test-form`;
 
-// noOwner rather than owner={undefined}: passing undefined for a defaulted prop just picks
-// the default up again.
+// A noOwner flag, because owner={undefined} on a defaulted prop picks up the default again.
 function Form({ initialTitle = "", owner = OWNER, scope = "test-form", noOwner = false }: { initialTitle?: string; owner?: string; scope?: string; noOwner?: boolean }) {
   const [title, setTitle] = useState(initialTitle);
   const draft = useFormDraft(config, { owner: noOwner ? undefined : owner, scope, value: { title } });
@@ -90,8 +89,8 @@ describe("useFormDraft", () => {
   });
 
   it("still saves new typing while the offer is unanswered", async () => {
-    // The reason the offer is held in memory rather than gating the writer: an admin who
-    // ignores the banner and fills in the whole form must not end up with nothing stored.
+    // The offer lives in memory and does not block writes. A user who ignores the offer and fills
+    // in the form still has the work stored.
     storedAt({ title: "Halvferdig" });
     render(<Form />);
 
@@ -140,13 +139,13 @@ describe("useFormDraft", () => {
     expect(stored()).toBeNull();
   });
 
-  it("forgets a draft the user abandoned weeks ago", async () => {
+  it("forgets a draft older than seven days", async () => {
     storedAt({ title: "Glemt" }, Date.now() - 8 * 24 * 60 * 60 * 1000);
     render(<Form />);
     await settle();
 
-    // Unpublished work should not sit in the browser indefinitely, and an eight-day-old
-    // draft is not something the user still wants offered.
+    // Unpublished work should not sit in the browser for good. An eight-day-old draft is too
+    // stale to offer.
     expect(screen.queryByText(/draft waiting/)).not.toBeInTheDocument();
     expect(window.localStorage.getItem(KEY)).toBeNull();
   });

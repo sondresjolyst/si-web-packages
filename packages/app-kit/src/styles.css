@@ -2,9 +2,9 @@
 @source ".";
 
 /*
- * Design tokens for the components. Each default matches a stock Tailwind value, so an app that
- * sets none of them gets the look below. Set any of them in the app's own @theme to restyle, or in
- * a selector such as .dark for a scoped theme.
+ * Design tokens for the components. The defaults are stock Tailwind values, except the focus ring,
+ * which uses the theme's --color-primary. Set a token in the app's own @theme to restyle, or in a
+ * selector such as .dark for a scoped theme.
  */
 @theme default {
   --radius-alert: var(--radius-lg);

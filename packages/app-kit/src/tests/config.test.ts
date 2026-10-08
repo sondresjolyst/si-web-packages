@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { defineSessionConfig, resolveJwtSecret } from "../config";
+import { defineSessionConfig, requireEnv, resolveJwtSecret } from "../config";
 
 const config = defineSessionConfig({
   jwtSecretEnvVar: "API_JWT_SECRET",
@@ -12,6 +12,17 @@ describe("defineSessionConfig", () => {
     for (const draftStoragePrefix of ["example:draft:", "example:", ""]) {
       expect(() => defineSessionConfig({ ...config, draftStoragePrefix })).toThrow("bare name");
     }
+  });
+});
+
+describe("requireEnv", () => {
+  it("returns a value that is set", () => {
+    expect(requireEnv("NEXT_PUBLIC_API_URL", "https://api.example")).toBe("https://api.example");
+  });
+
+  it("names the variable when it is unset or empty", () => {
+    expect(() => requireEnv("NEXT_PUBLIC_API_URL", undefined)).toThrow("Missing NEXT_PUBLIC_API_URL.");
+    expect(() => requireEnv("NEXT_PUBLIC_API_URL", "")).toThrow("Missing NEXT_PUBLIC_API_URL.");
   });
 });
 

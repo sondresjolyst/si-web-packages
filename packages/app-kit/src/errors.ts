@@ -9,7 +9,7 @@ export type StatusMessages = Partial<Record<number, string>>;
 
 /**
  * Axios codes for a request that never got a response from the network. A browser reports every
- * network failure as ERR_NETWORK. On the server, Node reports the cause instead.
+ * network failure as ERR_NETWORK. On the server, Node reports the specific cause.
  */
 const NO_RESPONSE_CODES = new Set([
   "ERR_NETWORK",
@@ -26,15 +26,19 @@ const NO_RESPONSE_CODES = new Set([
 /**
  * Turns a failed request into one line a user can read.
  *
- * On a 4xx response the body's own message comes first: a text body, then `message`, the first
- * validation error and `detail` from a JSON body. After that come `statusMessages` for the status
- * and `fallback`. On a 5xx the caller's status message comes first, because the body may be a
- * proxy's "Bad Gateway" rather than the API's own words. A problem details `title` is never used:
- * ASP.NET Core fills it with generic text such as "Bad Request", which says less than `fallback`.
+ * On a 4xx response the order is:
+ * 1. The body's own message: a text body, or `message`, the first validation error or `detail` from
+ *    a JSON body.
+ * 2. `statusMessages` for the status.
+ * 3. `fallback`.
+ *
+ * On a 5xx the caller's status message comes first, because the body may come from a proxy, such
+ * as "Bad Gateway". A problem details `title` is never used. ASP.NET Core fills it with generic text
+ * such as "Bad Request", which says less than `fallback`.
  *
  * Only single line text counts as a message. Axios's own message, such as "Request failed with
- * status code 500", is never shown, and a cancelled request gives `fallback`. Any other `Error`
- * gives its message.
+ * status code 500", is never shown. A cancelled request gives `fallback`. Any other `Error` gives
+ * its message.
  */
 export function formatApiError(
   error: unknown,

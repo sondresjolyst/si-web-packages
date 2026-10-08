@@ -5,9 +5,8 @@ import { draftPrefix, type SessionConfig } from "../config";
 
 const WRITE_DELAY_MS = 500;
 
-// How long a draft is offered. Long enough to outlive an expired session or a closed tab, short
-// enough that week-old work is not offered as if it were current. An expired draft is removed when
-// its form next reads it.
+// How long a draft is offered. Long enough to outlive an expired session or a closed tab. Short
+// enough that stale work is not offered as current. A form removes its expired draft on next read.
 const MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
 interface Envelope<T> {
@@ -35,10 +34,10 @@ function read<T>(storageKey: string): T | null {
 
 export interface FormDraftOptions<T> {
   /**
-   * The signed-in user's id. A browser profile can be shared, so the draft is stored per user.
-   * Without that, the next person to sign in is offered the previous one's work. The last known
-   * owner is kept, because a lost cookie reports nobody and that is the moment the draft matters
-   * most. Nothing is stored until an owner is known.
+   * The signed-in user's id. A browser profile can be shared, so drafts are stored per user. That
+   * way nobody is offered another user's work. The hook keeps the last known owner. A lost cookie
+   * reports nobody, and that is when the draft matters most. Nothing is stored until an owner is
+   * known.
    */
   owner: string | undefined;
   /** Identifies the form and the entity it edits, for example `recipe:new` or `recipe:42`. */
@@ -63,16 +62,15 @@ export interface FormDraft<T> {
  * Keeps a form's values in localStorage so a sign-out, reload or closed tab does not lose them.
  * Values are written half a second after the last change, so only that last half second is at risk.
  *
- * A draft found at mount is offered for restore rather than applied, so an edit form never silently
- * overwrites what the API returned. Saving starts immediately either way. The offer is held in
- * memory, so the newest work is always the thing in storage.
+ * A draft found at mount is offered for restore, not applied. So an edit form never silently
+ * overwrites what the API returned. Saving starts at once, whether or not the offer is answered.
+ * The offer is held in memory, so storage always holds the newest work.
  */
 export function useFormDraft<T>(
   config: Pick<SessionConfig, "draftStoragePrefix">,
   { owner, scope, value }: FormDraftOptions<T>,
 ): FormDraft<T> {
-  // Adjusted during render rather than in an effect, which is the supported way to derive state
-  // from changing inputs.
+  // Set during render, which is React's supported way to derive state from changing inputs.
   const [lastOwner, setLastOwner] = useState<string | undefined>(undefined);
   if (owner && owner !== lastOwner) setLastOwner(owner);
 
@@ -86,21 +84,21 @@ export function useFormDraft<T>(
   const writeTimer = useRef<number | null>(null);
 
   useEffect(() => {
-    // Re-base on a key change too. The values on screen belong to the old key, and writing them
-    // under the new one would put this form's work in another form's draft.
+    // Re-base on a key change too. The values on screen belong to the old key and must not land
+    // in the new key's draft.
     untouched.current = json;
-    // Reading the store is an external-system read, which is what an effect is for.
+    // Reading storage is an external-system read, which belongs in an effect.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setPending(key == null ? null : read<T>(key));
-    // Keyed on the draft key alone on purpose. Re-reading whenever the values change would
-    // re-offer a draft the user has already answered.
+    // Runs on a key change only. Re-reading on every value change would re-offer a draft the user
+    // has already answered.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);
 
   useEffect(() => {
     if (key == null) return;
-    // Write only once the form differs from how it opened. Writing the pristine form would
-    // overwrite the draft being offered before the user has answered.
+    // Write only once the form differs from how it opened, so the pristine form never overwrites
+    // a draft that is still on offer.
     if (json === untouched.current) return;
     const timer = window.setTimeout(() => {
       try {
@@ -116,14 +114,14 @@ export function useFormDraft<T>(
 
   const clear = useCallback(() => {
     if (key == null) return;
-    // Cancel a write that is already scheduled, and treat the current values as the new baseline.
-    // Otherwise a save is followed by the draft being written back.
+    // Cancel any scheduled write and make the current values the baseline, so a save is never
+    // followed by a fresh draft write.
     if (writeTimer.current != null) window.clearTimeout(writeTimer.current);
     untouched.current = json;
     try {
       window.localStorage.removeItem(key);
     } catch {
-      // The draft is a convenience, not state anything depends on.
+      // The draft is a convenience. Nothing depends on it.
     }
   }, [key, json]);
 

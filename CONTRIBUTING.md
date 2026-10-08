@@ -26,23 +26,24 @@ CI runs the same three on every pull request, so running them first saves you a 
 ## Good to know before you change the source
 
 The packages here have no build step. `exports` points straight at `src`, so what gets published is
-TypeScript, and each consuming app compiles it through `transpilePackages`. The reason is the
-`"use client"` directive: bundlers strip it or move it, and the app breaks at runtime rather than at
+TypeScript. Each consuming app compiles it through `transpilePackages`. The reason is the
+`"use client"` directive. Bundlers strip it or move it, and the app then breaks at runtime, not at
 build time.
 
 A few things follow from that, and they are easy to trip over:
 
-- `react`, `react-dom`, `next`, `next-auth` and `axios` are peer dependencies, kept at major ranges.
-  A second copy of React breaks hooks, and axios interceptors need the app's own instance.
-- Relative imports stay extensionless, which means consumers need `"moduleResolution": "bundler"`.
-- Consumers typecheck this source with their own `compilerOptions`, so it has to hold up under
-  settings stricter than the ones in this repository. `skipLibCheck` will not save you.
-- `"use client"` belongs in each component and hook file rather than in an entry point's
-  `index.ts`. On a barrel it makes every export of that entry a client reference, and server code
-  importing one gets a proxy instead of a function.
+- `react`, `react-dom`, `next`, `next-auth` and `axios` are peer dependencies. A second copy of React
+  breaks hooks, and axios interceptors need the app's own instance. Ranges stay at the major unless
+  the code or a security fix needs a higher floor, such as next-auth 4.24 and axios 1.20.
+- Relative imports stay extensionless, so consumers need `"moduleResolution": "bundler"`.
+- Consumers typecheck this source with their own `compilerOptions`. It has to hold up under
+  settings stricter than the ones in this repository, and `skipLibCheck` will not save you.
+- `"use client"` belongs in each component and hook file, not in an entry point's `index.ts`. On a
+  barrel it makes every export of that entry a client reference. Server code that imports one then
+  gets a proxy, not a function.
 
 TypeScript is held at `^6` on purpose. typescript-eslint throws on TypeScript 7, which ships no
-JavaScript compiler API for it to use, so a bump breaks linting entirely.
+JavaScript compiler API for it to use. A bump would break linting entirely.
 
 ## Adding an entry point
 
@@ -61,9 +62,9 @@ We use [Conventional Commits](https://www.conventionalcommits.org/), scoped with
 fix(session): evict every refresh token past the cap
 ```
 
-release-please reads them to work out the next version and to write the changelog, so the type and
-the scope end up in the release notes. A body is worth adding when the title and the diff leave
-something out, such as a new environment variable.
+release-please reads them to work out the next version and write the changelog, so the type and
+the scope end up in the release notes. Add a body when the title and the diff leave something out,
+such as a new environment variable.
 
 ## Pull requests
 
@@ -71,7 +72,7 @@ Branch from `main`, keep the description to a sentence or two, and make sure CI 
 
 ## Releases
 
-Maintainers handle these. Merging to `main` opens a release pull request. Merging that tags the
+Maintainers handle these. Merging to `main` opens a release pull request. Merging that one tags the
 release and stages it on npm through OIDC
 [trusted publishing](https://docs.npmjs.com/trusted-publishers), so no npm token is stored here.
 

@@ -8,9 +8,8 @@ import { getSessionPromptOpen, isTerminalSessionError, subscribeSessionPrompt } 
 /**
  * Whether a protected page may render, and whether it must stay rendered.
  *
- * Every gate on the way down should use this, so they agree. A nested layout that decides on its
- * own to blank the page undoes the in-place recovery the re-sign-in prompt exists for, and the user
- * loses the form anyway.
+ * Every gate on the way down should use this, so they all agree. A nested layout that decides on
+ * its own can blank the page. That undoes the in-place recovery the re-sign-in prompt exists for.
  */
 export function useSessionGate() {
   const { data: session, status } = useSession();
@@ -26,11 +25,10 @@ export function useSessionGate() {
   const error = (session as { error?: string } | null)?.error;
   const usable = status === "authenticated" && !isTerminalSessionError(error);
 
-  // Which page last rendered on a healthy session. Keyed by path, so each page starts the check
-  // again and a session that died on the previous page cannot carry a stale pass into a fresh form.
-  // Adjusted during render rather than in an effect, which is the supported way to derive state
-  // from changing inputs.
-  // Undefined until then rather than null, because usePathname can itself return null.
+  // The path that last rendered on a healthy session. Keyed by path, so each page checks again. A
+  // session that died on the previous page cannot pass a fresh form.
+  // Set during render, which is React's supported way to derive state from changing inputs.
+  // It starts as undefined, not null, because usePathname can return null.
   const [usableAt, setUsableAt] = useState<string | null | undefined>(undefined);
   if (usable && usableAt !== pathname) setUsableAt(pathname);
   const wasUsable = usableAt === pathname;

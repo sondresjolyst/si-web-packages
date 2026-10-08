@@ -9,9 +9,8 @@ export interface AlertProps {
    */
   role?: "alert" | "status";
   /**
-   * Classes for placing the alert, such as a margin. Restyle it through the theme variables
-   * instead: whether a class that clashes with the alert's own wins depends on the order Tailwind
-   * emits them in.
+   * Classes for placing the alert, such as a margin. Restyle it through the theme variables. A
+   * class that clashes with the alert's own wins or loses by the order Tailwind emits them in.
    */
   className?: string;
   children: ReactNode;

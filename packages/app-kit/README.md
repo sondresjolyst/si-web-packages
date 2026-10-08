@@ -5,9 +5,13 @@
 
 > Building blocks for Next.js apps that sign in against a JWT API through next-auth
 
-Several apps sharing one API also share the code around it: the session plumbing, how a failed
-request becomes a message a user can read, and the form controls on the sign in page. This package
-holds that code once, so the apps install it instead of each keeping a copy.
+Several apps sharing one API also share the code around it:
+
+- the session plumbing
+- how a failed request becomes a message a user can read
+- the form controls on the sign in page
+
+This package holds that code once, and each app installs it.
 
 ## Install
 
@@ -70,15 +74,23 @@ const secret = resolveJwtSecret(sessionConfig, process.env);
 
 `(config: SessionConfig) => SessionConfig`
 
-Returns the config unchanged, so TypeScript checks its shape where it is declared rather than at
-every call site. Throws when `draftStoragePrefix` is empty or contains a colon.
+Returns the config unchanged, so TypeScript checks its shape once, where it is declared. Throws
+when `draftStoragePrefix` is empty or contains a colon.
+
+### `requireEnv(name, value)`
+
+`(name: string, value: string | undefined) => string`
+
+Returns `value`, or throws `Missing <name>.` when it is unset or empty. Pass the value read in
+place, such as `process.env.NEXT_PUBLIC_API_URL`, so Next.js can inline a public variable at build
+time.
 
 ### `resolveJwtSecret(config, env)`
 
 `(config: SessionConfig, env: Record<string, string | undefined>) => string`
 
-Reads the secret named by `config.jwtSecretEnvVar`. Throws when that variable is unset or empty, so a
-missing secret fails at startup instead of at the first token verification.
+Reads the secret named by `config.jwtSecretEnvVar`. Throws when that variable is unset or empty,
+with the variable's name in the message.
 
 ```ts
 resolveJwtSecret(sessionConfig, { API_JWT_SECRET: "s3cret" });
@@ -88,8 +100,8 @@ resolveJwtSecret(sessionConfig, {});
 // Error: Missing API_JWT_SECRET. The app verifies API session tokens with it.
 ```
 
-The environment is a parameter rather than a read of `process.env`, which keeps Node types out of a
-package that also runs in the browser.
+The environment is a parameter, so the root entry point needs no Node types and works in browser
+code. `@sjolystinnovation/app-kit/auth` is server only and does load Node types.
 
 ### `formatApiError(error, fallback, statusMessages?)`
 
@@ -110,11 +122,16 @@ body can come from a proxy, such as "Bad Gateway", so the caller's own words win
 A problem details `title` is never shown. ASP.NET Core fills it with generic text, such as "Bad
 Request" or "An error occurred while processing your request.", which says less than `fallback`.
 
-Key `0` in `statusMessages` covers a request that got no response, because of a dropped connection
-or a timeout. Only text on a single line counts as a message. Axios's own message, such as "Request
-failed with status code 500", is never shown, and a cancelled request gives `fallback`. Any other
-`Error` gives its own message. A body requested as an `arraybuffer` or a `blob`, as for a file
-download, is not read, so a failed download gets `statusMessages` or `fallback`.
+A few more rules:
+
+- Key `0` in `statusMessages` covers a request that got no response, because of a dropped
+  connection or a timeout.
+- Only text on a single line counts as a message.
+- Axios's own message, such as "Request failed with status code 500", is never shown.
+- A cancelled request gives `fallback`.
+- Any other `Error` gives its own message.
+- A body requested as an `arraybuffer` or a `blob`, as for a file download, is not read. A failed
+  download gets `statusMessages` or `fallback`.
 
 ```ts
 try {
@@ -124,13 +141,132 @@ try {
 }
 ```
 
+### `createAuthOptions(config, settings)`
+
+From `@sjolystinnovation/app-kit/auth`. Server only. Builds the next-auth options for an app that
+signs in against the API with email and password:
+
+```ts
+// src/lib/authOptions.ts
+import { requireEnv } from "@sjolystinnovation/app-kit";
+import { createAuthOptions } from "@sjolystinnovation/app-kit/auth";
+import { sessionConfig } from "@/lib/session";
+
+export const authOptions = createAuthOptions(sessionConfig, {
+  apiUrl: requireEnv("NEXT_PUBLIC_API_URL", process.env.NEXT_PUBLIC_API_URL),
+  env: process.env,
+});
+```
+
+```ts
+// src/app/api/auth/[...nextauth]/route.ts
+import NextAuth from "next-auth/next";
+import { authOptions } from "@/lib/authOptions";
+
+const handler = NextAuth(authOptions);
+
+export { handler as GET, handler as POST };
+```
+
+| Setting | Type | Description |
+| --- | --- | --- |
+| `apiUrl` | `string` | Base URL of the API. Sign-in posts to `/auth/login` and refresh to `/auth/refresh-token` under it. An empty value throws. |
+| `env` | `Record<string, string \| undefined>` | The server environment, usually `process.env`. It supplies the secret named by `jwtSecretEnvVar`. |
+| `http` | `AxiosInstance` | In place of `apiUrl`, for tests. The client for sign-in and refresh, with its own base URL. |
+
+next-auth reads `NEXTAUTH_SECRET` itself and refuses to run in production without it.
+
+What the options do:
+
+- **Sign-in** posts `{ email, password }` and expects `{ token, refreshToken }`. The access token is
+  verified with the API JWT secret, allowing 60 seconds of clock difference between the server and
+  the API. Its `sub`, `unique_name` and `role` claims become the user's `id`, `name` and `roles`.
+  The log gets the status, error code and message, never the request. A failed sign-in reports one
+  of these in next-auth's `error`:
+  - `SIGN_IN_ERRORS.unavailable` when the API does not answer, or a gateway returns 502, 503 or 504.
+  - `SIGN_IN_ERRORS.invalidCredentials` for every other failure, including an unreadable token and
+    an answer without both tokens.
+- **Refresh** runs ahead of expiry: five minutes before it, or a quarter of the token's lifetime
+  before it when that is shorter. It is never scheduled sooner than 30 seconds out, so a token that
+  lives under 30 seconds is refreshed after it expires. Parallel reads of one session in one server
+  process share a single refresh. Its answer is kept for a minute, because the API rotates the
+  refresh token on every call.
+- **Failures:** a 400 or 401 from the refresh ends the session with `RefreshTokenRejected`. Any
+  other failure keeps it and tries again a minute later. A session without a refresh token ends with
+  `NoRefreshToken` when its refresh falls due.
+- **Cap:** the session ends seven days after sign-in with `AbsoluteSessionExpired`, however recently
+  it was refreshed.
+- **Session:** it carries `user`, `accessToken`, `error`, and `absoluteExpiresAt`, the end of the
+  seven days in milliseconds.
+- **Sign-in page:** `pages.signIn` is `config.loginRoute`.
+
+Two rules keep a refresh from being lost:
+
+- Read the session on the client, through `useSession` or `getSession`. In the App Router,
+  `getServerSession(authOptions)` cannot store a cookie, in server components, route handlers and
+  server actions alike. A refresh there replaces the tokens at the API and loses the new ones. The
+  next refresh then reuses the old token, and the API revokes every session the user has. On the
+  server, read the token with `getToken` from `next-auth/jwt`, which never refreshes.
+- Run the app as one server process. Parallel session reads share one refresh only within a process.
+  Two replicas can refresh the same token at once, with the same result.
+
+The package does not declare these fields on next-auth's types. The app declares them, so its own
+code can read them:
+
+```ts
+// src/types/next-auth.d.ts
+import "next-auth";
+import "next-auth/jwt";
+
+declare module "next-auth" {
+  interface Session {
+    user: { id: string; name: string; email: string; roles: string[] };
+    accessToken: string;
+    error?: string | undefined;
+    absoluteExpiresAt?: number;
+  }
+}
+
+declare module "next-auth/jwt" {
+  interface JWT {
+    accessToken?: string;
+    refreshToken?: string;
+    refreshAt?: number;
+    loginAt?: number;
+    user?: { id: string; name: string; email: string; roles: string[] };
+    error?: string | undefined;
+  }
+}
+```
+
+### `@sjolystinnovation/app-kit/api`
+
+`createApiClient(baseURL)` returns an axios instance for the signed-in API, for code that runs in
+the browser. It reads the session through next-auth's `getSession`, which has no cookies to read on
+the server. An empty `baseURL` throws. Each request carries the session's access token. A 401
+opens the re-sign-in prompt when the session is gone or has a terminal error. It does not sign
+the user out, so the page keeps its state. The error still rejects as usual.
+
+`request(call, fallback, statusMessages?)` runs a call and returns its `data`. A failure becomes an
+`Error` with the message `formatApiError` gives it. A cancelled call rethrows the cancel unchanged:
+
+```ts
+import { requireEnv } from "@sjolystinnovation/app-kit";
+import { createApiClient, request } from "@sjolystinnovation/app-kit/api";
+
+const api = createApiClient(requireEnv("NEXT_PUBLIC_API_URL", process.env.NEXT_PUBLIC_API_URL));
+
+export const getRecipe = (id: number) =>
+  request(() => api.get<Recipe>(`/recipes/${id}`), "Could not load the recipe.");
+```
+
 ### `@sjolystinnovation/app-kit/session`
 
 Decides when a user has to sign in again. Safe to import from server code, such as the next-auth
 callbacks.
 
-The gate reads `session.error`. The app's `jwt` callback sets `token.error`, and its `session`
-callback copies it across:
+The gate reads `session.error`. `createAuthOptions` sets it already. An app with its own next-auth
+options sets `token.error` in its `jwt` callback and copies it across in its `session` callback:
 
 ```ts
 callbacks: {
@@ -162,6 +298,9 @@ declare module "next-auth/jwt" {
 }
 ```
 
+`SIGN_IN_ERRORS` holds the two codes a failed sign-in reports: `InvalidCredentials` and
+`SignInUnavailable`. Map them to the app's own messages.
+
 `SESSION_ERRORS` holds the values the jwt callback puts in `token.error` when the session cannot be
 recovered: `AbsoluteSessionExpired`, `RefreshTokenRejected` and `NoRefreshToken`. `SessionError`
 is their union type. `isTerminalSessionError(error)` is true for those three only, so a transient
@@ -178,19 +317,23 @@ The re-sign-in prompt is a flag outside React, so an axios interceptor can raise
 
 Copies of the package installed side by side share the one flag, as long as their releases use the
 same prompt state format. A release that changes the format says so in its changelog. An app's own
-copy of these functions does not, so an app moving to them moves every import at once: the
-interceptor, the prompt and every gate.
+copy of these functions does not share the flag. So the interceptor, the prompt and every gate all
+import them from this package.
 
 ### `useSessionGate()`
 
 From `@sjolystinnovation/app-kit/session/react`. Tells a protected page whether it may render. It
 reads `useSession`, so it needs a `SessionProvider` above it.
 
-A page that rendered on a healthy session stays rendered when the session gets a terminal error,
-while the session is re-read and while the prompt recovers it, so an open form keeps its values. A
-session that turns signed out with no prompt open blanks the page. A page the user opens
-on a dead session does not render. Use `mayRender` in every gate and layout on the way down, so
-none of them blanks a page that another one kept.
+A page that rendered on a healthy session stays rendered, so an open form keeps its values:
+
+- when the session gets a terminal error
+- while the session is re-read
+- while the prompt recovers it
+
+A session that turns signed out with no prompt open blanks the page. A page the user opens on a
+dead session does not render. Use `mayRender` in every gate and layout on the way down, so none of
+them blanks a page that another one kept.
 
 The hook does not navigate. The gate sends the user to the login page itself, and never while the
 prompt is open. The app passes the login URL in, so an app with a locale in the path can build it
@@ -260,10 +403,13 @@ Mount an edit form once the entity has loaded, with its values already in `value
 the values it first sees under a key as the untouched form, so values that arrive later count as an
 edit and are written over the draft being offered.
 
-It returns `pending`, the stored draft, which the page offers instead of applying. It is read when the
-owner is first known and again whenever the owner or `scope` changes, so it can appear after the form mounts. It
-also returns `dismiss()` to stop offering it, and `clear()` to drop the stored draft after a
-successful save.
+It returns:
+
+- `pending`, the stored draft. The page offers it to the user and does not apply it. It is read
+  when the owner is first known and again whenever the owner or `scope` changes, so it can appear
+  after the form mounts.
+- `dismiss()`, to stop offering it.
+- `clear()`, to drop the stored draft after a successful save.
 
 Drafts are stored under `<draftStoragePrefix>:draft:<owner>:<scope>`. The hook throws when
 `draftStoragePrefix` is empty or contains a colon. A draft older than 7 days is not offered, and is
@@ -281,7 +427,7 @@ import { Alert } from "@sjolystinnovation/app-kit/ui";
 | --- | --- | --- | --- |
 | `variant` | `"error" \| "success" \| "info" \| "warning"` | `"info"` | Colour of the box. |
 | `role` | `"alert" \| "status"` | `"alert"` | Use `status` for text that keeps changing, such as a countdown, so a screen reader does not announce every change. |
-| `className` | `string` | | Classes for placing the alert, such as a margin. Restyle it through the theme variables instead, since whether a clashing class wins depends on the order Tailwind emits them in. |
+| `className` | `string` | | Classes for placing the alert, such as a margin. Restyle it through the theme variables. A clashing class wins or loses by the order Tailwind emits them in. |
 | `children` | `ReactNode` | | Content. |
 
 ### `PasswordInput`
@@ -302,7 +448,7 @@ import { PasswordInput } from "@sjolystinnovation/app-kit/ui";
 | `error` | `string` | | Message shown under the field. It turns the border red, marks the input invalid and is read out with it by screen readers. |
 | `showPasswordLabel` | `string` | `"Show password"` | Accessible name of the toggle while the value is hidden. |
 | `hidePasswordLabel` | `string` | `"Hide password"` | Accessible name of the toggle while the value is visible. |
-| `className` | `string` | | Classes for placing the field, such as a margin. They go on the outer element around the label, input and error. Restyle the field through the theme variables instead. |
+| `className` | `string` | | Classes for placing the field, such as a margin. They go on the outer element around the label, input and error. Restyle the field through the theme variables. |
 
 Pass the two toggle labels in the app's language. The defaults are English.
 
@@ -359,15 +505,17 @@ with it and has to set the ones it uses itself.
 
 ## Requirements
 
-- Next.js 16, React 19, next-auth 4 and axios 1, as peer dependencies the app installs itself.
+- Next.js 16, React 19, next-auth 4.24 or later and axios 1.20 or later, as peer dependencies the
+  app installs itself.
+- `jsonwebtoken` comes with the package. `@sjolystinnovation/app-kit/auth` uses it on the server.
 - For `@sjolystinnovation/app-kit/ui`: Tailwind CSS 4 and `@heroicons/react` 2. The focus ring uses
   the theme's `primary` colour unless `--color-input-focus-ring` is set.
 - TypeScript with `"moduleResolution": "bundler"`. Relative imports here are extensionless, which
   `node16` and `nodenext` reject.
 
-There is no build output. Shipping source is what keeps the `"use client"` directives intact, since
-bundlers strip or relocate them. The consumer therefore compiles this source with its own
-`compilerOptions`, and `skipLibCheck` does not exempt it.
+There is no build output. Bundlers strip or relocate `"use client"` directives, and shipping source
+keeps them intact. The consumer compiles this source with its own `compilerOptions`, and
+`skipLibCheck` does not exempt it.
 
 ## License
 

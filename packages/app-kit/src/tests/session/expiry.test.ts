@@ -22,8 +22,8 @@ afterEach(() => {
 
 describe("session expiry classification", () => {
   it("keeps the values the jwt callback writes into session cookies", () => {
-    // Cookies issued by an earlier version carry these strings. Changing one turns a dead session
-    // into a usable one for every user who still holds such a cookie.
+    // Existing session cookies carry these strings. Changing one turns a dead session into a
+    // usable one for every user who holds such a cookie.
     expect(SESSION_ERRORS).toEqual({
       absoluteExpiry: "AbsoluteSessionExpired",
       refreshRejected: "RefreshTokenRejected",
@@ -88,8 +88,8 @@ describe("the re-sign-in prompt", () => {
     const listener = vi.fn();
     subscribe(listener);
 
-    // Two installed versions of the package must still agree on whether the prompt is open, or a
-    // gate reading one copy redirects away from a prompt raised through the other.
+    // Two installed versions of the package must agree on whether the prompt is open. A gate
+    // reading one copy must see a prompt raised through the other.
     copy.openSessionPrompt();
 
     expect(getSessionPromptOpen()).toBe(true);

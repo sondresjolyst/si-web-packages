@@ -14,7 +14,7 @@ export interface PasswordInputProps extends Omit<InputHTMLAttributes<HTMLInputEl
   hidePasswordLabel?: string;
   /**
    * Classes for placing the field, such as a margin. They go on the outer element, which holds the
-   * label, the input and the error. Restyle the field through the theme variables instead.
+   * label, the input and the error. Restyle the field through the theme variables.
    */
   className?: string;
 }
@@ -30,11 +30,10 @@ export function PasswordInput({
   ...props
 }: PasswordInputProps) {
   const [visible, setVisible] = useState(false);
-  // Fall back to a generated id so the label is always tied to its own control. Not the name: two
-  // fields named "password" on one page, such as sign in next to sign up, would share an id.
+  // A generated id ties the label to its own control, even when two fields on a page share a name.
   const generated = useId();
   const inputId = id ?? generated;
-  // Built from useId rather than the name, since an id list in aria-describedby splits on spaces.
+  // From useId, which has no spaces. aria-describedby splits its ids on spaces.
   const errorId = `${generated}-error`;
 
   return (
