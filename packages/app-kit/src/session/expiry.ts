@@ -9,6 +9,17 @@ export const SESSION_ERRORS = {
   noRefreshToken: "NoRefreshToken",
 } as const;
 
+/**
+ * The codes a failed sign-in reports in next-auth's `error`. Wrong credentials and every API answer
+ * look the same, so the message never hints that a password was right. Only an API that does not
+ * answer, or a gateway error, reports `unavailable`. That depends on the server, never on the
+ * password.
+ */
+export const SIGN_IN_ERRORS = {
+  invalidCredentials: "InvalidCredentials",
+  unavailable: "SignInUnavailable",
+} as const;
+
 /** One of the values in `SESSION_ERRORS`. */
 export type SessionError = (typeof SESSION_ERRORS)[keyof typeof SESSION_ERRORS];
 
@@ -19,13 +30,13 @@ export function isTerminalSessionError(error: string | undefined): boolean {
   return error != null && TERMINAL.has(error);
 }
 
-// Whether the re-sign-in prompt is showing. It lives outside React because the axios interceptor
-// that raises it is a plain module, and because the page gate has to know: it must not redirect to
-// the login page while the prompt is recovering the session in place.
+// Whether the re-sign-in prompt is showing. It lives outside React for two reasons:
+// 1. The axios interceptor that raises it is a plain module.
+// 2. The page gate reads it, so it never redirects to login while the prompt recovers the session.
 //
-// Kept on globalThis under a registered symbol, so two copies of this module, such as two installed
-// versions of the package, still share one prompt. Separate state would let a prompt raised through
-// one copy go unseen by a gate reading the other, and the gate would redirect away from the form.
+// It sits on globalThis under a registered symbol, so two copies of this module share one prompt.
+// Two installed versions of the package are one example. A gate reading one copy then sees a
+// prompt raised through the other and keeps the form on screen.
 interface PromptState {
   open: boolean;
   listeners: Set<() => void>;

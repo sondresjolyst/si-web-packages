@@ -16,7 +16,7 @@ pnpm test
 ## Never
 
 - Never add `react`, `react-dom`, `next`, `next-auth` or `axios` to `dependencies`. Peer
-  dependencies only, at major ranges.
+  dependencies only, at major ranges unless the code or a security fix needs a higher floor.
 - Never add a build step. `exports` points at `src`.
 - Never put `"use client"` in an entry point barrel. Put it in each component and hook file.
 - Never add an entry point to `exports` before there is code behind it.
@@ -27,5 +27,5 @@ pnpm test
 ## Writing
 
 English prose in comments, commit messages and documentation. No em dashes and no semicolons in
-prose. Commit and pull request bodies stay short: a line for what the title and the diff do not show,
-nothing about test counts or build status, since CI reports those.
+prose. Commit and pull request bodies stay short: one line for what the title and the diff do not
+show. Nothing about test counts or build status, since CI reports those.
