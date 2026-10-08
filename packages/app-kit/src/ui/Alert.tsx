@@ -4,10 +4,11 @@ import { cx } from "./cx";
 export interface AlertProps {
   variant?: "error" | "success" | "info" | "warning";
   /**
-   * Defaults to alert, which a screen reader interrupts for. Use status for text that keeps
-   * changing, such as a countdown, so it is not announced on every tick.
+   * Defaults to alert, which a screen reader interrupts for. A screen reader announces status
+   * without interrupting, on every change of its text. Use none when a separate live region
+   * announces the text.
    */
-  role?: "alert" | "status";
+  role?: "alert" | "status" | "none";
   /**
    * Classes for placing the alert, such as a margin. Restyle it through the theme variables. A
    * class that clashes with the alert's own wins or loses by the order Tailwind emits them in.

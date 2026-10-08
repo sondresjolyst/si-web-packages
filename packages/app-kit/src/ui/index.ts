@@ -1,4 +1,11 @@
 export { Alert } from "./Alert";
 export type { AlertProps } from "./Alert";
+export { CredentialsForm } from "./CredentialsForm";
+export type { CredentialsFormProps } from "./CredentialsForm";
+export { SignInRejected, defaultCredentialsFormStrings } from "./credentialsFormStrings";
+export type { CredentialsFormStrings } from "./credentialsFormStrings";
 export { PasswordInput } from "./PasswordInput";
 export type { PasswordInputProps } from "./PasswordInput";
+export { TextInput } from "./TextInput";
+export type { TextInputProps } from "./TextInput";
+export type { TextOverrides } from "./withDefaults";

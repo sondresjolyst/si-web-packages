@@ -28,8 +28,8 @@ const nextConfig: NextConfig = {
 };
 ```
 
-The components in `@sjolystinnovation/app-kit/ui` are styled with Tailwind CSS. Import the
-package's stylesheet after Tailwind:
+The components in `@sjolystinnovation/app-kit/ui` and `session/react` are styled with Tailwind CSS.
+Import the package's stylesheet after Tailwind:
 
 ```css
 /* src/app/globals.css */
@@ -265,35 +265,54 @@ export const getRecipe = (id: number) =>
 Decides when a user has to sign in again. Safe to import from server code, such as the next-auth
 callbacks.
 
-The gate reads `session.error`. `createAuthOptions` sets it already. An app with its own next-auth
-options sets `token.error` in its `jwt` callback and copies it across in its `session` callback:
+The gate reads `session.error`. `SessionExpiryGuard` also reads `session.absoluteExpiresAt` for its
+countdown, `session.user.id` to keep the page with the user who opened it, and `session.user.email`
+to fill in the prompt. `createAuthOptions` sets all of these. An app with its own next-auth options sets them in its
+callbacks:
 
 ```ts
+const SESSION_LIFETIME_MS = 7 * 24 * 60 * 60 * 1000;
+
 callbacks: {
+  jwt({ token, user }) {
+    if (user) token.loginAt = Date.now();
+    // A token without a sign-in time counts as expired.
+    if (!token.loginAt || Date.now() - token.loginAt > SESSION_LIFETIME_MS) {
+      token.error = SESSION_ERRORS.absoluteExpiry;
+    }
+    // Also set token.error when a refresh is refused.
+    return token;
+  },
   session({ session, token }) {
+    session.user.id = token.sub ?? "";
     session.error = token.error;
+    session.absoluteExpiresAt = token.loginAt ? token.loginAt + SESSION_LIFETIME_MS : undefined;
     return session;
   },
 },
 ```
 
-For that to compile, `error` has to be on next-auth's `Session` and `JWT` types. Add it to
+For that to compile, these fields have to be on next-auth's `Session` and `JWT` types. Add them to
 the app's existing next-auth type declarations, or create them:
 
 ```ts
 // src/types/next-auth.d.ts
 import "next-auth";
 import "next-auth/jwt";
+import type { DefaultSession } from "next-auth";
 
 declare module "next-auth" {
   interface Session {
+    user: { id: string } & DefaultSession["user"];
     error?: string | undefined;
+    absoluteExpiresAt?: number | undefined;
   }
 }
 
 declare module "next-auth/jwt" {
   interface JWT {
     error?: string | undefined;
+    loginAt?: number | undefined;
   }
 }
 ```
@@ -335,37 +354,8 @@ A session that turns signed out with no prompt open blanks the page. A page the 
 dead session does not render. Use `mayRender` in every gate and layout on the way down, so none of
 them blanks a page that another one kept.
 
-The hook does not navigate. The gate sends the user to the login page itself, and never while the
-prompt is open. The app passes the login URL in, so an app with a locale in the path can build it
-for the current locale:
-
-```tsx
-"use client";
-
-import { useSessionGate } from "@sjolystinnovation/app-kit/session/react";
-import { useRouter } from "next/navigation";
-import { useEffect } from "react";
-
-export function ProtectedGate({
-  loginHref,
-  children,
-}: {
-  loginHref: string;
-  children: React.ReactNode;
-}) {
-  const router = useRouter();
-  const { status, promptOpen, usable, wasUsable, mayRender } = useSessionGate();
-
-  useEffect(() => {
-    if (promptOpen) return;
-    if (status === "unauthenticated" || (status === "authenticated" && !usable && !wasUsable)) {
-      router.push(loginHref);
-    }
-  }, [status, usable, wasUsable, promptOpen, router, loginHref]);
-
-  return mayRender ? children : <p>Loading…</p>;
-}
-```
+The hook does not navigate. `ProtectedGate` below adds the redirect. Use the hook directly in a
+layout that needs its own decision, such as a role check, so it agrees with the gate.
 
 | Field | Description |
 | --- | --- |
@@ -377,6 +367,50 @@ export function ProtectedGate({
 | `recovering` | The prompt is showing over a page that was usable. |
 
 `SessionGate` is the type of the result.
+
+### `ProtectedGate`
+
+From `@sjolystinnovation/app-kit/session/react`. Wraps the protected part of the app. It renders the
+page only when `useSessionGate` allows it, and sends a signed-out visitor or a session dead on
+arrival to `loginHref`. It never redirects while the re-sign-in prompt is open.
+
+```tsx
+<ProtectedGate loginHref="/login" fallback={<p>Loading…</p>}>
+  {children}
+</ProtectedGate>
+```
+
+| Prop | Type | Description |
+| --- | --- | --- |
+| `loginHref` | `string` | Where the redirect goes. An app with a locale in the path builds it for the current locale. |
+| `fallback` | `ReactNode` | What shows while the page may not render yet. Defaults to nothing. |
+
+### `SessionExpiryGuard`
+
+From `@sjolystinnovation/app-kit/session/react`. Render it once, inside the `SessionProvider`. It
+shows:
+
+- a banner in the last 30 minutes before `session.absoluteExpiresAt`, with the minutes left. That is
+  seven days after sign-in with `createAuthOptions`.
+- a banner when the session is dead
+- the re-sign-in prompt, a dialog with `CredentialsForm`, when a request or the banner opens it
+
+A sign-in in the prompt keeps the page and its form. A sign-in in the prompt as a different user is
+signed out and sent to `loginHref`, so the prompt never hands the page to another user.
+
+```tsx
+<SessionExpiryGuard
+  loginHref="/login"
+  onRestored={() => toast.success("You are signed in again.")}
+/>
+```
+
+| Prop | Type | Description |
+| --- | --- | --- |
+| `loginHref` | `string` | Where a sign-in as a different user is sent after it is signed out. |
+| `onRestored` | `() => void` | Runs after the prompt signs the user back in, such as to show a toast. |
+| `strings` | `TextOverrides<SessionExpiryGuardStrings>` | The guard's text. `{minutes}` in `expiringSoon` becomes the minutes left. The defaults are English. |
+| `formStrings` | `TextOverrides<CredentialsFormStrings>` | The text of the form in the prompt. |
 
 ### `useFormDraft(config, options)`
 
@@ -415,6 +449,40 @@ Drafts are stored under `<draftStoragePrefix>:draft:<owner>:<scope>`. The hook t
 `draftStoragePrefix` is empty or contains a colon. A draft older than 7 days is not offered, and is
 removed when its form next reads it.
 
+### `CredentialsForm`
+
+From `@sjolystinnovation/app-kit/ui`. Email and password sign-in through next-auth's credentials
+provider, with `redirect: false`, so the page stays where it is. Use it on the login page and in
+the prompt.
+
+```tsx
+<CredentialsForm onSignedIn={() => router.push("/")} strings={{ signIn: "Logg inn" }} />
+```
+
+| Prop | Type | Description |
+| --- | --- | --- |
+| `onSignedIn` | `() => void \| Promise<void>` | Runs after next-auth accepts the credentials. Throw `SignInRejected` with a message to refuse the sign-in. |
+| `initialEmail` | `string` | The email the field starts with. |
+| `children` | `ReactNode` | Extra buttons next to the submit button. |
+| `strings` | `TextOverrides<CredentialsFormStrings>` | The form's text. The defaults are English. |
+| `onPendingChange` | `(pending: boolean) => void` | Runs when a sign-in starts and ends, such as to keep a dialog open until it finishes. |
+
+A failed sign-in shows `signInUnavailable` for `SIGN_IN_ERRORS.unavailable` and
+`invalidCredentials` for any other error code. A request next-auth refuses without an error code,
+or one that throws, shows `somethingWentWrong`.
+
+`TextOverrides<T>`, from `@sjolystinnovation/app-kit/ui`, is the type of every `strings` prop. Each
+key is optional and may be `undefined`, and a missing or undefined key shows the English default.
+
+### `TextInput`
+
+From `@sjolystinnovation/app-kit/ui`. A labelled text field with the same look and props as
+`PasswordInput`, apart from the show and hide toggle. It takes the other `<input>` attributes too.
+
+```tsx
+<TextInput label="Email" name="email" type="email" required error={errors.email} />
+```
+
 ### `Alert`
 
 ```tsx
@@ -426,7 +494,7 @@ import { Alert } from "@sjolystinnovation/app-kit/ui";
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
 | `variant` | `"error" \| "success" \| "info" \| "warning"` | `"info"` | Colour of the box. |
-| `role` | `"alert" \| "status"` | `"alert"` | Use `status` for text that keeps changing, such as a countdown, so a screen reader does not announce every change. |
+| `role` | `"alert" \| "status" \| "none"` | `"alert"` | A screen reader announces `status` without interrupting, on every change of its text. Use `none` when a separate live region announces the text. |
 | `className` | `string` | | Classes for placing the alert, such as a margin. Restyle it through the theme variables. A clashing class wins or loses by the order Tailwind emits them in. |
 | `children` | `ReactNode` | | Content. |
 
@@ -495,10 +563,22 @@ selector such as `.dark` for a scoped theme:
 | `--input-focus-ring-width` | `2px` |
 | `--color-input-toggle` | gray 400, the show password icon |
 | `--color-input-toggle-hover` | gray 600 |
+| `--radius-button` | `var(--radius-lg)` |
+| `--color-button-primary-bg` | `var(--color-primary)` |
+| `--color-button-primary-text` | `var(--color-primary-foreground)` |
+| `--color-button-secondary-border` | gray 300 |
+| `--color-button-secondary-text` | gray 700 |
+| `--color-button-secondary-hover-bg` | gray 50 |
+| `--radius-dialog` | `var(--radius-xl)` |
+| `--color-dialog-backdrop` | black at 40% |
+| `--color-dialog-bg` | white |
+| `--color-dialog-title` | gray 900 |
+| `--color-dialog-text` | gray 600 |
 
-A default that points at another variable, such as `--color-input-focus-ring` at `--color-primary`,
-is read once for the whole page. A scoped theme that changes `--color-primary` should set
-`--color-input-focus-ring` in the same selector.
+A default that points at another variable is read once for the whole page. The focus ring and the
+primary button point at `--color-primary` and `--color-primary-foreground`. A scoped theme that
+changes those also sets `--color-input-focus-ring`, `--color-button-primary-bg` and
+`--color-button-primary-text` in the same selector.
 
 An app that clears a whole Tailwind namespace, such as `--color-*: initial`, clears these variables
 with it and has to set the ones it uses itself.
@@ -508,8 +588,9 @@ with it and has to set the ones it uses itself.
 - Next.js 16, React 19, next-auth 4.24 or later and axios 1.20 or later, as peer dependencies the
   app installs itself.
 - `jsonwebtoken` comes with the package. `@sjolystinnovation/app-kit/auth` uses it on the server.
-- For `@sjolystinnovation/app-kit/ui`: Tailwind CSS 4 and `@heroicons/react` 2. The focus ring uses
-  the theme's `primary` colour unless `--color-input-focus-ring` is set.
+- For `@sjolystinnovation/app-kit/ui` and the components in `session/react`: Tailwind CSS 4 and
+  `@heroicons/react` 2. The focus ring and the primary button use the theme's `primary` and
+  `primary-foreground` colours, unless their own variables are set.
 - TypeScript with `"moduleResolution": "bundler"`. Relative imports here are extensionless, which
   `node16` and `nodenext` reject.
 
