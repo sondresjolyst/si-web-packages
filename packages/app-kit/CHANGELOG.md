@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.0](https://github.com/sondresjolyst/si-web-packages/compare/app-kit-v0.4.0...app-kit-v0.5.0) (2026-10-08)
+
+
+### Features
+
+* **auth:** add createAuthOptions and createApiClient for signing in against the API ([#9](https://github.com/sondresjolyst/si-web-packages/issues/9)) ([97b7e34](https://github.com/sondresjolyst/si-web-packages/commit/97b7e34c861f5d63ef8f725fb530ed1372253cb0))
+
 ## [0.4.0](https://github.com/sondresjolyst/si-web-packages/compare/app-kit-v0.3.0...app-kit-v0.4.0) (2026-10-07)
 
 
