@@ -260,6 +260,52 @@ export const getRecipe = (id: number) =>
   request(() => api.get<Recipe>(`/recipes/${id}`), "Could not load the recipe.");
 ```
 
+`requestRevalidate(target, endpoint?)` asks the app's revalidate route to purge the pages behind
+`target`, so an edit shows at once. It posts to `/api/revalidate` unless `endpoint` says otherwise.
+It never throws. On failure the pages' own revalidate window is the fallback.
+
+### `@sjolystinnovation/app-kit/server`
+
+For server components and route handlers only. It imports `next/cache` and `next/server`.
+
+`createPublicApi(baseUrl, options?)` returns cached GETs against the API's anonymous endpoints:
+
+- `publicGet(path, { tags? })` gives the data, or null when the API answers 404. An unreachable or
+  failing API throws `PublicApiError`, so a failed fetch is never cached as an empty page in place
+  of a working one.
+- `publicGetOptional(path, { tags? })` gives null on any failure, for data a page can do without.
+- `publicGetWithMeta(path, { tags? })` also gives `lastModified`, from the `Last-Modified` header.
+
+Responses stay fresh for 60 seconds unless `options.revalidate` says otherwise. An empty `baseUrl`
+throws.
+
+```ts
+// src/lib/publicApi.ts
+import { requireEnv } from "@sjolystinnovation/app-kit";
+import { createPublicApi } from "@sjolystinnovation/app-kit/server";
+
+export const { publicGet, publicGetOptional, publicGetWithMeta } = createPublicApi(
+  requireEnv("NEXT_PUBLIC_API_URL", process.env.NEXT_PUBLIC_API_URL),
+);
+```
+
+`createRevalidateRoute({ targets, role })` returns a `POST` handler for `app/api/revalidate/route.ts`.
+Each target maps to the page paths it purges. A path with a dynamic segment, such as
+`/builds/[slug]`, purges every page of that route. The target name is purged as a cache tag too, so
+tag the fetches behind it with the same name. The handler answers 403 unless the caller has a live
+session with `role`: signed in within the last seven days, with no refused refresh. It answers 400
+for a target it does not know.
+
+```ts
+// src/app/api/revalidate/route.ts
+import { createRevalidateRoute } from "@sjolystinnovation/app-kit/server";
+
+export const POST = createRevalidateRoute({
+  role: "Admin",
+  targets: { builds: ["/builds", "/builds/[slug]", "/sitemap.xml"], legal: ["/terms", "/privacy"] },
+});
+```
+
 ### `@sjolystinnovation/app-kit/session`
 
 Decides when a user has to sign in again. Safe to import from server code, such as the next-auth
@@ -368,6 +414,21 @@ layout that needs its own decision, such as a role check, so it agrees with the 
 
 `SessionGate` is the type of the result.
 
+### `AppSessionProvider`
+
+From `@sjolystinnovation/app-kit/session/react`. next-auth's `SessionProvider`, reading the session
+again every four minutes. Each read lets the jwt callback renew the access token before it expires,
+so an open tab does not find a dead session on the next save. It also keeps what `useSession`
+reports in this tab up to date. next-auth polls only once a session exists.
+
+```tsx
+<AppSessionProvider>{children}</AppSessionProvider>
+```
+
+| Prop | Type | Description |
+| --- | --- | --- |
+| `refetchInterval` | `number` | Seconds between reads. Defaults to 240. Keep it under five minutes, the time before expiry when a refresh falls due. |
+
 ### `ProtectedGate`
 
 From `@sjolystinnovation/app-kit/session/react`. Wraps the protected part of the app. It renders the
@@ -384,6 +445,25 @@ arrival to `loginHref`. It never redirects while the re-sign-in prompt is open.
 | --- | --- | --- |
 | `loginHref` | `string` | Where the redirect goes. An app with a locale in the path builds it for the current locale. |
 | `fallback` | `ReactNode` | What shows while the page may not render yet. Defaults to nothing. |
+
+### `RoleGate`
+
+From `@sjolystinnovation/app-kit/session/react`. Renders its children only for a user with `role`.
+Place it inside `ProtectedGate`. While the re-sign-in prompt recovers a signed-out session there is
+no user and so no roles. The page stays up only on the path where the session last had the role.
+
+```tsx
+<RoleGate role="Admin" fallback={<p>Loading…</p>} denied={<p>You do not have access.</p>}>
+  {children}
+</RoleGate>
+```
+
+| Prop | Type | Description |
+| --- | --- | --- |
+| `role` | `string` | The role the page needs, as it appears in `session.user.roles`. |
+| `fallback` | `ReactNode` | What shows while the session or its roles are not known yet. Defaults to nothing. |
+| `denied` | `ReactNode` | What a signed-in user without the role sees. Give this or `deniedHref`. |
+| `deniedHref` | `string` | Where a signed-in user without the role is sent instead. |
 
 ### `SessionExpiryGuard`
 
@@ -520,6 +600,16 @@ import { PasswordInput } from "@sjolystinnovation/app-kit/ui";
 
 Pass the two toggle labels in the app's language. The defaults are English.
 
+### `toast`
+
+From `@sjolystinnovation/app-kit/toast`. sonner's `toast`, except that `toast.error` shows nothing
+while the re-sign-in prompt is open. The prompt already says why the request failed. Every other
+toast passes through, and so do the error states of `toast.promise`.
+
+```ts
+import { toast } from "@sjolystinnovation/app-kit/toast";
+```
+
 ## Theming
 
 The components draw every colour, corner radius and label size from theme variables with a light
@@ -587,6 +677,8 @@ with it and has to set the ones it uses itself.
 
 - Next.js 16, React 19, next-auth 4.24 or later and axios 1.20 or later, as peer dependencies the
   app installs itself.
+- For `@sjolystinnovation/app-kit/toast`: sonner 2, as an optional peer dependency. Install a single
+  copy, because two copies keep two separate toast stores.
 - `jsonwebtoken` comes with the package. `@sjolystinnovation/app-kit/auth` uses it on the server.
 - For `@sjolystinnovation/app-kit/ui` and the components in `session/react`: Tailwind CSS 4 and
   `@heroicons/react` 2. The focus ring and the primary button use the theme's `primary` and

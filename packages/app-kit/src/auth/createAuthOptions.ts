@@ -4,7 +4,7 @@ import type { NextAuthOptions, Session, User } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import type { JWT } from "next-auth/jwt";
 import { resolveJwtSecret, type SessionConfig } from "../config";
-import { SESSION_ERRORS, SIGN_IN_ERRORS, isTerminalSessionError } from "../session/expiry";
+import { ABSOLUTE_SESSION_MAX_AGE, SESSION_ERRORS, SIGN_IN_ERRORS, isTerminalSessionError } from "../session/expiry";
 
 /** The signed-in user, as the session carries it. */
 export interface SessionUser {
@@ -59,8 +59,6 @@ export type AuthOptionsSettings = {
       apiUrl?: never;
     }
 );
-
-const ABSOLUTE_SESSION_MAX_AGE = 7 * 24 * 60 * 60 * 1000; // 7 days
 
 // Refresh ahead of expiry, so the token is still fresh when the user saves.
 const MAX_REFRESH_SKEW_MS = 5 * 60 * 1000;
