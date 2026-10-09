@@ -1,17 +1,17 @@
 "use client";
 
 import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline";
-import { useId, useState, type InputHTMLAttributes } from "react";
-import { cx } from "./cx";
+import { useState, type InputHTMLAttributes } from "react";
+import { FieldError, FieldLabel, inputClass, useField } from "./field";
 
 /** The input's type is left out: the component switches it to show and hide the value. */
 export interface PasswordInputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, "type"> {
   label: string;
-  error?: string;
+  error?: string | undefined;
   /** Accessible name of the toggle while the password is hidden. */
-  showPasswordLabel?: string;
+  showPasswordLabel?: string | undefined;
   /** Accessible name of the toggle while the password is visible. */
-  hidePasswordLabel?: string;
+  hidePasswordLabel?: string | undefined;
   /**
    * Classes for placing the field, such as a margin. They go on the outer element, which holds the
    * label, the input and the error. Restyle the field through the theme variables.
@@ -22,39 +22,25 @@ export interface PasswordInputProps extends Omit<InputHTMLAttributes<HTMLInputEl
 export function PasswordInput({
   label,
   error,
-  id,
-  required,
   className,
   showPasswordLabel = "Show password",
   hidePasswordLabel = "Hide password",
   ...props
 }: PasswordInputProps) {
   const [visible, setVisible] = useState(false);
-  // A generated id ties the label to its own control, even when two fields on a page share a name.
-  const generated = useId();
-  const inputId = id ?? generated;
-  // From useId, which has no spaces. aria-describedby splits its ids on spaces.
-  const errorId = `${generated}-error`;
+  const field = useField(props, error);
 
   return (
     <div className={className}>
-      <label htmlFor={inputId} className="block text-field-label font-medium text-field-label-text mb-field-label">
+      <FieldLabel htmlFor={field.inputId} required={props.required}>
         {label}
-        {required && <span className="text-field-required"> *</span>}
-      </label>
+      </FieldLabel>
       <div className="relative">
         <input
           {...props}
-          id={inputId}
+          {...field.inputProps}
           type={visible ? "text" : "password"}
-          required={required}
-          aria-required={required ? true : props["aria-required"]}
-          aria-invalid={error ? true : props["aria-invalid"]}
-          aria-describedby={cx(props["aria-describedby"], error && errorId) || undefined}
-          className={cx(
-            "w-full rounded-input border px-3 py-input-y pr-10 text-sm bg-input-bg text-input-text placeholder-input-placeholder focus:outline-hidden focus:ring-(length:--input-focus-ring-width) focus:ring-input-focus-ring",
-            error ? "border-input-border-error" : "border-input-border focus:border-input-focus-border",
-          )}
+          className={inputClass(error, "pr-10")}
         />
         <button
           type="button"
@@ -65,11 +51,7 @@ export function PasswordInput({
           {visible ? <EyeSlashIcon className="h-4 w-4" /> : <EyeIcon className="h-4 w-4" />}
         </button>
       </div>
-      {error && (
-        <p id={errorId} className="mt-1 text-xs text-field-error">
-          {error}
-        </p>
-      )}
+      <FieldError id={field.errorId} error={error} />
     </div>
   );
 }

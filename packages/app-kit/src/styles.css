@@ -2,9 +2,9 @@
 @source ".";
 
 /*
- * Design tokens for the components. The defaults are stock Tailwind values, except the focus ring,
- * which uses the theme's --color-primary. Set a token in the app's own @theme to restyle, or in a
- * selector such as .dark for a scoped theme.
+ * Design tokens for the components. The defaults are stock Tailwind values, except the focus ring
+ * and the primary button, which use the theme's --color-primary and --color-primary-foreground. Set
+ * a token in the app's own @theme to restyle, or in a selector such as .dark for a scoped theme.
  */
 @theme default {
   --radius-alert: var(--radius-lg);
@@ -40,4 +40,17 @@
   --input-focus-ring-width: 2px;
   --color-input-toggle: var(--color-gray-400);
   --color-input-toggle-hover: var(--color-gray-600);
+
+  --radius-button: var(--radius-lg);
+  --color-button-primary-bg: var(--color-primary);
+  --color-button-primary-text: var(--color-primary-foreground);
+  --color-button-secondary-border: var(--color-gray-300);
+  --color-button-secondary-text: var(--color-gray-700);
+  --color-button-secondary-hover-bg: var(--color-gray-50);
+
+  --radius-dialog: var(--radius-xl);
+  --color-dialog-backdrop: color-mix(in oklab, var(--color-black) 40%, transparent);
+  --color-dialog-bg: var(--color-white);
+  --color-dialog-title: var(--color-gray-900);
+  --color-dialog-text: var(--color-gray-600);
 }
