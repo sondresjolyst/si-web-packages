@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import jwt from "jsonwebtoken";
 import type { NextRequest } from "next/server";
 
 const { revalidatePath, revalidateTag, getToken } = vi.hoisted(() => ({
@@ -16,13 +17,17 @@ const POST = createRevalidateRoute({
   targets: { builds: ["/no", "/no/builds", "/no/builds/[slug]"], branding: [] },
 });
 
-const request = (body: unknown) =>
+const request = (body: unknown, contentType = "application/json") =>
   new Request("http://app.test/api/revalidate", {
     method: "POST",
+    headers: { "Content-Type": contentType },
     body: typeof body === "string" ? body : JSON.stringify(body),
   }) as unknown as NextRequest;
 
-const admin = { user: { roles: ["Admin"] }, loginAt: Date.now() };
+const accessToken = (expiresInSeconds: number) =>
+  jwt.sign({ sub: "1", exp: Math.floor(Date.now() / 1000) + expiresInSeconds }, "test-secret");
+
+const admin = { user: { roles: ["Admin"] }, loginAt: Date.now(), accessToken: accessToken(3600) };
 const DAY = 24 * 60 * 60 * 1000;
 
 describe("createRevalidateRoute", () => {
@@ -33,7 +38,7 @@ describe("createRevalidateRoute", () => {
   });
 
   it("refuses a caller without the role", async () => {
-    getToken.mockResolvedValue({ user: { roles: ["User"] }, loginAt: Date.now() });
+    getToken.mockResolvedValue({ ...admin, user: { roles: ["User"] } });
 
     const response = await POST(request({ target: "builds" }));
 
@@ -54,9 +59,36 @@ describe("createRevalidateRoute", () => {
   });
 
   it("refuses a session without a sign-in time", async () => {
-    getToken.mockResolvedValue({ user: { roles: ["Admin"] } });
+    getToken.mockResolvedValue({ user: { roles: ["Admin"] }, accessToken: accessToken(3600) });
 
     expect((await POST(request({ target: "builds" }))).status).toBe(403);
+  });
+
+  it("refuses a session whose access token expired, so a copied cookie stops working", async () => {
+    getToken.mockResolvedValue({ ...admin, accessToken: accessToken(-120) });
+
+    expect((await POST(request({ target: "builds" }))).status).toBe(403);
+  });
+
+  it("allows an access token that expired within the clock tolerance", async () => {
+    getToken.mockResolvedValue({ ...admin, accessToken: accessToken(-30) });
+
+    expect((await POST(request({ target: "builds" }))).status).toBe(200);
+  });
+
+  it("refuses a session without an access token", async () => {
+    getToken.mockResolvedValue({ ...admin, accessToken: undefined });
+
+    expect((await POST(request({ target: "builds" }))).status).toBe(403);
+  });
+
+  it("refuses a body that is not sent as JSON, such as a plain form post", async () => {
+    getToken.mockResolvedValue(admin);
+
+    const response = await POST(request('{"target":"builds","x":"="}', "text/plain"));
+
+    expect(response.status).toBe(415);
+    expect(revalidateTag).not.toHaveBeenCalled();
   });
 
   it("finds the session under the plain cookie name when the secure one is absent", async () => {

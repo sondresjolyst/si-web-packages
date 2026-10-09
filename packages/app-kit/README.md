@@ -277,7 +277,9 @@ For server components and route handlers only. It imports `next/cache` and `next
 - `publicGetWithMeta(path, { tags? })` also gives `lastModified`, from the `Last-Modified` header.
 
 Responses stay fresh for 60 seconds unless `options.revalidate` says otherwise. An empty `baseUrl`
-throws.
+throws. Each path starts with a single `/`, or the call throws. A path with a `.` or `..` segment,
+encoded or not, gives null without a request, the same as a 404. Run a slug or other user input
+through `encodeURIComponent` before putting it in a path.
 
 ```ts
 // src/lib/publicApi.ts
@@ -293,8 +295,9 @@ export const { publicGet, publicGetOptional, publicGetWithMeta } = createPublicA
 Each target maps to the page paths it purges. A path with a dynamic segment, such as
 `/builds/[slug]`, purges every page of that route. The target name is purged as a cache tag too, so
 tag the fetches behind it with the same name. The handler answers 403 unless the caller has a live
-session with `role`: signed in within the last seven days, with no refused refresh. It answers 400
-for a target it does not know.
+session with `role`: signed in within the last seven days, with no refused refresh and an access
+token that has not expired. It answers 415 unless the body is sent as JSON, which
+`requestRevalidate` does, and 400 for a target it does not know.
 
 ```ts
 // src/app/api/revalidate/route.ts

@@ -4,7 +4,7 @@ import type { NextAuthOptions, Session, User } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import type { JWT } from "next-auth/jwt";
 import { resolveJwtSecret, type SessionConfig } from "../config";
-import { ABSOLUTE_SESSION_MAX_AGE, SESSION_ERRORS, SIGN_IN_ERRORS, isTerminalSessionError } from "../session/expiry";
+import { ABSOLUTE_SESSION_MAX_AGE, CLOCK_TOLERANCE_S, SESSION_ERRORS, SIGN_IN_ERRORS, isTerminalSessionError } from "../session/expiry";
 
 /** The signed-in user, as the session carries it. */
 export interface SessionUser {
@@ -69,9 +69,6 @@ const MIN_REFRESH_GAP_MS = 30 * 1000;
 
 // How long a refresh result is remembered. It is also the wait before a failed refresh is retried.
 const REMEMBER_ROTATION_MS = 60 * 1000;
-
-// How far this server's clock may differ from the API's when a token's times are checked.
-const CLOCK_TOLERANCE_S = 60;
 
 // Sign-in and session reads wait for the API, so a hung connection must not hold them forever.
 const API_TIMEOUT_MS = 10_000;

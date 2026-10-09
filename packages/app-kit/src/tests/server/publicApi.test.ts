@@ -66,6 +66,49 @@ describe("createPublicApi", () => {
     expect((await api.publicGetWithMeta("/b"))?.lastModified).toBeNull();
   });
 
+  it.each([
+    ["a relative path", "builds"],
+    ["a path to another host", "//evil.test/x"],
+  ])("throws for %s, without calling the API", async (_name, path) => {
+    await expect(api.publicGet(path)).rejects.toThrow(/single "\/"/);
+    await expect(api.publicGetOptional(path)).rejects.toThrow(/single "\/"/);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["a dot segment", "/content/../admin/users"],
+    ["an encoded dot segment", "/content/%2e%2e/%2e%2e/x"],
+    ["a mixed encoded dot segment", "/builds/%2E./users"],
+    ["a single dot segment", "/builds/./x"],
+  ])("gives null for %s, as for a missing resource, without calling the API", async (_name, path) => {
+    await expect(api.publicGet(path)).resolves.toBeNull();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("keeps a host-only base URL on its host", async () => {
+    fetchMock.mockResolvedValue(json({}));
+
+    await createPublicApi("http://api.test").publicGet("/@evil.test/x");
+
+    expect(new URL(fetchMock.mock.calls[0]?.[0] as string).host).toBe("api.test");
+  });
+
+  it("allows dots in the query string", async () => {
+    fetchMock.mockResolvedValue(json({}));
+
+    await api.publicGet("/content/home?next=/a/../b");
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps the query string", async () => {
+    fetchMock.mockResolvedValue(json({}));
+
+    await api.publicGet("/content/home?locale=no");
+
+    expect(fetchMock.mock.calls[0]?.[0]).toBe("http://api.test/api/content/home?locale=no");
+  });
+
   it("gives null instead of throwing for optional data", async () => {
     fetchMock.mockResolvedValue(new Response(null, { status: 500 }));
 
