@@ -46,11 +46,29 @@ export function createPublicApi(baseUrl: string, options: PublicApiOptions = {})
     throw new Error("createPublicApi needs the API base URL, and baseUrl is empty.");
   }
   const revalidate = options.revalidate ?? 60;
+  const base = new URL(baseUrl);
+  const basePath = base.pathname.replace(/\/$/, "");
+
+  // The path is joined onto the base URL. A path that does not start with a single "/" is a bug in
+  // the caller, so it throws. A path with a dot segment, often a slug from the URL, names no resource,
+  // so it gives null, the same as a 404. A slug goes through encodeURIComponent first.
+  function urlFor(path: string): string | null {
+    if (!path.startsWith("/") || path.startsWith("//")) {
+      throw new Error(`Public API path must start with a single "/" under the base URL: ${path}`);
+    }
+    const segments = path.split(/[?#]/, 1)[0]!.replace(/%2e/gi, ".").split("/");
+    if (segments.some((segment) => segment === "." || segment === "..")) return null;
+    const url = new URL(`${baseUrl.replace(/\/$/, "")}${path}`);
+    if (url.origin !== base.origin || !url.pathname.startsWith(`${basePath}/`)) return null;
+    return url.toString();
+  }
 
   async function publicGetWithMeta<T>(path: string, opts: PublicGetOptions = {}): Promise<PublicResponse<T> | null> {
+    const url = urlFor(path);
+    if (url == null) return null;
     let response: Response;
     try {
-      response = await fetch(`${baseUrl}${path}`, {
+      response = await fetch(url, {
         next: opts.tags ? { revalidate, tags: opts.tags } : { revalidate },
       });
     } catch (cause) {
@@ -76,8 +94,9 @@ export function createPublicApi(baseUrl: string, options: PublicApiOptions = {})
   async function publicGetOptional<T>(path: string, opts: PublicGetOptions = {}): Promise<T | null> {
     try {
       return await publicGet<T>(path, opts);
-    } catch {
-      return null;
+    } catch (error) {
+      if (error instanceof PublicApiError) return null;
+      throw error;
     }
   }
 
