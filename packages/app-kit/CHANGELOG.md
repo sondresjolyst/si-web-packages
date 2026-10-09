@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.7.0](https://github.com/sondresjolyst/si-web-packages/compare/app-kit-v0.6.0...app-kit-v0.7.0) (2026-10-09)
+
+
+### Features
+
+* add RoleGate, AppSessionProvider, public fetch and revalidate helpers, and a quiet toast ([#13](https://github.com/sondresjolyst/si-web-packages/issues/13)) ([bbdeda8](https://github.com/sondresjolyst/si-web-packages/commit/bbdeda8a275383fdbfaa268794c5474f8717e211))
+
+
+### Bug Fixes
+
+* **server:** harden the revalidate route and public fetch paths ([#15](https://github.com/sondresjolyst/si-web-packages/issues/15)) ([2b76f93](https://github.com/sondresjolyst/si-web-packages/commit/2b76f93d05207a0b797b3c08ac0604955c45571f))
+
 ## [0.6.0](https://github.com/sondresjolyst/si-web-packages/compare/app-kit-v0.5.0...app-kit-v0.6.0) (2026-10-09)
 
 
