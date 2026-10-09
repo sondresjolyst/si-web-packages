@@ -6,3 +6,7 @@ export { defaultSessionExpiryGuardStrings } from "./sessionExpiryGuardStrings";
 export type { SessionExpiryGuardStrings } from "./sessionExpiryGuardStrings";
 export { useSessionGate } from "./useSessionGate";
 export type { SessionGate } from "./useSessionGate";
+export { AppSessionProvider } from "./AppSessionProvider";
+export type { AppSessionProviderProps } from "./AppSessionProvider";
+export { RoleGate } from "./RoleGate";
+export type { RoleGateProps } from "./RoleGate";

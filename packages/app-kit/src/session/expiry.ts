@@ -1,3 +1,6 @@
+/** How long a session lasts after sign-in, however often it is refreshed. Seven days. */
+export const ABSOLUTE_SESSION_MAX_AGE = 7 * 24 * 60 * 60 * 1000;
+
 /**
  * Errors the jwt callback sets when the session cannot be recovered without a new sign-in. A
  * transient refresh failure, such as a network error or an API restart, sets no error, so the
