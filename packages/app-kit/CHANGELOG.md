@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.0](https://github.com/sondresjolyst/si-web-packages/compare/app-kit-v0.5.0...app-kit-v0.6.0) (2026-10-09)
+
+
+### Features
+
+* **ui:** add TextInput, CredentialsForm, SessionExpiryGuard and ProtectedGate ([#11](https://github.com/sondresjolyst/si-web-packages/issues/11)) ([c552284](https://github.com/sondresjolyst/si-web-packages/commit/c5522845326df79a9b05c2f3c0d67b05023e19b3))
+
 ## [0.5.0](https://github.com/sondresjolyst/si-web-packages/compare/app-kit-v0.4.0...app-kit-v0.5.0) (2026-10-08)
 
 
