@@ -309,6 +309,45 @@ export const POST = createRevalidateRoute({
 });
 ```
 
+### `@sjolystinnovation/app-kit/next-config`
+
+For `next.config.ts`. It imports nothing but Next's types, so Next loads it with no build step.
+
+`defineAppConfig(options, extra?)` gives the config every app shares: the standalone build, app-kit
+in `transpilePackages`, no `X-Powered-By`, `expireTime` of five minutes, image qualities 75 and 100,
+the incremental cache in memory, and the security headers on every page. `extra` is merged over it,
+with `transpilePackages`, `images`, `headers` and `rewrites` combined rather than replaced.
+
+```ts
+// next.config.ts
+import { defineAppConfig } from "@sjolystinnovation/app-kit/next-config";
+
+export default defineAppConfig({
+  apiUrl: process.env.NEXT_PUBLIC_API_URL,
+  dev: process.env.NODE_ENV !== "production",
+  contentImages: true,
+});
+```
+
+| Option | Type | Description |
+| --- | --- | --- |
+| `apiUrl` | `string \| undefined` | The API URL. Its origin is allowed in `connect-src`. |
+| `dev` | `boolean` | Development builds also allow `'unsafe-eval'`, which hot reload needs. |
+| `websocket` | `boolean` | Also allow `ws:` and `wss:` to the API origin, for SignalR. |
+| `imgFromApi` | `boolean` | Also allow images from the API origin. Not needed with `contentImages`. |
+| `contentImages` | `boolean` | Proxy `/content-images/*` to the API's `/content-images/*`, so the browser never contacts the API host. |
+| `connectSrc`, `imgSrc` | `string[]` | Extra sources for those directives. |
+| `frameSrc`, `objectSrc` | `string[]` | Sources for those directives. Both default to `'none'`. |
+| `pathHeaders` | `{ source, headers }[]` | Headers for particular paths, such as a file download. They come after the page headers and replace a page header of the same name. Every path keeps the rest. |
+| `permissionsPolicy` | `string` | Replaces `camera=(), microphone=(), geolocation=()`. |
+| `expireTime` | `number` | Seconds a cache may serve a stale page. Defaults to 300. Next's default is a year. |
+| `isrFlushToDisk` | `boolean` | Write revalidated pages to disk. Off by default, for a read-only root filesystem. |
+
+The pieces are exported too: `securityHeaders(options)`, `contentSecurityPolicy(options)`,
+`contentImagesRewrite(apiUrl, { source?, upstreamPath? })`, `apiOrigin(apiUrl)` and
+`apiBaseUrl(apiUrl)`. Scripts allow `'unsafe-inline'`, since a nonce would make every statically
+rendered page dynamic.
+
 ### `@sjolystinnovation/app-kit/session`
 
 Decides when a user has to sign in again. Safe to import from server code, such as the next-auth

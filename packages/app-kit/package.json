@@ -25,6 +25,7 @@
     "./ui": "./src/ui/index.ts",
     "./toast": "./src/toast/index.ts",
     "./validation": "./src/validation/index.ts",
+    "./next-config": "./src/next-config/index.ts",
     "./styles.css": "./src/styles.css"
   },
   "files": [
