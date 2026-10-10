@@ -24,6 +24,7 @@
     "./server": "./src/server/index.ts",
     "./ui": "./src/ui/index.ts",
     "./toast": "./src/toast/index.ts",
+    "./validation": "./src/validation/index.ts",
     "./styles.css": "./src/styles.css"
   },
   "files": [
@@ -44,10 +45,14 @@
     "next-auth": "^4.24",
     "react": "^19",
     "react-dom": "^19",
-    "sonner": "^2"
+    "sonner": "^2",
+    "zod": "^4"
   },
   "peerDependenciesMeta": {
     "sonner": {
+      "optional": true
+    },
+    "zod": {
       "optional": true
     }
   },
@@ -67,7 +72,8 @@
     "react-dom": "^19.3.0",
     "sonner": "^2.0.8",
     "typescript": "^6.0.3",
-    "vitest": "^5.0.3"
+    "vitest": "^5.0.3",
+    "zod": "^4.6.5"
   },
   "keywords": [
     "next.js",
