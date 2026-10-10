@@ -660,6 +660,70 @@ import { Alert } from "@sjolystinnovation/app-kit/ui";
 | `className` | `string` | | Classes for placing the alert, such as a margin. Restyle it through the theme variables. A clashing class wins or loses by the order Tailwind emits them in. |
 | `children` | `ReactNode` | | Content. |
 
+### `ContentImage`
+
+From `@sjolystinnovation/app-kit/ui`. An uploaded image from the content API, as a plain `<img>`
+with a `srcset` of the widths the API serves. It goes through the content images rewrite from
+`defineAppConfig({ contentImages: true })`, so the browser never contacts the API host. It works in
+a server component.
+
+```tsx
+<ContentImage imageId={post.imageId} alt={post.title} sizes="(min-width: 768px) 50vw, 100vw" />
+<ContentImage imageId={hero.imageId} fallbackSrc="/hero.jpg" alt="" sizes="100vw" priority aria-hidden />
+```
+
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `imageId` | `string \| null` | | Uploaded image id. Null or empty shows `fallbackSrc` as it is, with no `srcset`. |
+| `alt` | `string` | | Empty for a decorative image. |
+| `sizes` | `string` | | Widths the image is shown at. Required, since a browser assumes `100vw` without it. |
+| `fallbackSrc` | `string` | | A static path for when there is no uploaded image. With neither, nothing renders. |
+| `priority` | `boolean` | `false` | For the one image visible without scrolling. It loads eagerly, at high priority. |
+| `width`, `height` | `number` | | Intrinsic size, to reserve space where the layout fixes no ratio. |
+| `base` | `string` | `"/content-images"` | Path the content images rewrite serves. |
+| `widths` | `number[]` | `CONTENT_IMAGE_WIDTHS` | Widths in the `srcset`. |
+| `className` | `string` | | Classes on the `<img>`. |
+
+`contentImagePath(id, base?)` and `contentImageSrcSet(id, widths?, base?)` build the same URLs for
+other uses, such as a CSS background or an Open Graph image.
+
+### `ErrorState`
+
+From `@sjolystinnovation/app-kit/ui`. What an `error.tsx` shows. It is a client component, as an
+error boundary has to be.
+
+```tsx
+"use client";
+
+export default function Error({ reset }: { error: Error; reset: () => void }) {
+  return <ErrorState reset={reset} homeHref="/" />;
+}
+```
+
+| Prop | Type | Description |
+| --- | --- | --- |
+| `reset` | `() => void` | The `reset` Next passes to `error.tsx`. The try again button calls it. |
+| `homeHref` | `string` | Where the front page link goes, such as `/` or `/en`. |
+| `strings` | `TextOverrides<ErrorStateStrings>` | `title`, `body`, `tryAgain` and `home`. |
+| `className` | `string` | Classes for placing it, on the outer element. |
+
+The error itself is never shown.
+
+### `NotFoundState`
+
+From `@sjolystinnovation/app-kit/ui`. What a `not-found.tsx` shows: a large code, the message as
+the page's heading, and a link home. It works in a server component.
+
+```tsx
+<NotFoundState homeHref="/no" strings={{ body: dict.notFound, home: dict.toFrontPage }} />
+```
+
+| Prop | Type | Description |
+| --- | --- | --- |
+| `homeHref` | `string` | Where the home link goes. |
+| `strings` | `TextOverrides<NotFoundStrings>` | `code`, `body` and `home`. |
+| `className` | `string` | Classes for placing it, on the outer element. |
+
 ### `PasswordInput`
 
 A labelled password field with a button that shows and hides the value. It also takes the other
@@ -767,6 +831,11 @@ selector such as `.dark` for a scoped theme:
 | `--color-dialog-bg` | white |
 | `--color-dialog-title` | gray 900 |
 | `--color-dialog-text` | gray 600 |
+| `--color-state-heading` | gray 900, the heading of an `ErrorState` |
+| `--color-state-text` | gray 600, the text of an `ErrorState` or `NotFoundState` |
+| `--color-state-code` | gray 900, the code of a `NotFoundState` |
+| `--font-state-code` | `inherit`, the font of that code |
+| `--color-state-link`, `-hover` | gray 900, the home link |
 
 A default that points at another variable is read once for the whole page. The focus ring and the
 primary button point at `--color-primary` and `--color-primary-foreground`. A scoped theme that

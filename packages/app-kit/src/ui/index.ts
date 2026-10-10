@@ -1,9 +1,15 @@
 export { Alert } from "./Alert";
 export type { AlertProps } from "./Alert";
+export { ContentImage, CONTENT_IMAGE_WIDTHS, contentImagePath, contentImageSrcSet } from "./ContentImage";
+export type { ContentImageProps } from "./ContentImage";
 export { CredentialsForm } from "./CredentialsForm";
 export type { CredentialsFormProps } from "./CredentialsForm";
 export { SignInRejected, defaultCredentialsFormStrings } from "./credentialsFormStrings";
 export type { CredentialsFormStrings } from "./credentialsFormStrings";
+export { ErrorState, defaultErrorStateStrings } from "./ErrorState";
+export type { ErrorStateProps, ErrorStateStrings } from "./ErrorState";
+export { NotFoundState, defaultNotFoundStrings } from "./NotFoundState";
+export type { NotFoundStateProps, NotFoundStrings } from "./NotFoundState";
 export { PasswordInput } from "./PasswordInput";
 export type { PasswordInputProps } from "./PasswordInput";
 export { TextArea } from "./TextArea";
