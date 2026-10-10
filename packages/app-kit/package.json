@@ -26,6 +26,7 @@
     "./toast": "./src/toast/index.ts",
     "./validation": "./src/validation/index.ts",
     "./next-config": "./src/next-config/index.ts",
+    "./markdown": "./src/markdown/index.ts",
     "./styles.css": "./src/styles.css"
   },
   "files": [
@@ -46,6 +47,9 @@
     "next-auth": "^4.24",
     "react": "^19",
     "react-dom": "^19",
+    "react-markdown": "^10",
+    "rehype-sanitize": "^6",
+    "remark-gfm": "^4",
     "sonner": "^2",
     "zod": "^4"
   },
@@ -54,6 +58,15 @@
       "optional": true
     },
     "zod": {
+      "optional": true
+    },
+    "react-markdown": {
+      "optional": true
+    },
+    "rehype-sanitize": {
+      "optional": true
+    },
+    "remark-gfm": {
       "optional": true
     }
   },
@@ -71,6 +84,9 @@
     "next-auth": "^4.24.15",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
+    "react-markdown": "^10.1.0",
+    "rehype-sanitize": "^6.0.0",
+    "remark-gfm": "^4.0.1",
     "sonner": "^2.0.8",
     "typescript": "^6.0.3",
     "vitest": "^5.0.3",
