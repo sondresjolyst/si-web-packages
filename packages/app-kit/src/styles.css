@@ -45,6 +45,13 @@
   --color-toggle-off: var(--color-gray-200);
   --color-toggle-thumb: var(--color-white);
 
+  --color-state-heading: var(--color-gray-900);
+  --color-state-text: var(--color-gray-600);
+  --color-state-code: var(--color-gray-900);
+  --font-state-code: inherit;
+  --color-state-link: var(--color-gray-900);
+  --color-state-link-hover: var(--color-gray-900);
+
   --radius-button: var(--radius-lg);
   --color-button-primary-bg: var(--color-primary);
   --color-button-primary-text: var(--color-primary-foreground);
