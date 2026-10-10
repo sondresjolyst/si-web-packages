@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.12.0](https://github.com/sondresjolyst/si-web-packages/compare/app-kit-v0.11.0...app-kit-v0.12.0) (2026-10-10)
+
+
+### Features
+
+* **app-kit:** add Markdown in app-kit/markdown ([#24](https://github.com/sondresjolyst/si-web-packages/issues/24)) ([e583a40](https://github.com/sondresjolyst/si-web-packages/commit/e583a40a8a0dd67c47b870c8757013665e8fa0ff))
+
 ## [0.11.0](https://github.com/sondresjolyst/si-web-packages/compare/app-kit-v0.10.0...app-kit-v0.11.0) (2026-10-10)
 
 
