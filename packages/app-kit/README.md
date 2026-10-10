@@ -613,6 +613,24 @@ toast passes through, and so do the error states of `toast.promise`.
 import { toast } from "@sjolystinnovation/app-kit/toast";
 ```
 
+### `passwordSchema(strings?)`
+
+From `@sjolystinnovation/app-kit/validation`. A zod schema for a new password, with the rules the APIs
+enforce through ASP.NET Identity: at least 8 characters, with a lowercase letter, an uppercase letter
+and a digit. No symbol is needed. Identity counts only ASCII, so the letters are A to Z and the digits
+0 to 9, and "Å" does not count as uppercase. Identity sets no upper limit. An app whose API does adds
+it with `.max()`. A failing password gets one issue per rule it breaks, each with its message from
+`strings`. Missing messages fall back to `defaultPasswordStrings`, which are English.
+
+```ts
+import { passwordSchema } from "@sjolystinnovation/app-kit/validation";
+
+const result = passwordSchema({ uppercase: "Ta med en stor bokstav fra A til Z." }).safeParse(newPassword);
+const gargeRule = passwordSchema().max(128, "Be at most 128 characters long.");
+```
+
+`PASSWORD_MIN_LENGTH` holds the minimum, for hint text.
+
 ## Theming
 
 The components draw every colour, corner radius and label size from theme variables with a light
@@ -680,6 +698,7 @@ with it and has to set the ones it uses itself.
 
 - Next.js 16, React 19, next-auth 4.24 or later and axios 1.20 or later, as peer dependencies the
   app installs itself.
+- For `@sjolystinnovation/app-kit/validation`: zod 4, as an optional peer dependency.
 - For `@sjolystinnovation/app-kit/toast`: sonner 2, as an optional peer dependency. Install a single
   copy, because two copies keep two separate toast stores.
 - `jsonwebtoken` comes with the package. `@sjolystinnovation/app-kit/auth` uses it on the server.
