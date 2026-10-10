@@ -1,10 +1,16 @@
 "use client";
 
-import { useId, type InputHTMLAttributes, type ReactNode } from "react";
+import { useId, type AriaAttributes, type ReactNode } from "react";
 import { cx } from "./cx";
 
+/** The props of a field control that useField reads. An `<input>` and a `<textarea>` both have them. */
+export type FieldControlProps = Pick<AriaAttributes, "aria-required" | "aria-invalid" | "aria-describedby"> & {
+  id?: string | undefined;
+  required?: boolean | undefined;
+};
+
 /** The ids and aria attributes a labelled input needs, from the caller's own props. */
-export function useField(props: Pick<InputHTMLAttributes<HTMLInputElement>, "id" | "required" | "aria-required" | "aria-invalid" | "aria-describedby">, error: string | undefined) {
+export function useField(props: FieldControlProps, error: string | undefined) {
   // A generated id ties the label to its own control, even when two fields on a page share a name.
   const generated = useId();
   const inputId = props.id ?? generated;

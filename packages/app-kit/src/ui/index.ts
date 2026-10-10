@@ -6,6 +6,10 @@ export { SignInRejected, defaultCredentialsFormStrings } from "./credentialsForm
 export type { CredentialsFormStrings } from "./credentialsFormStrings";
 export { PasswordInput } from "./PasswordInput";
 export type { PasswordInputProps } from "./PasswordInput";
+export { TextArea } from "./TextArea";
+export type { TextAreaProps } from "./TextArea";
 export { TextInput } from "./TextInput";
 export type { TextInputProps } from "./TextInput";
+export { Toggle } from "./Toggle";
+export type { ToggleProps } from "./Toggle";
 export type { TextOverrides } from "./withDefaults";

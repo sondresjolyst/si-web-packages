@@ -566,6 +566,46 @@ From `@sjolystinnovation/app-kit/ui`. A labelled text field with the same look a
 <TextInput label="Email" name="email" type="email" required error={errors.email} />
 ```
 
+### `TextArea`
+
+From `@sjolystinnovation/app-kit/ui`. A labelled multi-line field with the same look, label and
+error handling as `TextInput`. It takes the other `<textarea>` attributes too, and works controlled
+or uncontrolled.
+
+```tsx
+<TextArea label="Description" name="description" rows={4} maxRows={10} error={errors.description} />
+```
+
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `label` | `string` | | Visible label, tied to the text area. |
+| `error` | `string` | | Message shown under the field, read out with it by screen readers. |
+| `autoGrow` | `boolean` | `true` | Grows with its text from `rows` lines up to `maxRows`, and has no resize handle. With `false` it keeps its size and shows the handle. |
+| `rows` | `number` | `3` | Lines shown when empty. |
+| `maxRows` | `number` | `12` | The most lines an auto-growing box shows before it scrolls. |
+| `className` | `string` | | Classes for placing the field, on the outer element. |
+
+### `Toggle`
+
+From `@sjolystinnovation/app-kit/ui`. An on and off switch for a setting that takes effect at once.
+It takes the other `<button>` attributes too.
+
+```tsx
+<Toggle label="Email notifications" checked={enabled} onChange={setEnabled} />
+<Toggle aria-label="VAT" checked={vat} onChange={setVat} disabled={saving} />
+```
+
+| Prop | Type | Description |
+| --- | --- | --- |
+| `checked` | `boolean` | Whether the switch is on. |
+| `onChange` | `(checked: boolean) => void` | Called with the new state. A callback that ignores it also fits. |
+| `label` | `string` | Visible text after the switch. It names the switch, and a click on it flips the switch. |
+| `aria-label` | `string` | The switch's name when there is no `label`. One of the two is required. |
+| `disabled` | `boolean` | Greys the switch out and ignores clicks. |
+| `className` | `string` | Classes for placing it, on the outer element. |
+
+An `onClick` that calls `event.preventDefault()` stops the change.
+
 ### `Alert`
 
 ```tsx
@@ -674,6 +714,9 @@ selector such as `.dark` for a scoped theme:
 | `--input-focus-ring-width` | `2px` |
 | `--color-input-toggle` | gray 400, the show password icon |
 | `--color-input-toggle-hover` | gray 600 |
+| `--color-toggle-on` | `var(--color-primary)`, the track of a `Toggle` that is on |
+| `--color-toggle-off` | gray 200, the track of a `Toggle` that is off |
+| `--color-toggle-thumb` | white |
 | `--radius-button` | `var(--radius-lg)` |
 | `--color-button-primary-bg` | `var(--color-primary)` |
 | `--color-button-primary-text` | `var(--color-primary-foreground)` |
