@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.8.0](https://github.com/sondresjolyst/si-web-packages/compare/app-kit-v0.7.0...app-kit-v0.8.0) (2026-10-10)
+
+
+### Features
+
+* **validation:** add a shared password schema ([#16](https://github.com/sondresjolyst/si-web-packages/issues/16)) ([9055ece](https://github.com/sondresjolyst/si-web-packages/commit/9055ece498fc85a8fd0aee614616844f43171e1d))
+
 ## [0.7.0](https://github.com/sondresjolyst/si-web-packages/compare/app-kit-v0.6.0...app-kit-v0.7.0) (2026-10-09)
 
 
