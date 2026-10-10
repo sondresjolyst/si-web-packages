@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.11.0](https://github.com/sondresjolyst/si-web-packages/compare/app-kit-v0.10.0...app-kit-v0.11.0) (2026-10-10)
+
+
+### Features
+
+* **app-kit:** add ContentImage, ErrorState and NotFoundState ([#22](https://github.com/sondresjolyst/si-web-packages/issues/22)) ([b21cbe0](https://github.com/sondresjolyst/si-web-packages/commit/b21cbe0aadc4f06d5a479fc74606cb2eb2c82e9c))
+
 ## [0.10.0](https://github.com/sondresjolyst/si-web-packages/compare/app-kit-v0.9.0...app-kit-v0.10.0) (2026-10-10)
 
 
