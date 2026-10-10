@@ -100,8 +100,8 @@ export interface AppConfigOptions extends CspOptions {
   /** Proxy `/content-images/*` to the API. See `contentImagesRewrite`. */
   contentImages?: boolean | undefined;
   /**
-   * Headers for particular paths. A path listed here does not get the page headers, so give it the
-   * whole set it needs.
+   * Headers for particular paths. Every path gets the page headers, and these come after them, so
+   * they replace a page header of the same name.
    */
   pathHeaders?: readonly { source: string; headers: Header[] }[] | undefined;
   /** Replaces the default Permissions-Policy. */
@@ -119,12 +119,6 @@ export interface AppConfigOptions extends CspOptions {
   isrFlushToDisk?: boolean | undefined;
 }
 
-/** Escapes a path for a regular expression in a Next source pattern. */
-const escapeForSource = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-
-/** A path's fixed start, up to its first parameter or pattern. */
-const fixedPrefix = (source: string) => source.split(/[:(*]/)[0]!.replace(/^\//, "");
-
 /**
  * The shared Next config for an app: the standalone build, app-kit transpiled, no `X-Powered-By`,
  * the security headers on every page, and optionally the content images rewrite. `extra` is merged
@@ -133,10 +127,6 @@ const fixedPrefix = (source: string) => source.split(/[:(*]/)[0]!.replace(/^\//,
 export function defineAppConfig(o: AppConfigOptions, extra: NextConfig = {}): NextConfig {
   const pageHeaders = securityHeaders(o);
   const paths = o.pathHeaders ?? [];
-  // The page headers skip the paths with their own, so their responses get only the set listed.
-  const pageSource = paths.length
-    ? `/((?!${paths.map(p => escapeForSource(fixedPrefix(p.source))).join("|")}).*)`
-    : "/:path*";
 
   const { transpilePackages, images, experimental, headers: extraHeaders, rewrites: extraRewrites, ...rest } = extra;
   return {
@@ -148,7 +138,9 @@ export function defineAppConfig(o: AppConfigOptions, extra: NextConfig = {}): Ne
     images: { qualities: [75, 100], ...images },
     experimental: { isrFlushToDisk: o.isrFlushToDisk ?? false, ...experimental },
     async headers() {
-      const own = [...paths.map(p => ({ source: p.source, headers: p.headers })), { source: pageSource, headers: pageHeaders }];
+      // Every path gets the page headers. Next lets a later rule replace a header of the same name,
+      // so a path's own headers come after them.
+      const own = [{ source: "/:path*", headers: pageHeaders }, ...paths.map(p => ({ source: p.source, headers: p.headers }))];
       return [...own, ...((await extraHeaders?.()) ?? [])];
     },
     async rewrites() {

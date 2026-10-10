@@ -338,7 +338,7 @@ export default defineAppConfig({
 | `contentImages` | `boolean` | Proxy `/content-images/*` to the API's `/content-images/*`, so the browser never contacts the API host. |
 | `connectSrc`, `imgSrc` | `string[]` | Extra sources for those directives. |
 | `frameSrc`, `objectSrc` | `string[]` | Sources for those directives. Both default to `'none'`. |
-| `pathHeaders` | `{ source, headers }[]` | Headers for particular paths, such as a file download. Those paths get only these headers, not the page headers. |
+| `pathHeaders` | `{ source, headers }[]` | Headers for particular paths, such as a file download. They come after the page headers and replace a page header of the same name. Every path keeps the rest. |
 | `permissionsPolicy` | `string` | Replaces `camera=(), microphone=(), geolocation=()`. |
 | `expireTime` | `number` | Seconds a cache may serve a stale page. Defaults to 300. Next's default is a year. |
 | `isrFlushToDisk` | `boolean` | Write revalidated pages to disk. Off by default, for a read-only root filesystem. |

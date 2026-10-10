@@ -145,14 +145,14 @@ describe("defineAppConfig", () => {
     ]);
   });
 
-  it("gives nstuning its report headers, and its pages none of them", async () => {
+  it("gives every path the page headers, and nstuning's report its own after them", async () => {
     const config = defineAppConfig({
       apiUrl: API, dev: false, imgFromApi: true,
       pathHeaders: [{ source: "/api/report/:path*", headers: nstuningReportHeaders }],
     });
     expect(await config.headers!()).toEqual([
+      { source: "/:path*", headers: pageHeaders(NSTUNING_CSP) },
       { source: "/api/report/:path*", headers: nstuningReportHeaders },
-      { source: "/((?!api/report/).*)", headers: pageHeaders(NSTUNING_CSP) },
     ]);
     expect(await config.rewrites!()).toEqual([]);
   });
@@ -189,9 +189,11 @@ describe("defineAppConfig", () => {
       .toEqual(["@sjolystinnovation/app-kit", "other-lib"]);
   });
 
-  it("escapes a path with its own headers in the page pattern", async () => {
-    const config = defineAppConfig({ apiUrl: API, dev: false, pathHeaders: [{ source: "/feed.xml", headers: [] }] });
-    expect((await config.headers!())[1]!.source).toBe("/((?!feed\\.xml).*)");
+  it.each(["/api/report", "/:slug/report", "/(.*)", "/"])("never takes the page headers off a page, whatever the path %s", async source => {
+    const config = defineAppConfig({ apiUrl: API, dev: false, pathHeaders: [{ source, headers: [] }] });
+    const rules = await config.headers!();
+    expect(rules[0]).toEqual({ source: "/:path*", headers: pageHeaders(PYTTOGPANNE_CSP) });
+    expect(rules.map(r => r.source)).toEqual(["/:path*", source]);
   });
 });
 
