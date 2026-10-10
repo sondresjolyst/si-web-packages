@@ -28,7 +28,7 @@ const nextConfig: NextConfig = {
 };
 ```
 
-The components in `@sjolystinnovation/app-kit/ui` and `session/react` are styled with Tailwind CSS.
+The components in `@sjolystinnovation/app-kit/ui`, `markdown` and `session/react` are styled with Tailwind CSS.
 Import the package's stylesheet after Tailwind:
 
 ```css
@@ -347,6 +347,36 @@ The pieces are exported too: `securityHeaders(options)`, `contentSecurityPolicy(
 `contentImagesRewrite(apiUrl, { source?, upstreamPath? })`, `apiOrigin(apiUrl)` and
 `apiBaseUrl(apiUrl)`. Scripts allow `'unsafe-inline'`, since a nonce would make every statically
 rendered page dynamic.
+
+### `@sjolystinnovation/app-kit/markdown`
+
+Renders Markdown from an editor or the API, with GitHub tables, task lists and footnotes. Raw HTML is
+never rendered and the output is sanitized, so the text cannot inject scripts, styles, event
+handlers or `javascript:` links. It works in a server component. It needs `react-markdown`,
+`remark-gfm` and `rehype-sanitize`, which are optional peer dependencies:
+
+```sh
+npm install react-markdown remark-gfm rehype-sanitize
+```
+
+```tsx
+import { Markdown } from "@sjolystinnovation/app-kit/markdown";
+
+<div className="space-y-4 text-sm text-gray-700">
+  <Markdown>{build.description}</Markdown>
+</div>;
+```
+
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `children` | `string \| null \| undefined` | | The Markdown. Empty, null or undefined renders nothing. |
+| `components` | `Components` | | Replaces the element for a tag, such as `{ p: MyParagraph }`. Tags not named keep the default. It gets the props without `node`, so it can spread them onto an element. |
+| `externalLinks` | `boolean` | `false` | Opens `http` and `https` links in a new tab with `rel="noopener noreferrer"`. Site-relative links stay in the tab. |
+| `className` | `string` | | Wraps the output in a `div` with these classes. Without it the elements render bare, so a parent's `space-y-*` spaces them. |
+
+The text takes its colour and size from the parent. A level one heading becomes a level two, since
+the page has its own `h1`. `markdownComponents` holds the default elements, for an app that builds
+on them.
 
 ### `@sjolystinnovation/app-kit/session`
 
@@ -836,6 +866,11 @@ selector such as `.dark` for a scoped theme:
 | `--color-state-code` | gray 900, the code of a `NotFoundState` |
 | `--font-state-code` | `inherit`, the font of that code |
 | `--color-state-link`, `-hover` | gray 900, the home link |
+| `--color-markdown-heading`, `-strong` | gray 900, headings and bold text in `Markdown` |
+| `--color-markdown-link` | gray 900 |
+| `--color-markdown-link-hover` | gray 600 |
+| `--color-markdown-border` | gray 200, rules, quotes and table lines |
+| `--color-markdown-code-bg`, `-code-text` | gray 100, gray 900 |
 
 A default that points at another variable is read once for the whole page. The focus ring and the
 primary button point at `--color-primary` and `--color-primary-foreground`. A scoped theme that

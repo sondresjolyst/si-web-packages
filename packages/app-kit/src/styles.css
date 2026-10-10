@@ -52,6 +52,14 @@
   --color-state-link: var(--color-gray-900);
   --color-state-link-hover: var(--color-gray-900);
 
+  --color-markdown-heading: var(--color-gray-900);
+  --color-markdown-strong: var(--color-gray-900);
+  --color-markdown-link: var(--color-gray-900);
+  --color-markdown-link-hover: var(--color-gray-600);
+  --color-markdown-border: var(--color-gray-200);
+  --color-markdown-code-bg: var(--color-gray-100);
+  --color-markdown-code-text: var(--color-gray-900);
+
   --radius-button: var(--radius-lg);
   --color-button-primary-bg: var(--color-primary);
   --color-button-primary-text: var(--color-primary-foreground);
