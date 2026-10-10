@@ -41,6 +41,10 @@
   --color-input-toggle: var(--color-gray-400);
   --color-input-toggle-hover: var(--color-gray-600);
 
+  --color-toggle-on: var(--color-primary);
+  --color-toggle-off: var(--color-gray-200);
+  --color-toggle-thumb: var(--color-white);
+
   --radius-button: var(--radius-lg);
   --color-button-primary-bg: var(--color-primary);
   --color-button-primary-text: var(--color-primary-foreground);
