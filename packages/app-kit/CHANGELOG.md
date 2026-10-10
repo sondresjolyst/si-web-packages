@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.10.0](https://github.com/sondresjolyst/si-web-packages/compare/app-kit-v0.9.0...app-kit-v0.10.0) (2026-10-10)
+
+
+### Features
+
+* **next-config:** add the shared Next config with security headers ([#20](https://github.com/sondresjolyst/si-web-packages/issues/20)) ([a3a379e](https://github.com/sondresjolyst/si-web-packages/commit/a3a379ea6dc2e1452c0ecef54025f6a310137c62))
+
 ## [0.9.0](https://github.com/sondresjolyst/si-web-packages/compare/app-kit-v0.8.0...app-kit-v0.9.0) (2026-10-10)
 
 
