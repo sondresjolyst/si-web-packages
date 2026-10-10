@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.9.0](https://github.com/sondresjolyst/si-web-packages/compare/app-kit-v0.8.0...app-kit-v0.9.0) (2026-10-10)
+
+
+### Features
+
+* **ui:** add TextArea and Toggle ([#18](https://github.com/sondresjolyst/si-web-packages/issues/18)) ([8b7c13f](https://github.com/sondresjolyst/si-web-packages/commit/8b7c13ff26cc20f65b0cd04e50595113964a4754))
+
 ## [0.8.0](https://github.com/sondresjolyst/si-web-packages/compare/app-kit-v0.7.0...app-kit-v0.8.0) (2026-10-10)
 
 
