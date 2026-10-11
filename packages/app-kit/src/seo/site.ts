@@ -77,10 +77,13 @@ export interface OrganizationOptions {
   logo?: string | undefined;
 }
 
-/** Leading slash, no trailing slash. `""` and `"/"` both mean the front page. */
+/**
+ * One leading slash, no trailing slash. `""` and `"/"` both mean the front page. Leading slashes
+ * and backslashes collapse to one, so a path always stays on the site's own host.
+ */
 export function normalizePath(path: string): string {
   if (path === "") return "";
-  const withSlash = path.startsWith("/") ? path : `/${path}`;
+  const withSlash = `/${path.replace(/^[/\\]+/, "")}`;
   return withSlash.endsWith("/") ? withSlash.slice(0, -1) : withSlash;
 }
 

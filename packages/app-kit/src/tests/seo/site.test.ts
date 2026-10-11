@@ -38,6 +38,16 @@ describe("urls", () => {
     expect(normalizePath("/builds/")).toBe("/builds");
   });
 
+  it("stay on the site's own host, whatever slashes a path starts with", () => {
+    const bs = String.fromCharCode(92);
+    for (const path of ["//evil.example/x", `/${bs}evil.example/x`, `${bs}${bs}evil.example/x`, `${bs}/evil.example/x`, "///x"]) {
+      expect(new URL(site.absoluteUrl(path)).host, path).toBe("www.altinnendata.no");
+      expect(site.absoluteUrl(path).startsWith(`${URL_}/`), path).toBe(true);
+    }
+    expect(normalizePath("//a/b/")).toBe("/a/b");
+    expect(site.localePath("no", "//evil.example")).toBe("/no/evil.example");
+  });
+
   it("prefix the locale segment", () => {
     expect(site.localePath("no")).toBe("/no");
     expect(site.localePath("en", "/builds")).toBe("/en/builds");
