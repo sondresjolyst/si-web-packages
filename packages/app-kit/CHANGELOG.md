@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.14.0](https://github.com/sondresjolyst/si-web-packages/compare/app-kit-v0.13.0...app-kit-v0.14.0) (2026-10-11)
+
+
+### Features
+
+* **app-kit:** add branding and branding/server ([#29](https://github.com/sondresjolyst/si-web-packages/issues/29)) ([0197e93](https://github.com/sondresjolyst/si-web-packages/commit/0197e93f495dd712b6d72ec7a6ba66338545c026))
+
 ## [0.13.0](https://github.com/sondresjolyst/si-web-packages/compare/app-kit-v0.12.0...app-kit-v0.13.0) (2026-10-11)
 
 
