@@ -145,6 +145,13 @@ describe("BrandingManager", () => {
     expect(sent(save.mock.calls[0][0])).toEqual({ logo: "new.png" });
   });
 
+  it("previews only raster images, not a stored type that could carry script", () => {
+    setup(vi.fn(), { logoData: "PHN2Zz4=", logoContentType: "image/svg+xml", iconData: "PGh0bWw+", iconContentType: "text/html" });
+    expect(screen.queryByRole("img")).toBeNull();
+    expect(screen.getAllByText("none")).toHaveLength(2);
+    expect(screen.getByRole("button", { name: "Remove Logo" })).toBeInTheDocument();
+  });
+
   it("offers no removal when there is nothing to remove", () => {
     setup(vi.fn(), {});
     expect(screen.queryByRole("button", { name: /Remove/ })).toBeNull();

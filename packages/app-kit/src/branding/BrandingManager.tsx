@@ -46,6 +46,10 @@ export interface BrandingManagerProps {
   strings?: TextOverrides<BrandingManagerStrings> | undefined;
 }
 
+/** A preview is an object URL for the chosen file or a data URL of a raster image. Anything else shows none. */
+const PREVIEW_URL = /^(blob:|data:image\/(png|jpeg|webp|gif|x-icon|vnd\.microsoft\.icon);base64,)/i;
+const previewUrl = (url: string | null): string | null => (url !== null && PREVIEW_URL.test(url) ? url : null);
+
 interface SlotProps {
   label: string;
   hint: string;
@@ -74,7 +78,7 @@ function Slot({ label, hint, currentUrl, file, onPick, onClear, text }: SlotProp
   }, [file]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
-  const preview = objectUrl ?? currentUrl;
+  const preview = previewUrl(objectUrl ?? currentUrl);
   return (
     <div>
       <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
