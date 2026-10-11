@@ -3,7 +3,7 @@
   "version": "0.14.0",
   "description": "Building blocks for Next.js apps that sign in against a JWT API through next-auth",
   "license": "Apache-2.0",
-  "author": "Sjølyst Innovation AS",
+  "author": "Sj\u00f8lyst Innovation AS",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/sondresjolyst/si-web-packages.git",
@@ -31,6 +31,7 @@
     "./seo/og": "./src/seo/og/index.tsx",
     "./branding": "./src/branding/index.ts",
     "./branding/server": "./src/branding/server.ts",
+    "./payments": "./src/payments/index.ts",
     "./styles.css": "./src/styles.css"
   },
   "files": [

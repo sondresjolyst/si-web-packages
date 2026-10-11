@@ -28,7 +28,7 @@ const nextConfig: NextConfig = {
 };
 ```
 
-The components in `@sjolystinnovation/app-kit/ui`, `markdown`, `branding` and `session/react` are styled with Tailwind CSS.
+The components in `@sjolystinnovation/app-kit/ui`, `markdown`, `branding`, `payments` and `session/react` are styled with Tailwind CSS.
 Import the package's stylesheet after Tailwind:
 
 ```css
@@ -523,6 +523,48 @@ fetch and revalidate the tag after a save, so a new icon shows at once. `iconVer
 short digest of the icon bytes, for a manifest icon URL such as `/icon?v=<digest>`, since Android
 refreshes a home screen icon only when the manifest changes.
 
+### `@sjolystinnovation/app-kit/payments`
+
+The page a user comes back to from a payment provider, such as after approving a Vipps payment or
+agreement. The .NET side of the Vipps calls is `SjolystInnovation.AppKit.Vipps` on NuGet.
+
+`usePollUntilFinal(fetcher, isFinal, { retries, delayMs })` fetches until the value is final, since
+the provider may confirm a moment after the user is back. It polls every 4 seconds, 8 more times at
+most, and stops on a failed fetch and on unmount. It gives `data`, `loading` and `refresh()`, and
+each fetch uses the latest `fetcher` and `isFinal`.
+
+`PaymentReturn` shows the outcome: confirmed, still pending, or failed. It takes the text and the way
+on for each state, and a refresh button while pending when given `onRefresh`.
+
+```tsx
+"use client";
+import { PaymentReturn, usePollUntilFinal } from "@sjolystinnovation/app-kit/payments";
+
+const { data: order, loading, refresh } = usePollUntilFinal(
+  () => ShopService.getOrder(orderId),
+  o => o != null && o.status !== "Pending",
+);
+if (loading) return <Spinner />;
+
+<PaymentReturn
+  state={order?.status === "Paid" ? "success" : order?.status === "Pending" ? "pending" : "failed"}
+  success={{ title: "Payment received!", body: "Your order is confirmed.", href: "/shop", cta: "Back to shop" }}
+  pending={{ title: "Payment pending", body: "Vipps is confirming it.", note: "We'll email a receipt.", href: "/profile/billing", cta: "View billing" }}
+  failed={{ title: "Payment failed", body: "No charge was made.", href: "/shop", cta: "Try again" }}
+  onRefresh={refresh}
+/>;
+```
+
+| Prop | Type | Description |
+| --- | --- | --- |
+| `state` | `"success" \| "pending" \| "failed"` | Which content to show. |
+| `success`, `pending`, `failed` | `{ title, body, href, cta, note?, extra? }` | The text, the button's target and text, a smaller note line and anything more, per state. |
+| `onRefresh` | `() => void` | Shows a refresh button while pending. |
+| `refreshLabel` | `string` | Its text. Defaults to `Check again`. |
+| `className` | `string` | Classes for placing it, on the outer element. |
+
+`formatNok(ore)` formats øre as kroner, such as `NOK 373,75`.
+
 ### `@sjolystinnovation/app-kit/session`
 
 Decides when a user has to sign in again. Safe to import from server code, such as the next-auth
@@ -1016,6 +1058,10 @@ selector such as `.dark` for a scoped theme:
 | `--color-markdown-link-hover` | gray 600 |
 | `--color-markdown-border` | gray 200, rules, quotes and table lines |
 | `--color-markdown-code-bg`, `-code-text` | gray 100, gray 900 |
+| `--radius-payment-button` | `var(--radius-button)`, the buttons on a `PaymentReturn` |
+| `--color-payment-success`, `-pending`, `-failed` | green 600, amber 500, red 600, the icon on a `PaymentReturn` |
+| `--color-payment-title`, `-text`, `-note` | gray 900, 600, 500 |
+| `--color-payment-secondary-bg`, `-hover-bg`, `-text` | gray 100, 200, 700, its secondary link |
 
 A default that points at another variable is read once for the whole page. The focus ring and the
 primary button point at `--color-primary` and `--color-primary-foreground`. A scoped theme that

@@ -60,6 +60,17 @@
   --color-markdown-code-bg: var(--color-gray-100);
   --color-markdown-code-text: var(--color-gray-900);
 
+  --radius-payment-button: var(--radius-button);
+  --color-payment-success: var(--color-green-600);
+  --color-payment-pending: var(--color-amber-500);
+  --color-payment-failed: var(--color-red-600);
+  --color-payment-title: var(--color-gray-900);
+  --color-payment-text: var(--color-gray-600);
+  --color-payment-note: var(--color-gray-500);
+  --color-payment-secondary-bg: var(--color-gray-100);
+  --color-payment-secondary-hover-bg: var(--color-gray-200);
+  --color-payment-secondary-text: var(--color-gray-700);
+
   --radius-button: var(--radius-lg);
   --color-button-primary-bg: var(--color-primary);
   --color-button-primary-text: var(--color-primary-foreground);
