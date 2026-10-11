@@ -28,7 +28,7 @@ const nextConfig: NextConfig = {
 };
 ```
 
-The components in `@sjolystinnovation/app-kit/ui`, `markdown` and `session/react` are styled with Tailwind CSS.
+The components in `@sjolystinnovation/app-kit/ui`, `markdown`, `branding` and `session/react` are styled with Tailwind CSS.
 Import the package's stylesheet after Tailwind:
 
 ```css
@@ -459,6 +459,69 @@ export async function GET(_request: Request, { params }: { params: Promise<{ loc
 
 It is a route rather than the `opengraph-image` file convention, since a page's own `openGraph`
 block replaces that image.
+
+### `@sjolystinnovation/app-kit/branding`
+
+The logo and favicon an admin uploads, as the API's `/branding` endpoint returns them.
+
+`BrandingProvider` holds them for the components below it. It takes the branding the server
+rendered with, loads it on mount when there is none, and loads it again every five minutes, so an
+open tab picks up a change. A failed load keeps what it has. `useBranding()` gives `branding`,
+`logoUrl` as a `data:` URL or null, and `refresh()`.
+
+```tsx
+"use client";
+import { BrandingProvider, useBranding } from "@sjolystinnovation/app-kit/branding";
+
+<BrandingProvider load={BrandingService.get} initial={initialBranding}>{children}</BrandingProvider>;
+
+const { logoUrl } = useBranding();
+<img src={logoUrl ?? "/logo.png"} alt="" />;
+```
+
+`BrandingManager` is the admin form for uploading or removing them. It needs a `BrandingProvider`
+above it, and refreshes it after a save.
+
+```tsx
+<BrandingManager save={form => BrandingService.update(form)} />
+```
+
+| Prop | Type | Description |
+| --- | --- | --- |
+| `save` | `(form: FormData) => Promise<unknown>` | Sends `logo` and `icon` files, and `removeLogo` and `removeIcon` set to `true`. Throw to show the error's message. |
+| `strings` | `TextOverrides<BrandingManagerStrings>` | The form's text. |
+
+`toDataUrl(data, contentType)` turns base64 bytes into a `data:` URL.
+
+### `@sjolystinnovation/app-kit/branding/server`
+
+`brandingIcon({ load, fallbackPath, fallbackType })` is the response for an `app/icon.ts` route:
+the favicon set in admin settings when it is a PNG, JPEG, WebP, GIF or ICO, or the bundled file
+otherwise, since an SVG or HTML upload could run script on the site's origin. Both carry `nosniff`
+and a sandbox CSP, which a CSP header from the app's `next.config` replaces. When the branding cannot be
+loaded it answers 503 with `no-store`, since a browser would cache the bundled icon in place of the
+one set in settings.
+
+```ts
+// src/app/icon.ts
+import { join } from "node:path";
+import { brandingIcon } from "@sjolystinnovation/app-kit/branding/server";
+
+export const dynamic = "force-dynamic";
+
+export default function Icon() {
+  return brandingIcon({
+    load: () => publicGet<Branding>("/branding", { tags: ["branding"] }),
+    fallbackPath: join(process.cwd(), "public", "icon.png"),
+    fallbackType: "image/png",
+  });
+}
+```
+
+The route needs `dynamic = "force-dynamic"`, or the build bakes in the icon of the moment. Tag the
+fetch and revalidate the tag after a save, so a new icon shows at once. `iconVersion(data)` is a
+short digest of the icon bytes, for a manifest icon URL such as `/icon?v=<digest>`, since Android
+refreshes a home screen icon only when the manifest changes.
 
 ### `@sjolystinnovation/app-kit/session`
 
