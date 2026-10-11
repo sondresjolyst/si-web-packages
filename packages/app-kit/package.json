@@ -29,6 +29,8 @@
     "./markdown": "./src/markdown/index.ts",
     "./seo": "./src/seo/index.ts",
     "./seo/og": "./src/seo/og/index.tsx",
+    "./branding": "./src/branding/index.ts",
+    "./branding/server": "./src/branding/server.ts",
     "./styles.css": "./src/styles.css"
   },
   "files": [
