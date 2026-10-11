@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.13.0](https://github.com/sondresjolyst/si-web-packages/compare/app-kit-v0.12.0...app-kit-v0.13.0) (2026-10-11)
+
+
+### Features
+
+* **app-kit:** add seo and seo/og ([#27](https://github.com/sondresjolyst/si-web-packages/issues/27)) ([f843620](https://github.com/sondresjolyst/si-web-packages/commit/f843620091e7d36bfbfb5bdc59610e08997ff86c))
+
 ## [0.12.0](https://github.com/sondresjolyst/si-web-packages/compare/app-kit-v0.11.0...app-kit-v0.12.0) (2026-10-11)
 
 
