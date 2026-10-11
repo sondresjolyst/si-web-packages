@@ -27,6 +27,8 @@
     "./validation": "./src/validation/index.ts",
     "./next-config": "./src/next-config/index.ts",
     "./markdown": "./src/markdown/index.ts",
+    "./seo": "./src/seo/index.ts",
+    "./seo/og": "./src/seo/og/index.tsx",
     "./styles.css": "./src/styles.css"
   },
   "files": [

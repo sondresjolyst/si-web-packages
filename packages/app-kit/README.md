@@ -378,6 +378,88 @@ The text takes its colour and size from the parent. A level one heading becomes 
 the page has its own `h1`. `markdownComponents` holds the default elements, for an app that builds
 on them.
 
+### `@sjolystinnovation/app-kit/seo`
+
+Search engine helpers for one site: canonical URLs with hreflang, page metadata with Open Graph,
+sitemap entries, robots.txt and schema.org structured data. It works in a server component.
+`defineSite` binds them to the site's name, canonical origin and locales:
+
+```ts
+// src/lib/seo/site.ts
+import { defineSite } from "@sjolystinnovation/app-kit/seo";
+
+export const site = defineSite({
+  name: "Altinnendata",
+  url: "https://www.altinnendata.no",
+  titleSeparator: " | ",
+  locales: ["no", "en"],
+  defaultLocale: "no",
+  localeTags: { no: "no", en: "en" },
+  tagline: locale => getDictionary(locale).meta.tagline,
+});
+```
+
+| Option | Type | Description |
+| --- | --- | --- |
+| `name` | `string` | The site's name, in titles, Open Graph and structured data. |
+| `url` | `string` | The canonical origin, without a trailing slash. |
+| `titleSeparator` | `string` | Between a page title and the site name. |
+| `locales` | `string[]` | The locale segments every page is under. A site without them leaves it out, and its paths have no segment. |
+| `defaultLocale` | `string` | The locale `x-default` points at. Defaults to the first. |
+| `localeTags` | `Record<locale, string>` | The BCP 47 tag per locale. Defaults to the locale. |
+| `tagline` | `(locale) => string` | The line after the name in the default title and the share image's alt text. |
+| `shareImagePath` | `string` | The share image route below each locale. Defaults to `/og`. |
+
+The site gives:
+
+- `localePath(locale, path)`, `absoluteUrl(path)`, `absoluteLocaleUrl(locale, path)` and
+  `languageAlternates(path)`. Paths get a leading slash and no trailing slash.
+- `siteMetadata({ locale, description, manifest })` for the locale root layout: the title
+  template, `metadataBase`, the index directive and the front page's canonical.
+- `pageMetadata({ locale, path, title, description, images })` for a page: the canonical URL,
+  hreflang, and Open Graph with the locale's share image unless `images` is given.
+- `localeEntries(path, { locales, lastModified })` for `sitemap.ts`: one entry per locale, each
+  listing the others. `lastModified` is left out when unknown.
+- `robots({ privatePaths, privateRootPaths, indexable })` for `robots.ts`. The private paths are
+  disallowed under every locale segment. A deployment that is not production disallows everything.
+- `organizationNode(company, { type, country, image, logo })`, `webSiteNode(locale)`,
+  `breadcrumbNode(crumbs, pageUrl)`, `itemListNode(paths, pageUrl)`, `siteId(fragment)` and `ids`
+  for structured data.
+
+```tsx
+// src/app/robots.ts
+export const dynamic = "force-dynamic";
+export default () => site.robots({ privatePaths: ["/admin", "/login"], privateRootPaths: ["/api/"] });
+
+// in a page
+<JsonLd nodes={[site.organizationNode(company), site.webSiteNode(locale)]} />
+```
+
+`isIndexableEnvironment()` reads `SITE_ENV`. `prod`, `production` and unset or blank count as
+production, so a missing variable never deindexes the live site. `robots.ts` needs
+`dynamic = "force-dynamic"`, so it reads the variable per request. The package also exports
+`JsonLd`, `serializeGraph`, `ref`, `NOINDEX`, `SHARE_IMAGE_SIZE`, `normalizePath`, `latest` and
+`parseTimestamp`.
+
+### `@sjolystinnovation/app-kit/seo/og`
+
+`shareImage({ name, tagline, colors })` renders the default share preview, a PNG at
+`SHARE_IMAGE_SIZE`: the name, a bar in `colors.primary` and the tagline. The colours are literals,
+since the image renders outside the browser. Return it from the route `pageMetadata` points at:
+
+```tsx
+// src/app/[locale]/og/route.tsx
+import { shareImage } from "@sjolystinnovation/app-kit/seo/og";
+
+export async function GET(_request: Request, { params }: { params: Promise<{ locale: string }> }) {
+  const { locale } = await params;
+  return shareImage({ name: site.name, tagline: getDictionary(locale).meta.tagline, colors: BRAND });
+}
+```
+
+It is a route rather than the `opengraph-image` file convention, since a page's own `openGraph`
+block replaces that image.
+
 ### `@sjolystinnovation/app-kit/session`
 
 Decides when a user has to sign in again. Safe to import from server code, such as the next-auth
