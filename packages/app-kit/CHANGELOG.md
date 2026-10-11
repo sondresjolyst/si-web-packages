@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.15.0](https://github.com/sondresjolyst/si-web-packages/compare/app-kit-v0.14.0...app-kit-v0.15.0) (2026-10-11)
+
+
+### Features
+
+* **app-kit:** add payments with PaymentReturn, usePollUntilFinal and formatNok ([#31](https://github.com/sondresjolyst/si-web-packages/issues/31)) ([4119141](https://github.com/sondresjolyst/si-web-packages/commit/411914196fe9ab9de8b2377d22f6bb19011acf85))
+
 ## [0.14.0](https://github.com/sondresjolyst/si-web-packages/compare/app-kit-v0.13.0...app-kit-v0.14.0) (2026-10-11)
 
 

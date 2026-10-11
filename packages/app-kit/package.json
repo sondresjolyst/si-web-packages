@@ -1,9 +1,9 @@
 {
   "name": "@sjolystinnovation/app-kit",
-  "version": "0.14.0",
+  "version": "0.15.0",
   "description": "Building blocks for Next.js apps that sign in against a JWT API through next-auth",
   "license": "Apache-2.0",
-  "author": "Sj\u00f8lyst Innovation AS",
+  "author": "Sjølyst Innovation AS",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/sondresjolyst/si-web-packages.git",
