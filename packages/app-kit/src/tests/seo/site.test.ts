@@ -48,6 +48,25 @@ describe("urls", () => {
     expect(site.localePath("no", "//evil.example")).toBe("/no/evil.example");
   });
 
+  it("stay on the site's own host when tabs or line breaks hide a second slash", () => {
+    const bs = String.fromCharCode(92);
+    for (const path of ["/\t/evil.example/x", "/\n/evil.example/x", "/\r/evil.example/x", "\t//evil.example/x", `/${bs}\t${bs}evil.example`]) {
+      expect(new URL(site.absoluteUrl(path)).host, JSON.stringify(path)).toBe("www.altinnendata.no");
+    }
+    expect(normalizePath("/a\t/b\n")).toBe("/a/b");
+  });
+
+  it("stay on the site's own host for any mix of slashes, backslashes, spaces and line breaks", () => {
+    const parts = ["/", String.fromCharCode(92), "\t", "\n", "\r", " ", "."];
+    for (let n = 0; n < 2000; n++) {
+      let prefix = "";
+      for (let i = n; i > 0; i = Math.floor(i / parts.length)) prefix += parts[i % parts.length];
+      const path = `${prefix}evil.example/x`;
+      expect(new URL(site.absoluteUrl(path)).host, JSON.stringify(path)).toBe("www.altinnendata.no");
+      expect(new URL(site.absoluteLocaleUrl("no", path)).host, JSON.stringify(path)).toBe("www.altinnendata.no");
+    }
+  });
+
   it("prefix the locale segment", () => {
     expect(site.localePath("no")).toBe("/no");
     expect(site.localePath("en", "/builds")).toBe("/en/builds");

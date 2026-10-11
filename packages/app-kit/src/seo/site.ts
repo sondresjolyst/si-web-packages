@@ -78,12 +78,14 @@ export interface OrganizationOptions {
 }
 
 /**
- * One leading slash, no trailing slash. `""` and `"/"` both mean the front page. Leading slashes
- * and backslashes collapse to one, so a path always stays on the site's own host.
+ * One leading slash, no trailing slash. `""` and `"/"` both mean the front page. Tabs and line
+ * breaks are removed, as a URL parser removes them, and leading slashes and backslashes collapse
+ * to one, so a path always stays on the site's own host.
  */
 export function normalizePath(path: string): string {
-  if (path === "") return "";
-  const withSlash = `/${path.replace(/^[/\\]+/, "")}`;
+  const clean = path.replace(/[\t\n\r]/g, "");
+  if (clean === "") return "";
+  const withSlash = `/${clean.replace(/^[/\\]+/, "")}`;
   return withSlash.endsWith("/") ? withSlash.slice(0, -1) : withSlash;
 }
 
@@ -96,14 +98,19 @@ export function defineSite<L extends string = string>(config: SiteConfig<L>) {
   const defaultLocale = config.defaultLocale ?? locales[0];
   const tag = (locale: L) => config.localeTags?.[locale] ?? locale;
   const shareImagePath = config.shareImagePath ?? "/og";
+  const origin = new URL(config.url).origin;
 
   /** A site-relative URL for a page in one locale, such as `/no/builds`. A site without locales has no segment. */
   const localePath = (locale: L | undefined, path = ""): string =>
     locale === undefined || locales.length === 0 ? normalizePath(path) || "/" : `/${locale}${normalizePath(path)}`;
 
   /** An absolute URL on the canonical origin, without a trailing slash. */
-  const absoluteUrl = (path = ""): string =>
-    new URL(normalizePath(path) || "/", config.url).toString().replace(/\/$/, "") || config.url;
+  const absoluteUrl = (path = ""): string => {
+    const url = new URL(normalizePath(path) || "/", config.url);
+    // A path that would leave the site's origin gives the front page instead.
+    if (url.origin !== origin) return config.url;
+    return url.toString().replace(/\/$/, "") || config.url;
+  };
 
   const absoluteLocaleUrl = (locale: L, path = ""): string => absoluteUrl(localePath(locale, path));
 
