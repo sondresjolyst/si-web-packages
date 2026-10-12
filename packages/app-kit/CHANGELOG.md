@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.16.0](https://github.com/sondresjolyst/si-web-packages/compare/app-kit-v0.15.0...app-kit-v0.16.0) (2026-10-12)
+
+
+### Features
+
+* **app-kit:** delete the refresh token at the API on sign-out ([#33](https://github.com/sondresjolyst/si-web-packages/issues/33)) ([b5f9dea](https://github.com/sondresjolyst/si-web-packages/commit/b5f9deaab4f9634db4662cbf1058dcdd6726ca59))
+
 ## [0.15.0](https://github.com/sondresjolyst/si-web-packages/compare/app-kit-v0.14.0...app-kit-v0.15.0) (2026-10-11)
 
 
