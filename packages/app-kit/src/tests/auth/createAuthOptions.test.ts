@@ -585,6 +585,57 @@ describe("sign-in", () => {
   });
 });
 
+describe("sign-out", () => {
+  // The signOut event reads only the token, so the rest of next-auth's arguments are left out.
+  const signOut = (token: Partial<Token> | null) =>
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (authOptions.events!.signOut as any)({ token });
+
+  afterEach(() => {
+    apiClient.defaults.adapter = originalAdapter;
+  });
+
+  it("asks the API to delete the refresh token, without waiting long", async () => {
+    const requests: { url: string | undefined; data: unknown; timeout: number | undefined }[] = [];
+    apiClient.defaults.adapter = async config => {
+      requests.push({ url: config.url, data: config.data, timeout: config.timeout });
+      return { data: "", status: 204, statusText: "No Content", headers: {}, config };
+    };
+
+    await signOut(sessionToken({ refreshToken: "RT-out" }));
+
+    expect(requests).toEqual([{ url: "/auth/logout", data: JSON.stringify({ refreshToken: "RT-out" }), timeout: 3000 }]);
+  });
+
+  it("calls nothing when the session holds no refresh token", async () => {
+    let called = false;
+    apiClient.defaults.adapter = async config => {
+      called = true;
+      return { data: "", status: 204, statusText: "No Content", headers: {}, config };
+    };
+
+    const withoutRefreshToken = sessionToken();
+    delete withoutRefreshToken.refreshToken;
+    await signOut(withoutRefreshToken);
+    await signOut(null);
+
+    expect(called).toBe(false);
+  });
+
+  it("still signs out when the API fails, and logs no token", async () => {
+    const logged = vi.spyOn(console, "error").mockImplementation(() => {});
+    failWith(404);
+
+    await expect(signOut(sessionToken({ refreshToken: "RT-secret" }))).resolves.toBeUndefined();
+
+    expect(logged).toHaveBeenCalledWith("Sign-out could not delete the refresh token at the API", {
+      status: 404, code: undefined, message: "status 404",
+    });
+    expect(JSON.stringify(logged.mock.calls)).not.toContain("RT-secret");
+    logged.mockRestore();
+  });
+});
+
 describe("the options", () => {
   it("point next-auth at the login route from the config", () => {
     expect(authOptions.pages?.signIn).toBe("/login");

@@ -73,6 +73,10 @@ const REMEMBER_ROTATION_MS = 60 * 1000;
 // Sign-in and session reads wait for the API, so a hung connection must not hold them forever.
 const API_TIMEOUT_MS = 10_000;
 
+// Sign-out waits for the API to drop the refresh token, but only briefly, because the cookie is
+// cleared either way.
+const SIGN_OUT_TIMEOUT_MS = 3_000;
+
 function rolesOf(claims: ApiClaims): string[] {
   const raw = claims.role;
   return Array.isArray(raw) ? raw : raw ? [raw] : [];
@@ -248,6 +252,19 @@ export function createAuthOptions(config: SessionConfig, settings: AuthOptionsSe
     },
     session: {
       maxAge: ABSOLUTE_SESSION_MAX_AGE / 1000,
+    },
+    events: {
+      // Sign-out also asks the API to delete the refresh token, so a copy of it cannot be used again.
+      // A failure leaves sign-out to the cookie alone.
+      async signOut({ token }) {
+        const refreshToken = (token as AppToken | null)?.refreshToken;
+        if (!refreshToken) return;
+        try {
+          await http.post("/auth/logout", { refreshToken }, { timeout: SIGN_OUT_TIMEOUT_MS });
+        } catch (error) {
+          console.error("Sign-out could not delete the refresh token at the API", failureShape(error));
+        }
+      },
     },
     callbacks: {
       async jwt({ token: current, user }) {
