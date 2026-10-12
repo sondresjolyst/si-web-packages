@@ -170,7 +170,7 @@ export { handler as GET, handler as POST };
 
 | Setting | Type | Description |
 | --- | --- | --- |
-| `apiUrl` | `string` | Base URL of the API. Sign-in posts to `/auth/login` and refresh to `/auth/refresh-token` under it. An empty value throws. |
+| `apiUrl` | `string` | Base URL of the API. Sign-in posts to `/auth/login`, refresh to `/auth/refresh-token` and sign-out to `/auth/logout` under it. An empty value throws. |
 | `env` | `Record<string, string \| undefined>` | The server environment, usually `process.env`. It supplies the secret named by `jwtSecretEnvVar`. |
 | `http` | `AxiosInstance` | In place of `apiUrl`, for tests. The client for sign-in and refresh, with its own base URL. |
 
