@@ -264,6 +264,31 @@ export const getRecipe = (id: number) =>
 `target`, so an edit shows at once. It posts to `/api/revalidate` unless `endpoint` says otherwise.
 It never throws. On failure the pages' own revalidate window is the fallback.
 
+`createPublicClient(baseURL)` is the same without the session, for the API's anonymous endpoints. An
+empty `baseURL` throws, and requests only go to `baseURL`.
+
+The services below call the endpoints the SjolystInnovation.AppKit .NET packages map, so an app does
+not write them. `api` is a `createApiClient` instance and `publicApi` a `createPublicClient` one.
+Failures throw an `Error` with the API's message, or with the service's own English fallback.
+`onSaved` runs after a save succeeds, such as `() => requestRevalidate("branding")`.
+
+| Factory | Methods | .NET package |
+| --- | --- | --- |
+| `createUserService(api, publicApi)` | `requestPasswordReset`, `resetPassword`, and for the signed-in user `getProfile`, `updateProfile`, `changePassword`, `exportData`, `deleteAccount` | Auth |
+| `createAdminUsersService(api)` | `getUsers(includeDeleted?)`, `addRole`, `removeRole`, `deleteUser`, `invite` | Auth |
+| `createSettingsService(api, { onSaved? })` | `get`, `update` | SiteSettings |
+| `createBrandingService(api, publicApi, { onSaved? })` | `get`, which answers `{}` when the API cannot be read, and `update(form)` | SiteSettings |
+| `createLegalService<Key>(api, publicApi, { onSaved? })` | `get(key, locale)`, which answers `null` for a missing page, `listAll`, `save` | SiteSettings |
+
+```ts
+import { createApiClient, createPublicClient, createUserService } from "@sjolystinnovation/app-kit/api";
+
+const apiUrl = requireEnv("NEXT_PUBLIC_API_URL", process.env.NEXT_PUBLIC_API_URL);
+export default createUserService(createApiClient(apiUrl), createPublicClient(apiUrl));
+```
+
+The response types are exported too: `UserProfile`, `AdminUser`, `SiteSettings` and `LegalPage`.
+
 ### `@sjolystinnovation/app-kit/server`
 
 For server components and route handlers only. It imports `next/cache` and `next/server`.
