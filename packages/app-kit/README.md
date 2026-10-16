@@ -622,7 +622,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 `AdminUsersPanel` is the users page. It lists every user with their roles, shows deleted users
 behind a toggle, gives and takes roles, deletes an account after a confirm, and invites a user by
 email. It calls the API through `createAdminUsersService`. `getRoles` returns the roles an admin
-may give. Inline functions are fine. The panel does not fetch again when they change.
+may give. Inline functions are fine. The panel does not fetch again when they change. It reports
+with `toast`, so the app needs sonner and a `Toaster`.
 
 ```tsx
 import { AdminUsersPanel } from "@sjolystinnovation/app-kit/admin";

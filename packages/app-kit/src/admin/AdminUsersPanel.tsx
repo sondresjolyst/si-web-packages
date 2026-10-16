@@ -242,7 +242,12 @@ export function AdminUsersPanel({ service, getRoles, defaultInviteRole = "Admin"
 
                 {isAddingRole && (
                   <div className="flex items-center gap-2">
-                    <select value={selectedRole} onChange={(e) => setSelectedRole(e.target.value)} className="rounded-lg border border-gray-300 px-2 py-1 text-sm">
+                    <select
+                      value={selectedRole}
+                      onChange={(e) => setSelectedRole(e.target.value)}
+                      aria-label={text.addRole}
+                      className="rounded-lg border border-gray-300 px-2 py-1 text-sm"
+                    >
                       {available.map((r) => (
                         <option key={r} value={r}>
                           {r}

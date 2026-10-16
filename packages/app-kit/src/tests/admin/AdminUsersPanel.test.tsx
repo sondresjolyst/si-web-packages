@@ -143,7 +143,7 @@ describe("AdminUsersPanel", () => {
     await screen.findByText("ola@example.no");
 
     await userEvent.click(within(row("ola@example.no")).getByRole("button", { name: /Add role/ }));
-    const select = within(row("ola@example.no")).getByRole("combobox");
+    const select = within(row("ola@example.no")).getByRole("combobox", { name: "Add role" });
     expect(within(select).getAllByRole("option").map((o) => o.textContent)).toEqual(["Admin", "Editor"]);
     await userEvent.selectOptions(select, "Editor");
     await userEvent.click(within(row("ola@example.no")).getByRole("button", { name: "Add" }));
