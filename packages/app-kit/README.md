@@ -692,6 +692,39 @@ import { AdminUsersPanel } from "@sjolystinnovation/app-kit/admin";
 | `defaultInviteRole` | `string` | The role a new invite starts with. Defaults to `Admin`. |
 | `strings` | `TextOverrides<AdminUsersPanelStrings>` | The text, English by default. `{name}` and `{role}` are filled in where a text names them. |
 
+`LegalPagesEditor` edits the legal pages one page and one locale at a time, through
+`createLegalService`. A locale tab whose page has no content yet gets a dot. `LocaleTabs` is the
+same tab bar on its own, for other translated forms.
+
+```tsx
+<LegalPagesEditor
+  service={LegalService}
+  keys={LEGAL_PAGE_KEYS}
+  keyLabels={{ terms: dict.footer.terms, privacy: dict.footer.privacy, cookies: dict.footer.cookies }}
+  locales={LOCALES}
+  localeLabels={LOCALE_LABELS}
+  strings={dict.legalEditor}
+/>
+```
+
+### `@sjolystinnovation/app-kit/legal`
+
+`LegalPageView` renders a terms, privacy or cookies page as an admin wrote it: the title, the date
+it last changed in `dateLocale`, and the Markdown body. With no page it shows `title` and says the
+page is missing. It is a server component and needs the same peers as `markdown`. The route file
+stays in the app, since Next reads `revalidate` and the metadata from it.
+
+```tsx
+// src/app/[locale]/terms/page.tsx
+export const revalidate = 3600;
+
+export default async function TermsPage({ params }: { params: Promise<{ locale: Locale }> }) {
+  const { locale } = await params;
+  const page = await publicGet<LegalPage>(`/content/legal/terms?locale=${locale}`, { tags: [REVALIDATE_TARGETS.legal] });
+  return <LegalPageView page={page} title={dict.footer.terms} homeHref={`/${locale}`} dateLocale="nb-NO" strings={dict.legal} />;
+}
+```
+
 ### `@sjolystinnovation/app-kit/session`
 
 Decides when a user has to sign in again. Safe to import from server code, such as the next-auth

@@ -31,6 +31,7 @@
     "./validation": "./src/validation/index.ts",
     "./next-config": "./src/next-config/index.ts",
     "./markdown": "./src/markdown/index.ts",
+    "./legal": "./src/legal/index.ts",
     "./seo": "./src/seo/index.ts",
     "./seo/og": "./src/seo/og/index.tsx",
     "./branding": "./src/branding/index.ts",
