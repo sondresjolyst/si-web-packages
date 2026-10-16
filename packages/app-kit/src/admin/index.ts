@@ -1,7 +1,9 @@
 export { AdminShell } from "./AdminShell";
 export type { AdminShellProps, AdminTab } from "./AdminShell";
-export { StatHistoryChart, STAT_SERIES_COLORS, defaultStatHistoryChartStrings } from "./StatHistoryChart";
-export type { StatHistoryChartProps, StatHistoryChartStrings, StatSeries } from "./StatHistoryChart";
+export { StatHistoryChart } from "./StatHistoryChart";
+export { STAT_SERIES_COLORS, defaultStatHistoryChartStrings } from "./statHistoryChartStrings";
+export type { StatHistoryChartProps, StatSeries } from "./StatHistoryChart";
+export type { StatHistoryChartStrings } from "./statHistoryChartStrings";
 export { AdminUsersPanel } from "./AdminUsersPanel";
 export type { AdminUsersPanelProps } from "./AdminUsersPanel";
 export { defaultAdminUsersPanelStrings } from "./adminUsersPanelStrings";

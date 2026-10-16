@@ -53,6 +53,12 @@ describe("StatHistoryChart", () => {
     expect(dayLabels).toEqual(["10-01", "10-02", "10-03"]);
   });
 
+  it("labels both days once when there are two", () => {
+    const { container } = render(<StatHistoryChart data={days.slice(0, 2)} series={series} />);
+
+    expect([...container.querySelectorAll("svg > text")].map(t => t.textContent)).toEqual(["10-01", "10-02"]);
+  });
+
   it("puts a single day in the middle with a scale of at least one", () => {
     const { container } = render(<StatHistoryChart data={[{ date: "2026-10-01", users: 0 }]} series={[{ key: "users", label: "Users" }]} />);
 

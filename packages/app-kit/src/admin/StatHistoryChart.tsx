@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { withDefaults, type TextOverrides } from "../ui/withDefaults";
+import { defaultStatHistoryChartStrings, STAT_SERIES_COLORS, type StatHistoryChartStrings } from "./statHistoryChartStrings";
 
 /** One line on the chart. */
 export interface StatSeries<T> {
@@ -11,21 +12,6 @@ export interface StatSeries<T> {
   /** The line's colour. Defaults to the next colour in `STAT_SERIES_COLORS`. */
   color?: string | undefined;
 }
-
-export interface StatHistoryChartStrings {
-  /** Shown instead of the chart when there are no days yet. */
-  empty: string;
-  /** The chart's accessible name. */
-  chart: string;
-}
-
-export const defaultStatHistoryChartStrings: StatHistoryChartStrings = {
-  empty: "No history yet. Check back tomorrow.",
-  chart: "Stats over time",
-};
-
-/** The default line colours, in order: blue, green, amber, teal and purple. */
-export const STAT_SERIES_COLORS = ["#2563eb", "#16a34a", "#d97706", "#0d9488", "#9333ea"] as const;
 
 export interface StatHistoryChartProps<T extends { date: string }> {
   /** One row per day, oldest first, with `date` as `YYYY-MM-DD`. */
@@ -67,7 +53,7 @@ export function StatHistoryChart<T extends { date: string }>({ data, series, str
   const path = (key: keyof T) => data.map((d, i) => `${i === 0 ? "M" : "L"} ${x(i).toFixed(1)} ${y(value(d, key)).toFixed(1)}`).join(" ");
 
   const ticks = [...new Set([0, Math.round(maxVal / 2), maxVal])];
-  const labelIdx = n === 1 ? [0] : [0, Math.floor((n - 1) / 2), n - 1];
+  const labelIdx = [...new Set([0, Math.floor((n - 1) / 2), n - 1])];
 
   return (
     <div>
