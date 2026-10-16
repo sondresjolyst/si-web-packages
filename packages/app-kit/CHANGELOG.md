@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.17.0](https://github.com/sondresjolyst/si-web-packages/compare/app-kit-v0.16.0...app-kit-v0.17.0) (2026-10-16)
+
+
+### Features
+
+* **app-kit:** add service factories for the auth, settings, branding and legal endpoints ([#37](https://github.com/sondresjolyst/si-web-packages/issues/37)) ([30efaa8](https://github.com/sondresjolyst/si-web-packages/commit/30efaa8593a15d0000b0dfff437966eeb6b40e15))
+
 ## [0.16.0](https://github.com/sondresjolyst/si-web-packages/compare/app-kit-v0.15.0...app-kit-v0.16.0) (2026-10-12)
 
 
