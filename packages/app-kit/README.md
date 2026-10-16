@@ -210,34 +210,17 @@ Two rules keep a refresh from being lost:
 - Run the app as one server process. Parallel session reads share one refresh only within a process.
   Two replicas can refresh the same token at once, with the same result.
 
-The package does not declare these fields on next-auth's types. The app declares them, so its own
-code can read them:
+The package declares these fields on next-auth's types in `@sjolystinnovation/app-kit/next-auth`. The
+app loads the declarations once, from one of its own `.d.ts` files, so its code can read them:
 
 ```ts
 // src/types/next-auth.d.ts
-import "next-auth";
-import "next-auth/jwt";
-
-declare module "next-auth" {
-  interface Session {
-    user: { id: string; name: string; email: string; roles: string[] };
-    accessToken: string;
-    error?: string | undefined;
-    absoluteExpiresAt?: number;
-  }
-}
-
-declare module "next-auth/jwt" {
-  interface JWT {
-    accessToken?: string;
-    refreshToken?: string;
-    refreshAt?: number;
-    loginAt?: number;
-    user?: { id: string; name: string; email: string; roles: string[] };
-    error?: string | undefined;
-  }
-}
+import "@sjolystinnovation/app-kit/next-auth";
 ```
+
+The session carries `user` (`id`, `name`, `email`, `roles`), `accessToken`, `error` and
+`absoluteExpiresAt`. The token carries `accessToken`, `refreshToken`, `refreshAt`, `loginAt`, `user`
+and `error`.
 
 ### `@sjolystinnovation/app-kit/api`
 
