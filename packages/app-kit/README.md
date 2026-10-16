@@ -321,6 +321,26 @@ export const POST = createRevalidateRoute({
 });
 ```
 
+`defineRevalidateTargets({ locales, targets })`, from `@sjolystinnovation/app-kit/api`, keeps the
+targets in one file that both sides import. `pages` are below each locale segment and `root` paths
+are not. It returns `targets` for fetch tags, `paths` for the route, and `revalidate(target)` for
+the admin services.
+
+```ts
+// src/lib/cacheTags.ts
+export const { targets: REVALIDATE_TARGETS, paths: TARGET_PATHS, revalidate: revalidateTarget } = defineRevalidateTargets({
+  locales: LOCALES,
+  targets: {
+    legal: { pages: ["/terms", "/privacy", "/cookies"], root: ["/sitemap.xml"] },
+    // Every page renders branding through the layout, so its tag reaches them all.
+    branding: {},
+  },
+});
+
+// src/app/api/revalidate/route.ts
+export const POST = createRevalidateRoute({ targets: TARGET_PATHS, role: ADMIN_ROLE });
+```
+
 ### `@sjolystinnovation/app-kit/next-config`
 
 For `next.config.ts`. It imports nothing but Next's types, so Next loads it with no build step.
