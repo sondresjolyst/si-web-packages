@@ -1,6 +1,7 @@
 import type { Metadata, MetadataRoute } from "next";
 import { isIndexableEnvironment } from "./environment";
 import { ref, type OrganizationInfo, type SchemaNode } from "./schema";
+import { parseTimestamp } from "./sitemap";
 
 /** The size of the share image. */
 export const SHARE_IMAGE_SIZE = { width: 1200, height: 630 } as const;
@@ -52,10 +53,20 @@ export interface Crumb {
 }
 
 export interface LocaleEntryOptions<L extends string> {
-  /** The locales the page exists in. Defaults to all of them. */
+  /** The locales the page exists in. Defaults to all of them. A site without locales ignores it. */
   locales?: readonly L[] | undefined;
-  /** When the page last changed, per locale. Left out when unknown. */
+  /** When the page last changed, per locale. Left out when unknown. A site without locales calls it once, with no locale. */
   lastModified?: ((locale: L) => Date | undefined) | undefined;
+}
+
+/** The legal pages every site has, as `createLegalService` names them. */
+export const LEGAL_PAGE_KEYS = ["terms", "privacy", "cookies"] as const;
+
+export interface LegalEntriesInput<K extends string, L extends string> {
+  /** The legal pages, each at `/<key>` below the locale. Defaults to `LEGAL_PAGE_KEYS`. */
+  keys?: readonly K[] | undefined;
+  /** When a page last changed, as the API's timestamp. A site without locales gets no locale. */
+  updatedAt: (key: K, locale: L | undefined) => Promise<string | null | undefined>;
 }
 
 export interface RobotsInput {
@@ -166,8 +177,16 @@ export function defineSite<L extends string = string>(config: SiteConfig<L>) {
     };
   };
 
-  /** One sitemap entry per locale a page is served in, each listing the others as alternates. */
+  /**
+   * One sitemap entry per locale a page is served in, each listing the others as alternates. A site
+   * without locales has one URL per page, so it gets one entry with no alternates.
+   */
   const localeEntries = (path: string, options: LocaleEntryOptions<L> = {}): MetadataRoute.Sitemap => {
+    if (locales.length === 0) {
+      // There is no locale to pass, and the callback's type cannot say so without making every caller's simpler.
+      const lastModified = options.lastModified?.(undefined as never);
+      return [{ url: absoluteUrl(path), ...(lastModified ? { lastModified } : {}) }];
+    }
     const served = options.locales ?? locales;
 
     const languages: Record<string, string> = Object.fromEntries(served.map(l => [tag(l), absoluteLocaleUrl(l, path)]));
@@ -179,6 +198,27 @@ export function defineSite<L extends string = string>(config: SiteConfig<L>) {
       const lastModified = options.lastModified?.(locale);
       return { url: absoluteLocaleUrl(locale, path), ...(lastModified ? { lastModified } : {}), alternates: { languages } };
     });
+  };
+
+  /** Runs `load` for every locale at once and keys the results by locale. A site without locales gets `{}`. */
+  const forEachLocale = async <T>(load: (locale: L) => Promise<T>): Promise<Partial<Record<L, T>>> =>
+    Object.fromEntries(await Promise.all(locales.map(async locale => [locale, await load(locale)] as const))) as Partial<Record<L, T>>;
+
+  /**
+   * The legal pages' sitemap entries, each dated by when it last changed in that locale. The
+   * timestamps are fetched at once. An error from `updatedAt` fails the sitemap, so a stale one is
+   * served rather than one without dates.
+   */
+  const legalEntries = async <K extends string = (typeof LEGAL_PAGE_KEYS)[number]>({
+    keys,
+    updatedAt,
+  }: LegalEntriesInput<K, L>): Promise<MetadataRoute.Sitemap> => {
+    const pages = keys ?? (LEGAL_PAGE_KEYS as unknown as readonly K[]);
+    const served: (L | undefined)[] = locales.length > 0 ? [...locales] : [undefined];
+    const stamps = await Promise.all(
+      pages.map(key => Promise.all(served.map(async locale => parseTimestamp(await updatedAt(key, locale))))),
+    );
+    return pages.flatMap((key, k) => localeEntries(`/${key}`, { lastModified: locale => stamps[k]?.[served.indexOf(locale)] }));
   };
 
   /**
@@ -268,6 +308,8 @@ export function defineSite<L extends string = string>(config: SiteConfig<L>) {
     pageMetadata,
     siteMetadata,
     localeEntries,
+    forEachLocale,
+    legalEntries,
     robots,
     siteId,
     ids,

@@ -3,10 +3,12 @@ export { JsonLd } from "./JsonLd";
 export { ref, serializeGraph, type OrganizationInfo, type SchemaNode, type SchemaRef } from "./schema";
 export {
   defineSite,
+  LEGAL_PAGE_KEYS,
   normalizePath,
   NOINDEX,
   SHARE_IMAGE_SIZE,
   type Crumb,
+  type LegalEntriesInput,
   type LocaleEntryOptions,
   type OrganizationOptions,
   type PageMetadataInput,
