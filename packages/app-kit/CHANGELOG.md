@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.19.0](https://github.com/sondresjolyst/si-web-packages/compare/app-kit-v0.18.0...app-kit-v0.19.0) (2026-10-16)
+
+
+### Features
+
+* **app-kit:** add ResetPasswordFlow for the two-step password reset page ([#41](https://github.com/sondresjolyst/si-web-packages/issues/41)) ([f97a80c](https://github.com/sondresjolyst/si-web-packages/commit/f97a80cbb25245330d99afe27b01b4c03c58b8ef))
+
 ## [0.18.0](https://github.com/sondresjolyst/si-web-packages/compare/app-kit-v0.17.0...app-kit-v0.18.0) (2026-10-16)
 
 
