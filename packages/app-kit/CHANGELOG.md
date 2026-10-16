@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.22.0](https://github.com/sondresjolyst/si-web-packages/compare/app-kit-v0.21.0...app-kit-v0.22.0) (2026-10-16)
+
+
+### ⚠ BREAKING CHANGES
+
+* **app-kit:** narrow the public API for 1.0 ([#59](https://github.com/sondresjolyst/si-web-packages/issues/59))
+
+### Bug Fixes
+
+* **app-kit:** name the image types the API accepts in BrandingManager ([#57](https://github.com/sondresjolyst/si-web-packages/issues/57)) ([613d0e4](https://github.com/sondresjolyst/si-web-packages/commit/613d0e4ab27e9cfde3026f71c9b851a26eaaaea0)), closes [#36](https://github.com/sondresjolyst/si-web-packages/issues/36)
+
+
+### Code Refactoring
+
+* **app-kit:** narrow the public API for 1.0 ([#59](https://github.com/sondresjolyst/si-web-packages/issues/59)) ([b8692dd](https://github.com/sondresjolyst/si-web-packages/commit/b8692ddd433e659cd385b2eae2a92c16493664e6))
+
 ## [0.21.0](https://github.com/sondresjolyst/si-web-packages/compare/app-kit-v0.20.0...app-kit-v0.21.0) (2026-10-16)
 
 
