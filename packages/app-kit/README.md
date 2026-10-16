@@ -866,6 +866,25 @@ A failed sign-in shows `signInUnavailable` for `SIGN_IN_ERRORS.unavailable` and
 `invalidCredentials` for any other error code. A request next-auth refuses without an error code,
 or one that throws, shows `somethingWentWrong`.
 
+### `LoginPage`
+
+From `@sjolystinnovation/app-kit/ui`. The sign-in page: a title, `CredentialsForm`, a link to reset
+the password and, when the app has sign-up, a link to it. A sign-in goes to `redirectTo` and refreshes
+the page's server data. It uses the same `auth` theme variables as `ResetPasswordFlow`.
+
+```tsx
+<LoginPage redirectTo="/admin" resetHref="/reset-password" strings={{ title: "Logg inn" }} formStrings={{ signIn: "Logg inn" }} />
+```
+
+| Prop | Type | Description |
+| --- | --- | --- |
+| `redirectTo` | `string` | Where a signed-in user goes. |
+| `resetHref` | `string` | The password reset page. |
+| `registerHref` | `string` | The sign-up page. Without it there is no register link. |
+| `strings` | `TextOverrides<LoginPageStrings>` | The page's text: `title`, `forgotPassword`, `registerPrompt` (null leaves it out) and `register`. |
+| `formStrings` | `TextOverrides<CredentialsFormStrings>` | The form's text. |
+| `className` | `string` | Replaces the outer `max-w-md mx-auto px-4 py-16`. |
+
 ### `ResetPasswordFlow`
 
 From `@sjolystinnovation/app-kit/ui`. The password reset page in two steps: the email asks for a
@@ -1141,7 +1160,7 @@ selector such as `.dark` for a scoped theme:
 | `--color-toggle-on` | `var(--color-primary)`, the track of a `Toggle` that is on |
 | `--color-toggle-off` | gray 200, the track of a `Toggle` that is off |
 | `--color-toggle-thumb` | white |
-| `--text-auth-title`, `--text-auth-title--line-height` | `var(--text-2xl)` and its line height, the title of `ResetPasswordFlow` |
+| `--text-auth-title`, `--text-auth-title--line-height` | `var(--text-2xl)` and its line height, the title of `LoginPage` and `ResetPasswordFlow` |
 | `--font-weight-auth-title` | black |
 | `--color-auth-heading` | gray 900 |
 | `--color-auth-text` | gray 600, the line under the title and the intro |
