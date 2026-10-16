@@ -11,12 +11,13 @@ import { vi } from "vitest";
 
 type SessionStatus = "loading" | "authenticated" | "unauthenticated";
 
-/** What `useSession` returns, and the next-auth calls as spies. */
+/** What `useSession` returns, and the next-auth calls as spies. `update` is the one `useSession` returns. */
 export const auth = {
   state: { data: null, status: "unauthenticated" } as { data: Session | null; status: SessionStatus },
   signIn: vi.fn(),
   signOut: vi.fn(),
   getSession: vi.fn(),
+  update: vi.fn(),
 };
 
 /** A signed-in session with `roles`. Defaults to an admin. */
@@ -42,7 +43,7 @@ export function setSession(session: Session | null | "loading"): void {
 /** The `next-auth/react` module, reading `auth`. */
 export function nextAuthMock() {
   return {
-    useSession: () => auth.state,
+    useSession: () => ({ ...auth.state, update: (...args: unknown[]) => auth.update(...args) }),
     signIn: (...args: unknown[]) => auth.signIn(...args),
     signOut: (...args: unknown[]) => auth.signOut(...args),
     getSession: (...args: unknown[]) => auth.getSession(...args),
@@ -67,7 +68,16 @@ export function nextNavigationMock() {
 }
 
 /** The toast calls as spies. */
-export const toastSpies = { success: vi.fn(), error: vi.fn(), info: vi.fn(), warning: vi.fn(), message: vi.fn() };
+export const toastSpies = {
+  success: vi.fn(),
+  error: vi.fn(),
+  info: vi.fn(),
+  warning: vi.fn(),
+  message: vi.fn(),
+  loading: vi.fn(),
+  promise: vi.fn(),
+  dismiss: vi.fn(),
+};
 
 /** The `sonner` module, or `@sjolystinnovation/app-kit/toast`. A bare `toast(text)` goes to `toastSpies.message`. */
 export function toastMock() {
@@ -77,6 +87,9 @@ export function toastMock() {
     info: (...args: unknown[]) => toastSpies.info(...args),
     warning: (...args: unknown[]) => toastSpies.warning(...args),
     message: (...args: unknown[]) => toastSpies.message(...args),
+    loading: (...args: unknown[]) => toastSpies.loading(...args),
+    promise: (...args: unknown[]) => toastSpies.promise(...args),
+    dismiss: (...args: unknown[]) => toastSpies.dismiss(...args),
   });
   return { toast, Toaster: () => null };
 }
@@ -94,7 +107,7 @@ export function resetTestMocks(): void {
   setSession(null);
   navigation.pathname = "/";
   navigation.searchParams = new URLSearchParams();
-  for (const spy of [auth.signIn, auth.signOut, auth.getSession, ...Object.values(navigation.router), ...Object.values(toastSpies), ...Object.values(axiosSpies)]) {
+  for (const spy of [auth.signIn, auth.signOut, auth.getSession, auth.update, ...Object.values(navigation.router), ...Object.values(toastSpies), ...Object.values(axiosSpies)]) {
     spy.mockReset();
   }
 }

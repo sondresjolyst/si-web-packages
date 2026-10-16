@@ -17,17 +17,17 @@ beforeEach(resetTestMocks);
 
 describe("testing helpers", () => {
   it("sign in, out and keep a session loading for useSession", () => {
-    expect(useSession()).toEqual({ data: null, status: "unauthenticated" });
+    expect(useSession()).toMatchObject({ data: null, status: "unauthenticated" });
 
     const session = makeSession({ roles: ["Editor"] });
     setSession(session);
-    expect(useSession()).toEqual({ data: session, status: "authenticated" });
+    expect(useSession()).toMatchObject({ data: session, status: "authenticated" });
     expect(session.user).toEqual({ id: "1", name: "admin", email: "a@b.no", roles: ["Editor"] });
     expect(makeSession().user.roles).toEqual(["Admin"]);
     expect(makeSession({ accessToken: "other" }).accessToken).toBe("other");
 
     setSession("loading");
-    expect(useSession()).toEqual({ data: null, status: "loading" });
+    expect(useSession()).toMatchObject({ data: null, status: "loading" });
   });
 
   it("drive a real gate", () => {
@@ -45,6 +45,9 @@ describe("testing helpers", () => {
 
   it("forward the next-auth calls to spies the test sets up", async () => {
     auth.signIn.mockResolvedValue({ ok: true });
+    auth.update.mockResolvedValue(makeSession({ roles: [] }));
+    expect(await useSession().update({ name: "x" })).toMatchObject({ user: { roles: [] } });
+    expect(auth.update).toHaveBeenCalledWith({ name: "x" });
     auth.getSession.mockResolvedValue(makeSession());
 
     expect(await signIn("credentials", { redirect: false })).toEqual({ ok: true });
@@ -72,12 +75,18 @@ describe("testing helpers", () => {
     sonnerToast("Plain");
     toast.info("Note");
     toast.warning("Careful");
+    sonnerToast.loading("Working");
+    sonnerToast.promise(Promise.resolve(), { success: "Done" });
+    sonnerToast.dismiss("id");
 
     expect(toastSpies.success).toHaveBeenCalledWith("Saved");
     expect(toastSpies.error).toHaveBeenCalledWith("Failed");
     expect(toastSpies.message).toHaveBeenCalledWith("Plain");
     expect(toastSpies.info).toHaveBeenCalledWith("Note");
     expect(toastSpies.warning).toHaveBeenCalledWith("Careful");
+    expect(toastSpies.loading).toHaveBeenCalledWith("Working");
+    expect(toastSpies.promise).toHaveBeenCalledWith(expect.any(Promise), { success: "Done" });
+    expect(toastSpies.dismiss).toHaveBeenCalledWith("id");
   });
 
   it("stand in for an app's axios instance", async () => {
