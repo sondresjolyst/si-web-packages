@@ -1,5 +1,5 @@
-// The next-auth declarations from the README. With them loaded, the package typechecks the way an
-// app compiles it.
+// The session fields this package's auth options put on next-auth's session and token. An app loads
+// them with `import "@sjolystinnovation/app-kit/next-auth";` in one of its own .d.ts files.
 import "next-auth";
 import "next-auth/jwt";
 
