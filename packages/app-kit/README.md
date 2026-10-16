@@ -243,6 +243,17 @@ export const getRecipe = (id: number) =>
   request(() => api.get<Recipe>(`/recipes/${id}`), "Could not load the recipe.");
 ```
 
+`mergeCompanyInfo(data, fallback)` gives the company details for public pages: the API's
+`/company` answer, with the app's own value for each field it left blank or could not give. Only
+the fallback's name is required. The legal name falls back to the name, and VAT to not registered.
+`formatOrgNumber({ orgNumber, vatRegistered })` adds ` MVA` once the business is VAT registered,
+and gives an empty string without a number.
+
+```ts
+// src/lib/companyInfo.ts
+export const getCompanyInfo = async () => mergeCompanyInfo(await publicGetOptional<CompanyInfo>("/company"), COMPANY);
+```
+
 `requestRevalidate(target, endpoint?)` asks the app's revalidate route to purge the pages behind
 `target`, so an edit shows at once. It posts to `/api/revalidate` unless `endpoint` says otherwise.
 It never throws. On failure the pages' own revalidate window is the fallback.
@@ -611,6 +622,16 @@ if (loading) return <Spinner />;
 `formatNok(ore)` formats øre as kroner, such as `NOK 373,75`.
 
 ### `@sjolystinnovation/app-kit/admin`
+
+`CompanySettingsForm` is the admin form for the business details the public pages show, saved
+through `createSettingsService`. Its children show below the form once the settings have loaded,
+such as the `BrandingManager`. `strings` holds every label, hint and message, English by default.
+
+```tsx
+<CompanySettingsForm service={SettingsService} strings={dict.companySettings}>
+  <BrandingManager save={BrandingService.update} />
+</CompanySettingsForm>
+```
 
 The admin area. `AdminShell` is the frame: a title and a tab bar above the page, behind a
 `RoleGate`. It takes `RoleGate`'s `role`, `fallback`, and `denied` or `deniedHref`. The tab whose
