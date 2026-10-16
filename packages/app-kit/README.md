@@ -1218,6 +1218,39 @@ const parsed = contactSchema.safeParse(form);
 if (!parsed.success) setErrors(zodFieldErrors(parsed.error, { message: (issue) => issueMessage(issue, dict) }));
 ```
 
+### `@sjolystinnovation/app-kit/testing`
+
+Test doubles for the modules every app's tests mock: `next-auth/react`, `next/navigation`, `sonner`
+or `@sjolystinnovation/app-kit/toast`, and the app's axios instance. vitest hoists `vi.mock` above
+the file's imports, so the factory imports the helpers itself. The test imports the same module to
+set the state and read the spies. The state lasts for the whole file, so call `resetTestMocks`
+before each test. It needs vitest 5, as an optional peer dependency.
+
+```tsx
+import { makeSession, navigation, resetTestMocks, setSession } from "@sjolystinnovation/app-kit/testing";
+
+vi.mock("next-auth/react", async () => (await import("@sjolystinnovation/app-kit/testing")).nextAuthMock());
+vi.mock("next/navigation", async () => (await import("@sjolystinnovation/app-kit/testing")).nextNavigationMock());
+
+beforeEach(resetTestMocks);
+
+it("sends a user without the role away", () => {
+  navigation.pathname = "/no/admin";
+  setSession(makeSession({ roles: [] }));
+  render(<AdminLayout><p>admin work</p></AdminLayout>);
+  expect(navigation.router.replace).toHaveBeenCalledWith("/no");
+});
+```
+
+- `setSession(session | null | "loading")` and `makeSession({ roles, ...overrides })` set what
+  `useSession` returns. `auth.signIn`, `auth.signOut` and `auth.getSession` are the spies behind
+  next-auth's calls.
+- `navigation.pathname`, `navigation.searchParams` and `navigation.router` feed `usePathname`,
+  `useSearchParams` and `useRouter`.
+- `toastMock()` records every toast in `toastSpies`.
+- `axiosInstanceMock()` is a module whose default export is `axiosSpies`, for
+  `vi.mock("@/services/axiosInstance", ...)`.
+
 ## Theming
 
 The components draw every colour, corner radius and label size from theme variables with a light
@@ -1321,6 +1354,7 @@ with it and has to set the ones it uses itself.
   uses only entries such as `seo`, `next-config`, `markdown`, `toast` or `validation`, leaves them
   out.
 - For `@sjolystinnovation/app-kit/validation`: zod 4, as an optional peer dependency.
+- For `@sjolystinnovation/app-kit/testing`: vitest 5, as an optional peer dependency.
 - For `@sjolystinnovation/app-kit/toast`: sonner 2, as an optional peer dependency. Install a single
   copy, because two copies keep two separate toast stores.
 - `jsonwebtoken` comes with the package. `@sjolystinnovation/app-kit/auth` uses it on the server.

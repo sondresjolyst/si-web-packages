@@ -37,6 +37,7 @@
     "./branding": "./src/branding/index.ts",
     "./branding/server": "./src/branding/server.ts",
     "./payments": "./src/payments/index.ts",
+    "./testing": "./src/testing/index.ts",
     "./styles.css": "./src/styles.css"
   },
   "files": [
@@ -61,6 +62,7 @@
     "rehype-sanitize": "^6",
     "remark-gfm": "^4",
     "sonner": "^2",
+    "vitest": "^5",
     "zod": "^4"
   },
   "peerDependenciesMeta": {
@@ -71,6 +73,9 @@
       "optional": true
     },
     "sonner": {
+      "optional": true
+    },
+    "vitest": {
       "optional": true
     },
     "zod": {
