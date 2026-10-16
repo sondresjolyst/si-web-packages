@@ -4,3 +4,7 @@ export { AdminUsersPanel } from "./AdminUsersPanel";
 export type { AdminUsersPanelProps } from "./AdminUsersPanel";
 export { defaultAdminUsersPanelStrings } from "./adminUsersPanelStrings";
 export type { AdminUsersPanelStrings } from "./adminUsersPanelStrings";
+export { CompanySettingsForm } from "./CompanySettingsForm";
+export type { CompanySettingsFormProps } from "./CompanySettingsForm";
+export { defaultCompanySettingsFormStrings } from "./companySettingsFormStrings";
+export type { CompanySettingsFormStrings } from "./companySettingsFormStrings";

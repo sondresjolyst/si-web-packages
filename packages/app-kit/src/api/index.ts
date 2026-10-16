@@ -1,4 +1,6 @@
 export { apiFieldErrors } from "./apiFieldErrors";
+export { formatOrgNumber, mergeCompanyInfo } from "./company";
+export type { CompanyFallback, CompanyInfo } from "./company";
 export { createApiClient } from "./createApiClient";
 export { request } from "./request";
 export { requestRevalidate } from "./requestRevalidate";
