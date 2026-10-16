@@ -1,23 +1,9 @@
 import { z } from "zod";
 import { withDefaults, type TextOverrides } from "../ui/withDefaults";
+import { PASSWORD_MIN_LENGTH, defaultPasswordStrings, type PasswordStrings } from "./passwordRules";
 
-/** The fewest characters a password may have. */
-export const PASSWORD_MIN_LENGTH = 8;
-
-/** The message for each password rule that fails. */
-export interface PasswordStrings {
-  tooShort: string;
-  lowercase: string;
-  uppercase: string;
-  digit: string;
-}
-
-export const defaultPasswordStrings: PasswordStrings = {
-  tooShort: `Use at least ${PASSWORD_MIN_LENGTH} characters.`,
-  lowercase: "Include a lowercase letter from a to z.",
-  uppercase: "Include an uppercase letter from A to Z.",
-  digit: "Include a digit from 0 to 9.",
-};
+export { PASSWORD_MIN_LENGTH, defaultPasswordStrings, passwordProblems } from "./passwordRules";
+export type { PasswordStrings } from "./passwordRules";
 
 /**
  * A zod schema for a new password, with the rules the APIs enforce through ASP.NET Identity. Identity

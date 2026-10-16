@@ -839,6 +839,39 @@ A failed sign-in shows `signInUnavailable` for `SIGN_IN_ERRORS.unavailable` and
 `invalidCredentials` for any other error code. A request next-auth refuses without an error code,
 or one that throws, shows `somethingWentWrong`.
 
+### `ResetPasswordFlow`
+
+From `@sjolystinnovation/app-kit/ui`. The password reset page in two steps: the email asks for a
+code, then the code and a new password set it. The password is checked against the same rules as
+`passwordSchema` before it is sent, without loading zod. An emailed link with the email and code,
+such as an invite, opens it on the second step. Its colours and title size come from the `auth` and
+`button` theme variables, see [Theming](#theming).
+
+```tsx
+const params = useSearchParams();
+
+<ResetPasswordFlow
+  requestReset={UserService.requestPasswordReset}
+  reset={UserService.resetPassword}
+  loginHref="/login"
+  initialEmail={params.get("email") ?? ""}
+  initialCode={params.get("code") ?? ""}
+  strings={{ title: "Tilbakestill passord", signInPrompt: null }}
+/>
+```
+
+| Prop | Type | Description |
+| --- | --- | --- |
+| `requestReset` | `(data: { email }) => Promise<unknown>` | Asks the API to email a code. |
+| `reset` | `(data: { email, code, newPassword }) => Promise<unknown>` | Sets the password. A `message` in its answer is shown when it succeeds. |
+| `loginHref` | `string` | Where the sign-in links go. |
+| `initialEmail`, `initialCode` | `string` | From the emailed link. A code opens the second step. |
+| `className` | `string` | Replaces the outer `max-w-md mx-auto px-4 py-16`, such as to sit in the app's own card. |
+| `strings` | `TextOverrides<ResetPasswordFlowStrings>` | The page's text. `signInPrompt`, `intro`, `codeSent` and `passwordHint` set to null are left out. `done` set to null shows the API's message, or only the sign-in link when it sends none. `passwordInvalid` set to null lists every broken rule. |
+| `passwordStrings` | `TextOverrides<PasswordStrings>` | The rule messages, in the app's language. |
+
+A failure shows the error's message, or `somethingWentWrong` when it has none.
+
 `TextOverrides<T>`, from `@sjolystinnovation/app-kit/ui`, is the type of every `strings` prop. Each
 key is optional and may be `undefined`, and a missing or undefined key shows the English default.
 
@@ -1018,7 +1051,8 @@ const result = passwordSchema({ uppercase: "Ta med en stor bokstav fra A til Z."
 const gargeRule = passwordSchema().max(128, "Be at most 128 characters long.");
 ```
 
-`PASSWORD_MIN_LENGTH` holds the minimum, for hint text.
+`PASSWORD_MIN_LENGTH` holds the minimum, for hint text. `passwordProblems(password, strings?)` gives the
+message of every rule a password breaks, in the same order, without zod.
 
 ### `zodFieldErrors(error, options?)`
 
@@ -1080,6 +1114,14 @@ selector such as `.dark` for a scoped theme:
 | `--color-toggle-on` | `var(--color-primary)`, the track of a `Toggle` that is on |
 | `--color-toggle-off` | gray 200, the track of a `Toggle` that is off |
 | `--color-toggle-thumb` | white |
+| `--text-auth-title`, `--text-auth-title--line-height` | `var(--text-2xl)` and its line height, the title of `ResetPasswordFlow` |
+| `--font-weight-auth-title` | black |
+| `--color-auth-heading` | gray 900 |
+| `--color-auth-text` | gray 600, the line under the title and the intro |
+| `--color-auth-note` | gray 600, the note that a code was sent |
+| `--color-auth-hint` | gray 500, the hint under the password |
+| `--color-auth-link`, `-hover` | gray 900, the sign-in links |
+| `--font-weight-auth-link` | semibold |
 | `--radius-button` | `var(--radius-lg)` |
 | `--color-button-primary-bg` | `var(--color-primary)` |
 | `--color-button-primary-text` | `var(--color-primary-foreground)` |
