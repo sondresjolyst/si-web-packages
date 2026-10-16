@@ -8,6 +8,10 @@ export { SignInRejected, defaultCredentialsFormStrings } from "./credentialsForm
 export type { CredentialsFormStrings } from "./credentialsFormStrings";
 export { ErrorState, defaultErrorStateStrings } from "./ErrorState";
 export type { ErrorStateProps, ErrorStateStrings } from "./ErrorState";
+export { LoginPage } from "./LoginPage";
+export type { LoginPageProps } from "./LoginPage";
+export { defaultLoginPageStrings } from "./loginPageStrings";
+export type { LoginPageStrings } from "./loginPageStrings";
 export { NotFoundState, defaultNotFoundStrings } from "./NotFoundState";
 export type { NotFoundStateProps, NotFoundStrings } from "./NotFoundState";
 export { PasswordInput } from "./PasswordInput";

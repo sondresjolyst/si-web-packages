@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState, type FormEvent } from "react";
 import { passwordProblems, type PasswordStrings } from "../validation/passwordRules";
 import { Alert } from "./Alert";
+import { authLinkClassName, authPageClassName, authTitleClassName } from "./authClasses";
 import { PasswordInput } from "./PasswordInput";
 import { defaultResetPasswordFlowStrings, type ResetPasswordFlowStrings } from "./resetPasswordFlowStrings";
 import { TextInput } from "./TextInput";
@@ -28,7 +29,6 @@ export interface ResetPasswordFlowProps {
 
 const button =
   "w-full rounded-button bg-button-primary-bg text-button-primary-text font-semibold py-2.5 hover:brightness-95 disabled:opacity-60 transition";
-const link = "font-auth-link text-auth-link hover:text-auth-link-hover transition-colors";
 
 /**
  * Password reset in two steps: the email asks for a code, then the code and a new password set it. The
@@ -42,7 +42,7 @@ export function ResetPasswordFlow({
   initialEmail = "",
   initialCode = "",
   strings,
-  className = "max-w-md mx-auto px-4 py-16",
+  className = authPageClassName,
   passwordStrings,
 }: ResetPasswordFlowProps) {
   const text = withDefaults(defaultResetPasswordFlowStrings, strings);
@@ -92,16 +92,16 @@ export function ResetPasswordFlow({
 
   return (
     <div className={className}>
-      <h1 className="text-auth-title font-auth-title text-auth-heading mb-1">{text.title}</h1>
+      <h1 className={`${authTitleClassName} mb-1`}>{text.title}</h1>
       <p className="text-sm text-auth-text mb-6">
         {text.signInPrompt && <>{text.signInPrompt} </>}
-        <Link href={loginHref} className={link}>{text.signIn}</Link>
+        <Link href={loginHref} className={authLinkClassName}>{text.signIn}</Link>
       </p>
 
       {done !== null ? (
         <Alert variant="success">
           {done}
-          <Link href={loginHref} className={`block mt-3 ${link}`}>{text.backToSignIn}</Link>
+          <Link href={loginHref} className={`block mt-3 ${authLinkClassName}`}>{text.backToSignIn}</Link>
         </Alert>
       ) : step === 1 ? (
         <form onSubmit={sendCode} className="space-y-4">
