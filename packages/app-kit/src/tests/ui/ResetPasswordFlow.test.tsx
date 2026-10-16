@@ -187,3 +187,27 @@ describe("ResetPasswordFlow", () => {
     expect(document.querySelectorAll("p.text-xs")).toHaveLength(0);
   });
 });
+
+describe("ResetPasswordFlow theming", () => {
+  it("draws its colours and title from theme tokens and takes the app's outer classes", () => {
+    const { container } = render(
+      <ResetPasswordFlow requestReset={requestReset} reset={reset} loginHref="/login" initialEmail="a@b.no" initialCode="X" className="card" strings={{ passwordHint: "Hint." }} />,
+    );
+
+    expect(container.firstElementChild).toHaveClass("card");
+    expect(container.firstElementChild).not.toHaveClass("max-w-md");
+    expect(screen.getByRole("heading")).toHaveClass("text-auth-title", "font-auth-title", "text-auth-heading");
+    expect(screen.getByRole("link", { name: "Sign in" })).toHaveClass("font-auth-link", "text-auth-link", "hover:text-auth-link-hover");
+    expect(screen.getByText("Check your email for the reset code.")).toHaveClass("text-auth-note");
+    expect(screen.getByText("Hint.")).toHaveClass("text-auth-hint");
+    expect(screen.getByRole("button", { name: "Reset password" })).toHaveClass("rounded-button", "bg-button-primary-bg", "text-button-primary-text");
+  });
+
+  it("keeps the default outer spacing", () => {
+    const { container } = render(<ResetPasswordFlow requestReset={requestReset} reset={reset} loginHref="/login" strings={{ intro: "Intro." }} />);
+
+    expect(container.firstElementChild).toHaveClass("max-w-md", "mx-auto", "px-4", "py-16");
+    expect(screen.getByText(/Remembered it\?/)).toHaveClass("text-auth-text");
+    expect(screen.getByText("Intro.")).toHaveClass("text-auth-text");
+  });
+});

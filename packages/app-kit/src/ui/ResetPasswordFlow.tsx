@@ -20,12 +20,15 @@ export interface ResetPasswordFlowProps {
   initialEmail?: string | undefined;
   initialCode?: string | undefined;
   strings?: TextOverrides<ResetPasswordFlowStrings> | undefined;
+  /** Replaces the page's outer spacing, such as when the flow sits inside the app's own card. */
+  className?: string | undefined;
   /** The password rule messages, for the app's own language. */
   passwordStrings?: TextOverrides<PasswordStrings> | undefined;
 }
 
 const button =
-  "w-full rounded-lg bg-primary text-primary-foreground font-semibold py-2.5 hover:brightness-95 disabled:opacity-60 transition";
+  "w-full rounded-button bg-button-primary-bg text-button-primary-text font-semibold py-2.5 hover:brightness-95 disabled:opacity-60 transition";
+const link = "font-auth-link text-auth-link hover:text-auth-link-hover transition-colors";
 
 /**
  * Password reset in two steps: the email asks for a code, then the code and a new password set it. The
@@ -39,6 +42,7 @@ export function ResetPasswordFlow({
   initialEmail = "",
   initialCode = "",
   strings,
+  className = "max-w-md mx-auto px-4 py-16",
   passwordStrings,
 }: ResetPasswordFlowProps) {
   const text = withDefaults(defaultResetPasswordFlowStrings, strings);
@@ -87,22 +91,22 @@ export function ResetPasswordFlow({
   };
 
   return (
-    <div className="max-w-md mx-auto px-4 py-16">
-      <h1 className="text-2xl font-black text-gray-900 mb-1">{text.title}</h1>
-      <p className="text-sm text-gray-600 mb-6">
+    <div className={className}>
+      <h1 className="text-auth-title font-auth-title text-auth-heading mb-1">{text.title}</h1>
+      <p className="text-sm text-auth-text mb-6">
         {text.signInPrompt && <>{text.signInPrompt} </>}
-        <Link href={loginHref} className="font-semibold text-gray-900">{text.signIn}</Link>
+        <Link href={loginHref} className={link}>{text.signIn}</Link>
       </p>
 
       {done !== null ? (
         <Alert variant="success">
           {done}
-          <Link href={loginHref} className="block mt-3 font-semibold text-gray-900">{text.backToSignIn}</Link>
+          <Link href={loginHref} className={`block mt-3 ${link}`}>{text.backToSignIn}</Link>
         </Alert>
       ) : step === 1 ? (
         <form onSubmit={sendCode} className="space-y-4">
           {error && <Alert variant="error">{error}</Alert>}
-          {text.intro && <p className="text-sm text-gray-600">{text.intro}</p>}
+          {text.intro && <p className="text-sm text-auth-text">{text.intro}</p>}
           <TextInput label={text.email} name="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
           <button type="submit" disabled={loading} className={button}>
             {loading ? text.requestingCode : text.requestCode}
@@ -110,12 +114,12 @@ export function ResetPasswordFlow({
         </form>
       ) : (
         <form onSubmit={setPassword} className="space-y-4">
-          {text.codeSent && <p className="text-sm text-gray-600">{text.codeSent}</p>}
+          {text.codeSent && <p className="text-sm text-auth-note">{text.codeSent}</p>}
           {error && <Alert variant="error">{error}</Alert>}
           <TextInput label={text.email} name="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
           <TextInput label={text.code} name="code" value={code} onChange={(e) => setCode(e.target.value)} required />
           <PasswordInput label={text.newPassword} name="newPassword" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required />
-          {text.passwordHint && <p className="text-xs text-gray-500">{text.passwordHint}</p>}
+          {text.passwordHint && <p className="text-xs text-auth-hint">{text.passwordHint}</p>}
           <button type="submit" disabled={loading} className={button}>
             {loading ? text.settingPassword : text.setPassword}
           </button>
