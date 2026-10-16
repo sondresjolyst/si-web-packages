@@ -82,6 +82,13 @@
   --color-auth-link-hover: var(--color-gray-900);
   --font-weight-auth-link: var(--font-weight-semibold);
 
+  --color-admin-title: var(--color-gray-900);
+  --color-admin-border: var(--color-gray-200);
+  --color-admin-tab: var(--color-gray-500);
+  --color-admin-tab-hover: var(--color-gray-900);
+  --color-admin-tab-active: var(--color-gray-900);
+  --color-admin-tab-indicator: var(--color-primary);
+
   --radius-button: var(--radius-lg);
   --color-button-primary-bg: var(--color-primary);
   --color-button-primary-text: var(--color-primary-foreground);

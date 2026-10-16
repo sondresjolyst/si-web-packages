@@ -23,6 +23,7 @@
     "./api": "./src/api/index.ts",
     "./server": "./src/server/index.ts",
     "./ui": "./src/ui/index.ts",
+    "./admin": "./src/admin/index.ts",
     "./toast": "./src/toast/index.ts",
     "./validation": "./src/validation/index.ts",
     "./next-config": "./src/next-config/index.ts",
