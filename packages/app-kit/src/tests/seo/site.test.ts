@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { defineSite, isIndexableEnvironment, latest, NOINDEX, normalizePath, parseTimestamp, ref, serializeGraph, SHARE_IMAGE_SIZE, type OrganizationInfo } from "../../seo";
+import { defineSite, isIndexableEnvironment, LEGAL_PAGE_KEYS, latest, NOINDEX, normalizePath, parseTimestamp, ref, serializeGraph, SHARE_IMAGE_SIZE, type OrganizationInfo } from "../../seo";
 
 const URL_ = "https://www.altinnendata.no";
 const site = defineSite({
@@ -198,6 +198,17 @@ describe("localeEntries", () => {
     expect(entries[0].lastModified).toEqual(stamps.no);
     expect(entries[1]).not.toHaveProperty("lastModified");
   });
+
+  it("gives a site without locales one entry per page, with no alternates", () => {
+    const stamp = new Date("2026-03-01T10:00:00Z");
+    const seen: unknown[] = [];
+    const entries = plain.localeEntries("/terms", { lastModified: l => (seen.push(l), stamp) });
+
+    expect(entries).toEqual([{ url: "https://www.nstuning.no/terms", lastModified: stamp }]);
+    expect(seen).toEqual([undefined]);
+    expect(plain.localeEntries("")).toEqual([{ url: "https://www.nstuning.no" }]);
+    expect(plain.localeEntries("/x", { locales: [] })).toHaveLength(1);
+  });
 });
 
 describe("robots", () => {
@@ -355,5 +366,56 @@ describe("timestamps", () => {
     expect(parseTimestamp(null)).toBeUndefined();
     expect(parseTimestamp("")).toBeUndefined();
     expect(parseTimestamp("not a date")).toBeUndefined();
+  });
+});
+
+describe("forEachLocale", () => {
+  it("loads every locale at once and keys the results by locale", async () => {
+    const started: string[] = [];
+    const result = await site.forEachLocale(async locale => {
+      started.push(locale);
+      await new Promise(resolve => setTimeout(resolve, locale === "no" ? 20 : 0));
+      return locale.toUpperCase();
+    });
+
+    expect(result).toEqual({ no: "NO", en: "EN" });
+    expect(started).toEqual(["no", "en"]);
+  });
+
+  it("gives a site without locales nothing", async () => {
+    expect(await plain.forEachLocale(async () => 1)).toEqual({});
+  });
+});
+
+describe("legalEntries", () => {
+  it("dates each legal page in each locale by its own timestamp", async () => {
+    const asked: string[] = [];
+    const entries = await site.legalEntries({
+      updatedAt: async (key, locale) => {
+        asked.push(`${key}:${locale}`);
+        return key === "terms" && locale === "en" ? "2026-02-03T04:05:06Z" : key === "privacy" ? "bad" : null;
+      },
+    });
+
+    expect(asked.sort()).toEqual(LEGAL_PAGE_KEYS.flatMap(k => [`${k}:en`, `${k}:no`]).sort());
+    expect(entries.map(e => e.url)).toEqual([
+      `${URL_}/no/terms`, `${URL_}/en/terms`, `${URL_}/no/privacy`, `${URL_}/en/privacy`, `${URL_}/no/cookies`, `${URL_}/en/cookies`,
+    ]);
+    expect(entries[1].lastModified).toEqual(new Date("2026-02-03T04:05:06Z"));
+    expect(entries.filter(e => e.lastModified)).toHaveLength(1);
+    expect(entries[0].alternates?.languages).toHaveProperty("en", `${URL_}/en/terms`);
+  });
+
+  it("takes the app's own keys, and gives a site without locales one entry each", async () => {
+    const entries = await plain.legalEntries({ keys: ["terms", "returns"], updatedAt: async (key, locale) => (locale === undefined && key === "returns" ? "2026-05-01" : undefined) });
+
+    expect(entries).toEqual([
+      { url: "https://www.nstuning.no/terms" },
+      { url: "https://www.nstuning.no/returns", lastModified: new Date("2026-05-01") },
+    ]);
+  });
+
+  it("fails when a timestamp cannot be fetched, so the last good sitemap stays", async () => {
+    await expect(site.legalEntries({ updatedAt: async () => { throw new Error("API down"); } })).rejects.toThrow("API down");
   });
 });

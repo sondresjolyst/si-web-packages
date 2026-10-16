@@ -431,7 +431,11 @@ The site gives:
 - `pageMetadata({ locale, path, title, description, images })` for a page: the canonical URL,
   hreflang, and Open Graph with the locale's share image unless `images` is given.
 - `localeEntries(path, { locales, lastModified })` for `sitemap.ts`: one entry per locale, each
-  listing the others. `lastModified` is left out when unknown.
+  listing the others. `lastModified` is left out when unknown. A site without locales gets one
+  entry per page.
+- `forEachLocale(load)` runs `load` for every locale at once and keys the results by locale.
+- `legalEntries({ keys, updatedAt })` gives the legal pages' entries, `/terms`, `/privacy` and
+  `/cookies` unless `keys` says otherwise, each dated by the timestamp `updatedAt` returns for it.
 - `robots({ privatePaths, privateRootPaths, indexable })` for `robots.ts`. The private paths are
   disallowed under every locale segment. A deployment that is not production disallows everything.
 - `organizationNode(company, { type, country, image, logo })`, `webSiteNode(locale)`,
@@ -443,6 +447,15 @@ The site gives:
 export const dynamic = "force-dynamic";
 export default () => site.robots({ privatePaths: ["/admin", "/login"], privateRootPaths: ["/api/"] });
 
+// src/app/sitemap.ts
+export const revalidate = 3600;
+export default async () => [
+  ...site.localeEntries(""),
+  ...(await site.legalEntries({
+    updatedAt: async (key, locale) => (await publicGet<LegalPage>(`/content/legal/${key}?locale=${locale}`))?.updatedAt,
+  })),
+];
+
 // in a page
 <JsonLd nodes={[site.organizationNode(company), site.webSiteNode(locale)]} />
 ```
@@ -450,8 +463,8 @@ export default () => site.robots({ privatePaths: ["/admin", "/login"], privateRo
 `isIndexableEnvironment()` reads `SITE_ENV`. `prod`, `production` and unset or blank count as
 production, so a missing variable never deindexes the live site. `robots.ts` needs
 `dynamic = "force-dynamic"`, so it reads the variable per request. The package also exports
-`JsonLd`, `serializeGraph`, `ref`, `NOINDEX`, `SHARE_IMAGE_SIZE`, `normalizePath`, `latest` and
-`parseTimestamp`.
+`JsonLd`, `serializeGraph`, `ref`, `NOINDEX`, `LEGAL_PAGE_KEYS`, `SHARE_IMAGE_SIZE`,
+`normalizePath`, `latest` and `parseTimestamp`.
 
 ### `@sjolystinnovation/app-kit/seo/og`
 
