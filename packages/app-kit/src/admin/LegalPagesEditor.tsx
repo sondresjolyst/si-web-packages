@@ -8,17 +8,18 @@ import { withDefaults, type TextOverrides } from "../ui/withDefaults";
 import { defaultLegalPagesEditorStrings, type LegalPagesEditorStrings } from "./legalPagesEditorStrings";
 import { LocaleTabs } from "./LocaleTabs";
 
+/** Props for `LegalPagesEditor`. */
 export interface LegalPagesEditorProps<K extends string, L extends string> {
   /** The legal page calls, such as `createLegalService(api, publicApi)`. */
   service: {
     listAll: () => Promise<LegalPage<K>[]>;
     save: (key: K, locale: L, title: string, bodyMarkdown: string) => Promise<unknown>;
   };
-  /** The pages, in tab order. The first opens. */
+  /** The pages, in tab order. The editor opens on the first. */
   keys: readonly K[];
   /** Each page's tab label, such as `Terms`. */
   keyLabels: Record<K, string>;
-  /** The locales each page is written in. The first opens. */
+  /** The locales each page is written in. The editor opens on the first. */
   locales: readonly L[];
   /** Each locale's tab label, such as `Norsk`. */
   localeLabels: Record<L, string>;

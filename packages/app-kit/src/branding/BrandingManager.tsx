@@ -7,6 +7,7 @@ import { withDefaults, type TextOverrides } from "../ui/withDefaults";
 import { useBranding } from "./BrandingProvider";
 import { toDataUrl } from "./types";
 
+/** The branding form's text. Pass the app's own language. The defaults are English. */
 export interface BrandingManagerStrings {
   title: string;
   logo: string;
@@ -37,10 +38,11 @@ export const defaultBrandingManagerStrings: BrandingManagerStrings = {
   saveFailed: "Failed to save branding",
 };
 
+/** Props for `BrandingManager`. */
 export interface BrandingManagerProps {
   /**
-   * Sends the form: `logo` and `icon` files, and `removeLogo` and `removeIcon` set to `true`. Throw
-   * to show the error's message, such as one from `formatApiError`.
+   * A function that sends the form: `logo` and `icon` files, and `removeLogo` and `removeIcon` set
+   * to `true`. Throw from it to show the error's message, such as one from `formatApiError`.
    */
   save: (form: FormData) => Promise<unknown>;
   strings?: TextOverrides<BrandingManagerStrings> | undefined;

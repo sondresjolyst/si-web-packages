@@ -9,7 +9,7 @@ Several apps sharing one API also share the code around it:
 
 - the session plumbing
 - how a failed request becomes a message a user can read
-- the form controls on the sign in page
+- the form controls on the sign-in page
 
 This package holds that code once, and each app installs it.
 
@@ -28,8 +28,8 @@ const nextConfig: NextConfig = {
 };
 ```
 
-The components in `@sjolystinnovation/app-kit/ui`, `markdown`, `branding`, `payments` and `session/react` are styled with Tailwind CSS.
-Import the package's stylesheet after Tailwind:
+The components in `@sjolystinnovation/app-kit/ui`, `admin`, `legal`, `markdown`, `branding`,
+`payments`, and `session/react` use Tailwind CSS. Import the package's stylesheet after Tailwind:
 
 ```css
 /* src/app/globals.css */
@@ -39,7 +39,7 @@ Import the package's stylesheet after Tailwind:
 
 ## Usage
 
-Declare the values that differ between apps once, then pass that config wherever it is needed. One
+Declare the values that differ between apps once, then pass that config wherever you need it. One
 app can define it, or several apps can each define their own.
 
 ```ts
@@ -101,7 +101,7 @@ resolveJwtSecret(sessionConfig, {});
 ```
 
 The environment is a parameter, so the root entry point needs no Node types and works in browser
-code. `@sjolystinnovation/app-kit/auth` is server only and does load Node types.
+code. `@sjolystinnovation/app-kit/auth` is server only and loads Node types.
 
 ### `formatApiError(error, fallback, statusMessages?)`
 
@@ -109,29 +109,30 @@ code. `@sjolystinnovation/app-kit/auth` is server only and does load Node types.
 
 Turns a failed request into one line a user can read.
 
-On a 4xx response it uses the first of:
+On a 4xx response, it uses the first of these:
 
 1. The body's own message: a text body, such as the one `BadRequest("...")` sends from ASP.NET Core,
-   or `message`, the first validation error or `detail` from a JSON body.
+   or `message`, the first validation error, or `detail` from a JSON body.
 2. The entry in `statusMessages` for the status.
 3. `fallback`.
 
-On a 5xx response the entry in `statusMessages` comes first, then the body, then `fallback`. A 5xx
+On a 5xx response, the entry in `statusMessages` comes first, then the body, then `fallback`. A 5xx
 body can come from a proxy, such as "Bad Gateway", so the caller's own words win when it has them.
 
-A problem details `title` is never shown. ASP.NET Core fills it with generic text, such as "Bad
-Request" or "An error occurred while processing your request.", which says less than `fallback`.
+The function never shows a problem details `title`. ASP.NET Core fills it with generic text, such
+as "Bad Request" or "An error occurred while processing your request.", which says less than
+`fallback`.
 
 A few more rules:
 
 - Key `0` in `statusMessages` covers a request that got no response, because of a dropped
   connection or a timeout.
 - Only text on a single line counts as a message.
-- Axios's own message, such as "Request failed with status code 500", is never shown.
-- A cancelled request gives `fallback`.
+- The function never shows Axios's own message, such as "Request failed with status code 500".
+- A canceled request gives `fallback`.
 - Any other `Error` gives its own message.
-- A body requested as an `arraybuffer` or a `blob`, as for a file download, is not read. A failed
-  download gets `statusMessages` or `fallback`.
+- The function does not read a body requested as an `arraybuffer` or a `blob`, as for a file
+  download. A failed download gets `statusMessages` or `fallback`.
 
 ```ts
 try {
@@ -170,27 +171,28 @@ export { handler as GET, handler as POST };
 
 | Setting | Type | Description |
 | --- | --- | --- |
-| `apiUrl` | `string` | Base URL of the API. Sign-in posts to `/auth/login`, refresh to `/auth/refresh-token` and sign-out to `/auth/logout` under it. An empty value throws. |
+| `apiUrl` | `string` | Base URL of the API. Sign-in posts to `/auth/login`, refresh to `/auth/refresh-token`, and sign-out to `/auth/logout` under it. An empty value throws. |
 | `env` | `Record<string, string \| undefined>` | The server environment, usually `process.env`. It supplies the secret named by `jwtSecretEnvVar`. |
-| `http` | `AxiosInstance` | In place of `apiUrl`, for tests. The client for sign-in and refresh, with its own base URL. |
+| `http` | `AxiosInstance` | The client for sign-in and refresh, with its own base URL. Use it in place of `apiUrl`, for tests. |
 
 next-auth reads `NEXTAUTH_SECRET` itself and refuses to run in production without it.
 
 What the options do:
 
-- **Sign-in** posts `{ email, password }` and expects `{ token, refreshToken }`. The access token is
-  verified with the API JWT secret, allowing 60 seconds of clock difference between the server and
-  the API. Its `sub`, `unique_name` and `role` claims become the user's `id`, `name` and `roles`.
-  The log gets the status, error code and message, never the request. A failed sign-in reports one
-  of these in next-auth's `error`:
-  - `SIGN_IN_ERRORS.unavailable` when the API does not answer, or a gateway returns 502, 503 or 504.
+- **Sign-in** posts `{ email, password }` and expects `{ token, refreshToken }`. It verifies the
+  access token with the API JWT secret and allows 60 seconds of clock difference between the server
+  and the API. Its `sub`, `unique_name`, and `role` claims become the user's `id`, `name`, and
+  `roles`. The log gets the status, error code, and message, never the request. If sign-in fails,
+  next-auth's `error` holds one of these:
+  - `SIGN_IN_ERRORS.unavailable` when the API does not answer, or a gateway returns 502, 503, or
+    504.
   - `SIGN_IN_ERRORS.invalidCredentials` for every other failure, including an unreadable token and
     an answer without both tokens.
 - **Refresh** runs ahead of expiry: five minutes before it, or a quarter of the token's lifetime
-  before it when that is shorter. It is never scheduled sooner than 30 seconds out, so a token that
-  lives under 30 seconds is refreshed after it expires. Parallel reads of one session in one server
-  process share a single refresh. Its answer is kept for a minute, because the API rotates the
-  refresh token on every call.
+  before it when that is shorter. The options never schedule it sooner than 30 seconds out, so a
+  token that lives under 30 seconds gets its refresh after it expires. Parallel reads of one session
+  in one server process share a single refresh. The options keep its answer for a minute, because
+  the API rotates the refresh token on every call.
 - **Failures:** a 400 or 401 from the refresh ends the session with `RefreshTokenRejected`. Any
   other failure keeps it and tries again a minute later. A session without a refresh token ends with
   `NoRefreshToken` when its refresh falls due.
@@ -200,38 +202,38 @@ What the options do:
   seven days in milliseconds.
 - **Sign-in page:** `pages.signIn` is `config.loginRoute`.
 
-Two rules keep a refresh from being lost:
+Follow two rules so that you never lose a refresh:
 
 - Read the session on the client, through `useSession` or `getSession`. In the App Router,
-  `getServerSession(authOptions)` cannot store a cookie, in server components, route handlers and
-  server actions alike. A refresh there replaces the tokens at the API and loses the new ones. The
+  `getServerSession(authOptions)` cannot store a cookie in server components, route handlers, or
+  server actions. A refresh there replaces the tokens at the API and loses the new ones. The
   next refresh then reuses the old token, and the API revokes every session the user has. On the
   server, read the token with `getToken` from `next-auth/jwt`, which never refreshes.
 - Run the app as one server process. Parallel session reads share one refresh only within a process.
   Two replicas can refresh the same token at once, with the same result.
 
-The package declares these fields on next-auth's types in `@sjolystinnovation/app-kit/next-auth`. The
-app loads the declarations once, from one of its own `.d.ts` files, so its code can read them:
+The package declares these fields on next-auth's types in `@sjolystinnovation/app-kit/next-auth`.
+Load the declarations once, from one of the app's own `.d.ts` files, so its code can read them:
 
 ```ts
 // src/types/next-auth.d.ts
 import "@sjolystinnovation/app-kit/next-auth";
 ```
 
-The session carries `user` (`id`, `name`, `email`, `roles`), `accessToken`, `error` and
-`absoluteExpiresAt`. The token carries `accessToken`, `refreshToken`, `refreshAt`, `loginAt`, `user`
-and `error`.
+The session carries `user` (`id`, `name`, `email`, `roles`), `accessToken`, `error`, and
+`absoluteExpiresAt`. The token carries `accessToken`, `refreshToken`, `refreshAt`, `loginAt`,
+`user`, and `error`.
 
 ### `@sjolystinnovation/app-kit/api`
 
 `createApiClient(baseURL)` returns an axios instance for the signed-in API, for code that runs in
 the browser. It reads the session through next-auth's `getSession`, which has no cookies to read on
-the server. An empty `baseURL` throws. Each request carries the session's access token. A 401
-opens the re-sign-in prompt when the session is gone or has a terminal error. It does not sign
-the user out, so the page keeps its state. The error still rejects as usual.
+the server. An empty `baseURL` throws. Each request carries the session's access token. When the
+session is gone or has a terminal error, a 401 opens the re-sign-in prompt. It does not sign the
+user out, so the page keeps its state. The error still rejects as usual.
 
 `request(call, fallback, statusMessages?)` runs a call and returns its `data`. A failure becomes an
-`Error` with the message `formatApiError` gives it. A cancelled call rethrows the cancel unchanged:
+`Error` with the message `formatApiError` gives it. A canceled call rethrows the cancel unchanged:
 
 ```ts
 import { requireEnv } from "@sjolystinnovation/app-kit";
@@ -256,27 +258,29 @@ export const getCompanyInfo = async () => mergeCompanyInfo(await publicGetOption
 
 `requestRevalidate(target, endpoint?)` asks the app's revalidate route to purge the pages behind
 `target`, so an edit shows at once. It posts to `/api/revalidate` unless `endpoint` says otherwise.
-It never throws. On failure the pages' own revalidate window is the fallback.
+It never throws. On failure, the pages' own revalidate window is the fallback.
 
 `apiFieldErrors(error)` reads the per-field messages of an ASP.NET validation problem from a failed
 call or its body, keyed in camelCase to match the form: `{ errors: { OrgNumber: ["..."] } }` becomes
-`{ orgNumber: ["..."] }`. It answers null when there are none, so the form falls back to one message.
+`{ orgNumber: ["..."] }`. It returns `null` when there are none, so the form falls back to one
+message.
 
 `createPublicClient(baseURL)` is the same without the session, for the API's anonymous endpoints. An
 empty `baseURL` throws, and requests only go to `baseURL`.
 
-The services below call the endpoints the SjolystInnovation.AppKit .NET packages map, so an app does
-not write them. `api` is a `createApiClient` instance and `publicApi` a `createPublicClient` one.
+The services below call the endpoints that the SjolystInnovation.AppKit .NET packages map, so you
+do not write them in the app. `api` is a `createApiClient` instance, and `publicApi` is a
+`createPublicClient` one.
 Failures throw an `Error` with the API's message, or with the service's own English fallback.
 `onSaved` runs after a save succeeds, such as `() => requestRevalidate("branding")`.
 
 | Factory | Methods | .NET package |
 | --- | --- | --- |
-| `createUserService(api, publicApi)` | `requestPasswordReset`, `resetPassword`, and for the signed-in user `getProfile`, `updateProfile`, `changePassword`, `exportData`, `deleteAccount` | Auth |
-| `createAdminUsersService(api)` | `getUsers(includeDeleted?)`, `addRole`, `removeRole`, `deleteUser`, `invite` | Auth |
+| `createUserService(api, publicApi)` | `requestPasswordReset`, `resetPassword`, and for the signed-in user `getProfile`, `updateProfile`, `changePassword`, `exportData`, and `deleteAccount` | Auth |
+| `createAdminUsersService(api)` | `getUsers(includeDeleted?)`, `addRole`, `removeRole`, `deleteUser`, and `invite` | Auth |
 | `createSettingsService(api, { onSaved? })` | `get`, `update` | SiteSettings |
 | `createBrandingService(api, publicApi, { onSaved? })` | `get`, which answers `{}` when the API cannot be read, and `update(form)` | SiteSettings |
-| `createLegalService<Key>(api, publicApi, { onSaved? })` | `get(key, locale)`, which answers `null` for a missing page, `listAll`, `save` | SiteSettings |
+| `createLegalService<Key>(api, publicApi, { onSaved? })` | `get(key, locale)`, which answers `null` for a missing page, `listAll`, and `save` | SiteSettings |
 
 ```ts
 import { createApiClient, createPublicClient, createUserService } from "@sjolystinnovation/app-kit/api";
@@ -285,7 +289,8 @@ const apiUrl = requireEnv("NEXT_PUBLIC_API_URL", process.env.NEXT_PUBLIC_API_URL
 export default createUserService(createApiClient(apiUrl), createPublicClient(apiUrl));
 ```
 
-The response types are exported too: `UserProfile`, `AdminUser`, `SiteSettings` and `LegalPage`.
+The package also exports the response types: `UserProfile`, `AdminUser`, `SiteSettings`, and
+`LegalPage`.
 
 ### `@sjolystinnovation/app-kit/server`
 
@@ -293,15 +298,15 @@ For server components and route handlers only. It imports `next/cache` and `next
 
 `createPublicApi(baseUrl, options?)` returns cached GETs against the API's anonymous endpoints:
 
-- `publicGet(path, { tags? })` gives the data, or null when the API answers 404. An unreachable or
+- `publicGet(path, { tags? })` gives the data, or `null` when the API answers 404. An unreachable or
   failing API throws `PublicApiError`, so a failed fetch is never cached as an empty page in place
   of a working one.
-- `publicGetOptional(path, { tags? })` gives null on any failure, for data a page can do without.
+- `publicGetOptional(path, { tags? })` gives `null` on any failure, for data a page can do without.
 - `publicGetWithMeta(path, { tags? })` also gives `lastModified`, from the `Last-Modified` header.
 
 Responses stay fresh for 60 seconds unless `options.revalidate` says otherwise. An empty `baseUrl`
 throws. Each path starts with a single `/`, or the call throws. A path with a `.` or `..` segment,
-encoded or not, gives null without a request, the same as a 404. Run a slug or other user input
+encoded or not, gives `null` without a request, the same as a 404. Run a slug or other user input
 through `encodeURIComponent` before putting it in a path.
 
 ```ts
@@ -316,11 +321,11 @@ export const { publicGet, publicGetOptional, publicGetWithMeta } = createPublicA
 
 `createRevalidateRoute({ targets, role })` returns a `POST` handler for `app/api/revalidate/route.ts`.
 Each target maps to the page paths it purges. A path with a dynamic segment, such as
-`/builds/[slug]`, purges every page of that route. The target name is purged as a cache tag too, so
-tag the fetches behind it with the same name. The handler answers 403 unless the caller has a live
-session with `role`: signed in within the last seven days, with no refused refresh and an access
-token that has not expired. It answers 415 unless the body is sent as JSON, which
-`requestRevalidate` does, and 400 for a target it does not know.
+`/builds/[slug]`, purges every page of that route. The route also purges the target name as a cache
+tag, so tag the fetches behind it with the same name. The handler answers 403 unless the caller has
+a live session with `role`: signed in within the last seven days, with no refused refresh, and with
+an access token that has not expired. It answers 415 unless the caller sends the body as JSON,
+which `requestRevalidate` does. It answers 400 for a target it does not know.
 
 ```ts
 // src/app/api/revalidate/route.ts
@@ -333,7 +338,7 @@ export const POST = createRevalidateRoute({
 ```
 
 `defineRevalidateTargets({ locales, targets })`, from `@sjolystinnovation/app-kit/api`, keeps the
-targets in one file that both sides import. `pages` are below each locale segment and `root` paths
+targets in one file that both sides import. `pages` are below each locale segment, and `root` paths
 are not. It returns `targets` for fetch tags, `paths` for the route, and `revalidate(target)` for
 the admin services.
 
@@ -358,8 +363,9 @@ For `next.config.ts`. It imports nothing but Next's types, so Next loads it with
 
 `defineAppConfig(options, extra?)` gives the config every app shares: the standalone build, app-kit
 in `transpilePackages`, no `X-Powered-By`, `expireTime` of five minutes, image qualities 75 and 100,
-the incremental cache in memory, and the security headers on every page. `extra` is merged over it,
-with `transpilePackages`, `images`, `headers` and `rewrites` combined rather than replaced.
+the incremental cache in memory, and the security headers on every page. It merges `extra` over
+that config and combines `transpilePackages`, `images`, `experimental`, `headers`, and `rewrites`
+rather than replacing them.
 
 ```ts
 // next.config.ts
@@ -386,17 +392,17 @@ export default defineAppConfig({
 | `expireTime` | `number` | Seconds a cache may serve a stale page. Defaults to 300. Next's default is a year. |
 | `isrFlushToDisk` | `boolean` | Write revalidated pages to disk. Off by default, for a read-only root filesystem. |
 
-The pieces are exported too: `securityHeaders(options)`, `contentSecurityPolicy(options)`,
-`contentImagesRewrite(apiUrl, { source?, upstreamPath? })`, `apiOrigin(apiUrl)` and
+The package also exports the pieces: `securityHeaders(options)`, `contentSecurityPolicy(options)`,
+`contentImagesRewrite(apiUrl, { source?, upstreamPath? })`, `apiOrigin(apiUrl)`, and
 `apiBaseUrl(apiUrl)`. Scripts allow `'unsafe-inline'`, since a nonce would make every statically
 rendered page dynamic.
 
 ### `@sjolystinnovation/app-kit/markdown`
 
-Renders Markdown from an editor or the API, with GitHub tables, task lists and footnotes. Raw HTML is
-never rendered and the output is sanitized, so the text cannot inject scripts, styles, event
-handlers or `javascript:` links. It works in a server component. It needs `react-markdown`,
-`remark-gfm` and `rehype-sanitize`, which are optional peer dependencies:
+Renders Markdown from an editor or the API, with GitHub tables, task lists, and footnotes. It never
+renders raw HTML and sanitizes the output, so the text cannot inject scripts, styles, event
+handlers, or `javascript:` links. It works in a server component. It needs `react-markdown`,
+`remark-gfm`, and `rehype-sanitize`, which are optional peer dependencies:
 
 ```sh
 npm install react-markdown remark-gfm rehype-sanitize
@@ -412,20 +418,20 @@ import { Markdown } from "@sjolystinnovation/app-kit/markdown";
 
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
-| `children` | `string \| null \| undefined` | | The Markdown. Empty, null or undefined renders nothing. |
+| `children` | `string \| null \| undefined` | | The Markdown. Empty, `null`, or `undefined` renders nothing. |
 | `components` | `Components` | | Replaces the element for a tag, such as `{ p: MyParagraph }`. Tags not named keep the default. It gets the props without `node`, so it can spread them onto an element. |
 | `externalLinks` | `boolean` | `false` | Opens `http` and `https` links in a new tab with `rel="noopener noreferrer"`. Site-relative links stay in the tab. |
 | `className` | `string` | | Wraps the output in a `div` with these classes. Without it the elements render bare, so a parent's `space-y-*` spaces them. |
 
-The text takes its colour and size from the parent. A level one heading becomes a level two, since
+The text takes its color and size from the parent. A level one heading becomes a level two, since
 the page has its own `h1`. `markdownComponents` holds the default elements, for an app that builds
 on them.
 
 ### `@sjolystinnovation/app-kit/seo`
 
 Search engine helpers for one site: canonical URLs with hreflang, page metadata with Open Graph,
-sitemap entries, robots.txt and schema.org structured data. It works in a server component.
-`defineSite` binds them to the site's name, canonical origin and locales:
+sitemap entries, `robots.txt`, and schema.org structured data. It works in a server component.
+`defineSite` binds them to the site's name, canonical origin, and locales:
 
 ```ts
 // src/lib/seo/site.ts
@@ -444,7 +450,7 @@ export const site = defineSite({
 
 | Option | Type | Description |
 | --- | --- | --- |
-| `name` | `string` | The site's name, in titles, Open Graph and structured data. |
+| `name` | `string` | The site's name, in titles, Open Graph, and structured data. |
 | `url` | `string` | The canonical origin, without a trailing slash. |
 | `titleSeparator` | `string` | Between a page title and the site name. |
 | `locales` | `string[]` | The locale segments every page is under. A site without them leaves it out, and its paths have no segment. |
@@ -453,24 +459,24 @@ export const site = defineSite({
 | `tagline` | `(locale) => string` | The line after the name in the default title and the share image's alt text. |
 | `shareImagePath` | `string` | The share image route below each locale. Defaults to `/og`. |
 
-The site gives:
+The site provides:
 
 - `localePath(locale, path)`, `absoluteUrl(path)`, `absoluteLocaleUrl(locale, path)` and
   `languageAlternates(path)`. Paths get a leading slash and no trailing slash.
 - `siteMetadata({ locale, description, manifest })` for the locale root layout: the title
-  template, `metadataBase`, the index directive and the front page's canonical.
+  template, `metadataBase`, the index directive, and the front page's canonical.
 - `pageMetadata({ locale, path, title, description, images })` for a page: the canonical URL,
   hreflang, and Open Graph with the locale's share image unless `images` is given.
 - `localeEntries(path, { locales, lastModified })` for `sitemap.ts`: one entry per locale, each
-  listing the others. `lastModified` is left out when unknown. A site without locales gets one
-  entry per page.
+  listing the others. It leaves out `lastModified` when that is unknown. A site without locales
+  gets one entry per page.
 - `forEachLocale(load)` runs `load` for every locale at once and keys the results by locale.
 - `legalEntries({ keys, updatedAt })` gives the legal pages' entries, `/terms`, `/privacy` and
   `/cookies` unless `keys` says otherwise, each dated by the timestamp `updatedAt` returns for it.
-- `robots({ privatePaths, privateRootPaths, indexable })` for `robots.ts`. The private paths are
-  disallowed under every locale segment. A deployment that is not production disallows everything.
+- `robots({ privatePaths, privateRootPaths, indexable })` for `robots.ts`. It disallows the private
+  paths under every locale segment. A deployment that is not production disallows everything.
 - `organizationNode(company, { type, sameAs, country, image, logo })`, `webSiteNode(locale)`,
-  `breadcrumbNode(crumbs, pageUrl)`, `itemListNode(paths, pageUrl)`, `siteId(fragment)` and `ids`
+  `breadcrumbNode(crumbs, pageUrl)`, `itemListNode(paths, pageUrl)`, `siteId(fragment)`, and `ids`
   for structured data.
 
 ```tsx
@@ -491,16 +497,16 @@ export default async () => [
 <JsonLd nodes={[site.organizationNode(company), site.webSiteNode(locale)]} />
 ```
 
-`isIndexableEnvironment()` reads `SITE_ENV`. `prod`, `production` and unset or blank count as
+`isIndexableEnvironment()` reads `SITE_ENV`. `prod`, `production`, and unset or blank count as
 production, so a missing variable never deindexes the live site. `robots.ts` needs
 `dynamic = "force-dynamic"`, so it reads the variable per request. The package also exports
 `JsonLd`, `serializeGraph`, `ref`, `NOINDEX`, `LEGAL_PAGE_KEYS`, `SHARE_IMAGE_SIZE`,
-`normalizePath`, `latest` and `parseTimestamp`.
+`normalizePath`, `latest`, and `parseTimestamp`.
 
 ### `@sjolystinnovation/app-kit/seo/og`
 
 `shareImage({ name, tagline, colors })` renders the default share preview, a PNG at
-`SHARE_IMAGE_SIZE`: the name, a bar in `colors.primary` and the tagline. The colours are literals,
+`SHARE_IMAGE_SIZE`: the name, a bar in `colors.primary`, and the tagline. The colors are literals,
 since the image renders outside the browser. Return it from the route `pageMetadata` points at:
 
 ```tsx
@@ -523,7 +529,7 @@ The logo and favicon an admin uploads, as the API's `/branding` endpoint returns
 `BrandingProvider` holds them for the components below it. It takes the branding the server
 rendered with, loads it on mount when there is none, and loads it again every five minutes, so an
 open tab picks up a change. A failed load keeps what it has. `useBranding()` gives `branding`,
-`logoUrl` as a `data:` URL or null, and `refresh()`.
+`logoUrl` as a `data:` URL or `null`, and `refresh()`.
 
 ```tsx
 "use client";
@@ -552,11 +558,11 @@ above it, and refreshes it after a save.
 ### `@sjolystinnovation/app-kit/branding/server`
 
 `brandingIcon({ load, fallbackPath, fallbackType })` is the response for an `app/icon.ts` route:
-the favicon set in admin settings when it is a PNG, JPEG, WebP, GIF or ICO, or the bundled file
+the favicon set in admin settings when it is a PNG, JPEG, WebP, GIF, or ICO, or the bundled file
 otherwise, since an SVG or HTML upload could run script on the site's origin. Both carry `nosniff`
-and a sandbox CSP, which a CSP header from the app's `next.config` replaces. When the branding cannot be
-loaded it answers 503 with `no-store`, since a browser would cache the bundled icon in place of the
-one set in settings.
+and a sandbox CSP, which a CSP header from the app's `next.config` replaces. If the route cannot
+load the branding, it answers 503 with `no-store`, since a browser would cache the bundled icon in
+place of the one set in settings.
 
 ```ts
 // src/app/icon.ts
@@ -590,7 +596,7 @@ most, and stops on a failed fetch and on unmount. It gives `data`, `loading` and
 each fetch uses the latest `fetcher` and `isFinal`.
 
 `PaymentReturn` shows the outcome: confirmed, still pending, or failed. It takes the text and the way
-on for each state, and a refresh button while pending when given `onRefresh`.
+on for each state. When you pass `onRefresh`, it shows a refresh button while pending.
 
 ```tsx
 "use client";
@@ -614,7 +620,7 @@ if (loading) return <Spinner />;
 | Prop | Type | Description |
 | --- | --- | --- |
 | `state` | `"success" \| "pending" \| "failed"` | Which content to show. |
-| `success`, `pending`, `failed` | `{ title, body, href, cta, note?, extra? }` | The text, the button's target and text, a smaller note line and anything more, per state. |
+| `success`, `pending`, `failed` | `{ title, body, href, cta, note?, extra? }` | The text, the button's target and text, a smaller note line, and anything more, per state. |
 | `onRefresh` | `() => void` | Shows a refresh button while pending. |
 | `refreshLabel` | `string` | Its text. Defaults to `Check again`. |
 | `className` | `string` | Classes for placing it, on the outer element. |
@@ -625,7 +631,7 @@ if (loading) return <Spinner />;
 
 `CompanySettingsForm` is the admin form for the business details the public pages show, saved
 through `createSettingsService`. Its children show below the form once the settings have loaded,
-such as the `BrandingManager`. `strings` holds every label, hint and message, English by default.
+such as the `BrandingManager`. `strings` holds every label, hint, and message, English by default.
 
 ```tsx
 <CompanySettingsForm service={SettingsService} strings={dict.companySettings}>
@@ -659,7 +665,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 `StatHistoryChart` draws the admin stats over time: a line per series, a scale from zero to the
 highest value shown, and legend buttons that hide and show each line. `data` is one row per day,
 oldest first, with `date` as `YYYY-MM-DD`. A missing value counts as zero. Each series names the
-field it plots and its label, and takes the next colour in `STAT_SERIES_COLORS` unless it has its
+field it plots and its label, and takes the next color in `STAT_SERIES_COLORS` unless it has its
 own. `strings` holds `empty`, shown when there are no days, and `chart`, the accessible name.
 
 ```tsx
@@ -676,8 +682,8 @@ own. `strings` holds `empty`, shown when there are no days, and `chart`, the acc
 `AdminUsersPanel` is the users page. It lists every user with their roles, shows deleted users
 behind a toggle, gives and takes roles, deletes an account after a confirm, and invites a user by
 email. It calls the API through `createAdminUsersService`. `getRoles` returns the roles an admin
-may give. Inline functions are fine. The panel does not fetch again when they change. It reports
-with `toast`, so the app needs sonner and a `Toaster`.
+may give. You can pass inline functions, because the panel does not fetch again when they change.
+It reports with `toast`, so the app needs sonner and a `Toaster`.
 
 ```tsx
 import { AdminUsersPanel } from "@sjolystinnovation/app-kit/admin";
@@ -690,7 +696,7 @@ import { AdminUsersPanel } from "@sjolystinnovation/app-kit/admin";
 | `service` | `ReturnType<typeof createAdminUsersService>` | The user admin calls. |
 | `getRoles` | `() => Promise<string[]>` | The roles an admin may give. |
 | `defaultInviteRole` | `string` | The role a new invite starts with. Defaults to `Admin`. |
-| `strings` | `TextOverrides<AdminUsersPanelStrings>` | The text, English by default. `{name}` and `{role}` are filled in where a text names them. |
+| `strings` | `TextOverrides<AdminUsersPanelStrings>` | The text, English by default. The panel fills in `{name}` and `{role}` where a text names them. |
 
 `LegalPagesEditor` edits the legal pages one page and one locale at a time, through
 `createLegalService`. A locale tab whose page has no content yet gets a dot. `LocaleTabs` is the
@@ -710,9 +716,9 @@ same tab bar on its own, for other translated forms.
 ### `@sjolystinnovation/app-kit/legal`
 
 `LegalPageView` renders a terms, privacy or cookies page as an admin wrote it: the title, the date
-it last changed in `dateLocale`, and the Markdown body. With no page it shows `title` and says the
-page is missing. It is a server component and needs the same peers as `markdown`. The route file
-stays in the app, since Next reads `revalidate` and the metadata from it.
+it last changed in `dateLocale`, and the Markdown body. If there is no page, it shows `title` and
+says the page is missing. It is a server component and needs the same peers as `markdown`. The
+route file stays in the app, since Next reads `revalidate` and the metadata from it.
 
 ```tsx
 // src/app/[locale]/terms/page.tsx
@@ -727,13 +733,13 @@ export default async function TermsPage({ params }: { params: Promise<{ locale: 
 
 ### `@sjolystinnovation/app-kit/session`
 
-Decides when a user has to sign in again. Safe to import from server code, such as the next-auth
-callbacks.
+Decides when a user has to sign in again. It is safe to import from server code, such as the
+next-auth callbacks.
 
 The gate reads `session.error`. `SessionExpiryGuard` also reads `session.absoluteExpiresAt` for its
 countdown, `session.user.id` to keep the page with the user who opened it, and `session.user.email`
-to fill in the prompt. `createAuthOptions` sets all of these. An app with its own next-auth options sets them in its
-callbacks:
+to fill in the prompt. `createAuthOptions` sets all of these. An app with its own next-auth options
+sets them in its callbacks:
 
 ```ts
 const SESSION_LIFETIME_MS = 7 * 24 * 60 * 60 * 1000;
@@ -757,8 +763,11 @@ callbacks: {
 },
 ```
 
-For that to compile, these fields have to be on next-auth's `Session` and `JWT` types. Add them to
-the app's existing next-auth type declarations, or create them:
+For that to compile, these fields have to be on next-auth's `Session` and `JWT` types. With
+`createAuthOptions`, load the shared declarations from `@sjolystinnovation/app-kit/next-auth`, as
+[`createAuthOptions`](#createauthoptionsconfig-settings) shows. Those also make `accessToken` and
+the user's `name`, `email`, and `roles` required. An app with its own options adds only these
+fields to its existing next-auth type declarations, or creates them:
 
 ```ts
 // src/types/next-auth.d.ts
@@ -801,8 +810,8 @@ The re-sign-in prompt is a flag outside React, so an axios interceptor can raise
 
 Copies of the package installed side by side share the one flag, as long as their releases use the
 same prompt state format. A release that changes the format says so in its changelog. An app's own
-copy of these functions does not share the flag. So the interceptor, the prompt and every gate all
-import them from this package.
+copy of these functions does not share the flag, so import them from this package in the
+interceptor, the prompt, and every gate.
 
 ### `useSessionGate()`
 
@@ -826,10 +835,10 @@ layout that needs its own decision, such as a role check, so it agrees with the 
 | --- | --- |
 | `mayRender` | Whether the page may render. |
 | `session`, `status` | As `useSession` returns them. |
-| `usable` | The session is signed in and has no terminal error. |
-| `wasUsable` | This page has rendered on a usable session. |
-| `promptOpen` | The re-sign-in prompt is showing. |
-| `recovering` | The prompt is showing over a page that was usable. |
+| `usable` | Whether the session is signed in and has no terminal error. |
+| `wasUsable` | Whether this page has rendered on a usable session. |
+| `promptOpen` | Whether the re-sign-in prompt is showing. |
+| `recovering` | Whether the prompt is showing over a page that was usable. |
 
 `SessionGate` is the type of the result.
 
@@ -868,7 +877,7 @@ arrival to `loginHref`. It never redirects while the re-sign-in prompt is open.
 ### `RoleGate`
 
 From `@sjolystinnovation/app-kit/session/react`. Renders its children only for a user with `role`.
-Place it inside `ProtectedGate`. While the re-sign-in prompt recovers a signed-out session there is
+Place it inside `ProtectedGate`. While the re-sign-in prompt recovers a signed-out session, there is
 no user and so no roles. The page stays up only on the path where the session last had the role.
 
 ```tsx
@@ -894,8 +903,9 @@ shows:
 - a banner when the session is dead
 - the re-sign-in prompt, a dialog with `CredentialsForm`, when a request or the banner opens it
 
-A sign-in in the prompt keeps the page and its form. A sign-in in the prompt as a different user is
-signed out and sent to `loginHref`, so the prompt never hands the page to another user.
+A sign-in in the prompt keeps the page and its form. If someone signs in to the prompt as a
+different user, the guard signs them out and sends them to `loginHref`, so the prompt never hands
+the page to another user.
 
 ```tsx
 <SessionExpiryGuard
@@ -906,7 +916,7 @@ signed out and sent to `loginHref`, so the prompt never hands the page to anothe
 
 | Prop | Type | Description |
 | --- | --- | --- |
-| `loginHref` | `string` | Where a sign-in as a different user is sent after it is signed out. |
+| `loginHref` | `string` | Where the guard sends a different user after it signs them out. |
 | `onRestored` | `() => void` | Runs after the prompt signs the user back in, such as to show a toast. |
 | `strings` | `TextOverrides<SessionExpiryGuardStrings>` | The guard's text. `{minutes}` in `expiringSoon` becomes the minutes left. The defaults are English. |
 | `formStrings` | `TextOverrides<CredentialsFormStrings>` | The text of the form in the prompt. |
@@ -914,8 +924,8 @@ signed out and sent to `loginHref`, so the prompt never hands the page to anothe
 ### `useFormDraft(config, options)`
 
 From `@sjolystinnovation/app-kit/forms`. Keeps a form's values in `localStorage`, so a sign-out,
-reload or closed tab does not lose them. Values are written half a second after the last change, so
-only that last half second is at risk.
+reload or closed tab does not lose them. The hook writes values half a second after the last
+change, so only that last half second is at risk.
 
 ```tsx
 // userId is the signed-in user's id, from wherever the app's session keeps it.
@@ -928,25 +938,25 @@ const draft = useFormDraft(sessionConfig, {
 
 | Option | Type | Description |
 | --- | --- | --- |
-| `owner` | `string \| undefined` | The signed-in user's id. Drafts are stored per user, and nothing is stored until it is known. The last known owner is kept when the session stops reporting one. |
+| `owner` | `string \| undefined` | The signed-in user's id. The hook stores drafts per user, and stores nothing until the id is known. When the session stops reporting an owner, the hook keeps the last known one. |
 | `scope` | `string` | The form and the entity it edits, such as `recipe:42`. |
 | `value` | `T` | The form's current values. They must survive `JSON.stringify`. |
 
 Mount an edit form once the entity has loaded, with its values already in `value`. The hook treats
 the values it first sees under a key as the untouched form, so values that arrive later count as an
-edit and are written over the draft being offered.
+edit and overwrite the draft on offer.
 
 It returns:
 
-- `pending`, the stored draft. The page offers it to the user and does not apply it. It is read
-  when the owner is first known and again whenever the owner or `scope` changes, so it can appear
-  after the form mounts.
+- `pending`, the stored draft. The page offers it to the user and does not apply it. The hook reads
+  it when the owner is first known, and again whenever the owner or `scope` changes, so it can
+  appear after the form mounts.
 - `dismiss()`, to stop offering it.
 - `clear()`, to drop the stored draft after a successful save.
 
-Drafts are stored under `<draftStoragePrefix>:draft:<owner>:<scope>`. The hook throws when
-`draftStoragePrefix` is empty or contains a colon. A draft older than 7 days is not offered, and is
-removed when its form next reads it.
+The hook stores drafts under `<draftStoragePrefix>:draft:<owner>:<scope>`. It throws when
+`draftStoragePrefix` is empty or contains a colon. It does not offer a draft older than 7 days, and
+removes that draft when its form next reads it.
 
 ### `CredentialsForm`
 
@@ -973,8 +983,8 @@ or one that throws, shows `somethingWentWrong`.
 ### `LoginPage`
 
 From `@sjolystinnovation/app-kit/ui`. The sign-in page: a title, `CredentialsForm`, a link to reset
-the password and, when the app has sign-up, a link to it. A sign-in goes to `redirectTo` and refreshes
-the page's server data. It uses the same `auth` theme variables as `ResetPasswordFlow`.
+the password, and a sign-up link when the app has sign-up. A sign-in goes to `redirectTo` and
+refreshes the page's server data. It uses the same `auth` theme variables as `ResetPasswordFlow`.
 
 ```tsx
 <LoginPage redirectTo="/admin" resetHref="/reset-password" strings={{ title: "Logg inn" }} formStrings={{ signIn: "Logg inn" }} />
@@ -985,17 +995,17 @@ the page's server data. It uses the same `auth` theme variables as `ResetPasswor
 | `redirectTo` | `string` | Where a signed-in user goes. |
 | `resetHref` | `string` | The password reset page. |
 | `registerHref` | `string` | The sign-up page. Without it there is no register link. |
-| `strings` | `TextOverrides<LoginPageStrings>` | The page's text: `title`, `forgotPassword`, `registerPrompt` (null leaves it out) and `register`. |
+| `strings` | `TextOverrides<LoginPageStrings>` | The page's text: `title`, `forgotPassword`, `registerPrompt`, and `register`. Set `registerPrompt` to `null` to leave it out. |
 | `formStrings` | `TextOverrides<CredentialsFormStrings>` | The form's text. |
 | `className` | `string` | Replaces the outer `max-w-md mx-auto px-4 py-16`. |
 
 ### `ResetPasswordFlow`
 
 From `@sjolystinnovation/app-kit/ui`. The password reset page in two steps: the email asks for a
-code, then the code and a new password set it. The password is checked against the same rules as
-`passwordSchema` before it is sent, without loading zod. An emailed link with the email and code,
-such as an invite, opens it on the second step. Its colours and title size come from the `auth` and
-`button` theme variables, see [Theming](#theming).
+code, then the code and a new password set it. Before it sends the password, the flow checks it
+against the same rules as `passwordSchema`, without loading zod. An emailed link with the email and
+code, such as an invite, opens it on the second step. Its colors and title size come from the
+`auth` and `button` theme variables. See [Theming](#theming).
 
 ```tsx
 const params = useSearchParams();
@@ -1013,11 +1023,11 @@ const params = useSearchParams();
 | Prop | Type | Description |
 | --- | --- | --- |
 | `requestReset` | `(data: { email }) => Promise<unknown>` | Asks the API to email a code. |
-| `reset` | `(data: { email, code, newPassword }) => Promise<unknown>` | Sets the password. A `message` in its answer is shown when it succeeds. |
+| `reset` | `(data: { email, code, newPassword }) => Promise<unknown>` | Sets the password. When it succeeds, the flow shows the `message` in its answer. |
 | `loginHref` | `string` | Where the sign-in links go. |
 | `initialEmail`, `initialCode` | `string` | From the emailed link. A code opens the second step. |
 | `className` | `string` | Replaces the outer `max-w-md mx-auto px-4 py-16`, such as to sit in the app's own card. |
-| `strings` | `TextOverrides<ResetPasswordFlowStrings>` | The page's text. `signInPrompt`, `intro`, `codeSent` and `passwordHint` set to null are left out. `done` set to null shows the API's message, or only the sign-in link when it sends none. `passwordInvalid` set to null lists every broken rule. |
+| `strings` | `TextOverrides<ResetPasswordFlowStrings>` | The page's text. Set `signInPrompt`, `intro`, `codeSent`, or `passwordHint` to `null` to leave it out. `done` set to `null` shows the API's message, or only the sign-in link when it sends none. `passwordInvalid` set to `null` lists every broken rule. |
 | `passwordStrings` | `TextOverrides<PasswordStrings>` | The rule messages, in the app's language. |
 
 A failure shows the error's message, or `somethingWentWrong` when it has none.
@@ -1027,7 +1037,7 @@ key is optional and may be `undefined`, and a missing or undefined key shows the
 
 ### `TextInput`
 
-From `@sjolystinnovation/app-kit/ui`. A labelled text field with the same look and props as
+From `@sjolystinnovation/app-kit/ui`. A labeled text field with the same look and props as
 `PasswordInput`, apart from the show and hide toggle. It takes the other `<input>` attributes too.
 
 ```tsx
@@ -1036,7 +1046,7 @@ From `@sjolystinnovation/app-kit/ui`. A labelled text field with the same look a
 
 ### `TextArea`
 
-From `@sjolystinnovation/app-kit/ui`. A labelled multi-line field with the same look, label and
+From `@sjolystinnovation/app-kit/ui`. A labeled multi-line field with the same look, label, and
 error handling as `TextInput`. It takes the other `<textarea>` attributes too, and works controlled
 or uncontrolled.
 
@@ -1069,7 +1079,7 @@ It takes the other `<button>` attributes too.
 | `onChange` | `(checked: boolean) => void` | Called with the new state. A callback that ignores it also fits. |
 | `label` | `string` | Visible text after the switch. It names the switch, and a click on it flips the switch. |
 | `aria-label` | `string` | The switch's name when there is no `label`. One of the two is required. |
-| `disabled` | `boolean` | Greys the switch out and ignores clicks. |
+| `disabled` | `boolean` | Grays the switch out and ignores clicks. |
 | `className` | `string` | Classes for placing it, on the outer element. |
 
 An `onClick` that calls `event.preventDefault()` stops the change.
@@ -1084,7 +1094,7 @@ import { Alert } from "@sjolystinnovation/app-kit/ui";
 
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
-| `variant` | `"error" \| "success" \| "info" \| "warning"` | `"info"` | Colour of the box. |
+| `variant` | `"error" \| "success" \| "info" \| "warning"` | `"info"` | Color of the box. |
 | `role` | `"alert" \| "status" \| "none"` | `"alert"` | A screen reader announces `status` without interrupting, on every change of its text. Use `none` when a separate live region announces the text. |
 | `className` | `string` | | Classes for placing the alert, such as a margin. Restyle it through the theme variables. A clashing class wins or loses by the order Tailwind emits them in. |
 | `children` | `ReactNode` | | Content. |
@@ -1103,7 +1113,7 @@ a server component.
 
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
-| `imageId` | `string \| null` | | Uploaded image id. Null or empty shows `fallbackSrc` as it is, with no `srcset`. |
+| `imageId` | `string \| null` | | Uploaded image id. `null` or empty shows `fallbackSrc` as it is, with no `srcset`. |
 | `alt` | `string` | | Empty for a decorative image. |
 | `sizes` | `string` | | Widths the image is shown at. Required, since a browser assumes `100vw` without it. |
 | `fallbackSrc` | `string` | | A static path for when there is no uploaded image. With neither, nothing renders. |
@@ -1133,10 +1143,10 @@ export default function Error({ reset }: { error: Error; reset: () => void }) {
 | --- | --- | --- |
 | `reset` | `() => void` | The `reset` Next passes to `error.tsx`. The try again button calls it. |
 | `homeHref` | `string` | Where the front page link goes, such as `/` or `/en`. |
-| `strings` | `TextOverrides<ErrorStateStrings>` | `title`, `body`, `tryAgain` and `home`. |
+| `strings` | `TextOverrides<ErrorStateStrings>` | `title`, `body`, `tryAgain`, and `home`. |
 | `className` | `string` | Classes for placing it, on the outer element. |
 
-The error itself is never shown.
+It never shows the error itself.
 
 ### `NotFoundState`
 
@@ -1150,14 +1160,14 @@ the page's heading, and a link home. It works in a server component.
 | Prop | Type | Description |
 | --- | --- | --- |
 | `homeHref` | `string` | Where the home link goes. |
-| `strings` | `TextOverrides<NotFoundStrings>` | `code`, `body` and `home`. |
+| `strings` | `TextOverrides<NotFoundStrings>` | `code`, `body`, and `home`. |
 | `className` | `string` | Classes for placing it, on the outer element. |
 
 ### `PasswordInput`
 
-A labelled password field with a button that shows and hides the value. It also takes the other
+A labeled password field with a button that shows and hides the value. It also takes the other
 `<input>` attributes, apart from `type`, which the component switches itself. `className` goes on
-the outer element, see below.
+the outer element, as the table below describes.
 
 ```tsx
 import { PasswordInput } from "@sjolystinnovation/app-kit/ui";
@@ -1188,11 +1198,11 @@ import { toast } from "@sjolystinnovation/app-kit/toast";
 ### `passwordSchema(strings?)`
 
 From `@sjolystinnovation/app-kit/validation`. A zod schema for a new password, with the rules the APIs
-enforce through ASP.NET Identity: at least 8 characters, with a lowercase letter, an uppercase letter
-and a digit. No symbol is needed. Identity counts only ASCII, so the letters are A to Z and the digits
-0 to 9, and "Å" does not count as uppercase. Identity sets no upper limit. An app whose API does adds
-it with `.max()`. A failing password gets one issue per rule it breaks, each with its message from
-`strings`. Missing messages fall back to `defaultPasswordStrings`, which are English.
+enforce through ASP.NET Identity: at least 8 characters, with a lowercase letter, an uppercase
+letter, and a digit. No symbol is needed. Identity counts only ASCII, so the letters are A to Z and
+the digits 0 to 9. "Å" does not count as uppercase. Identity sets no upper limit. If the app's API
+sets one, add it with `.max()`. A failing password gets one issue per rule it breaks, each with its
+message from `strings`. Missing messages fall back to `defaultPasswordStrings`, which are English.
 
 ```ts
 import { passwordSchema } from "@sjolystinnovation/app-kit/validation";
@@ -1209,7 +1219,7 @@ message of every rule a password breaks, in the same order, without zod.
 From `@sjolystinnovation/app-kit/validation`. A failed parse's issues by the top-level field they
 belong to, for showing beside each input. Each field gets its first issue's message, or every message
 in order with `all: true`. `message` replaces zod's text, such as with the app's own translations.
-Issues that belong to no field are left out.
+It leaves out issues that belong to no field.
 
 ```ts
 import { zodFieldErrors } from "@sjolystinnovation/app-kit/validation";
@@ -1253,7 +1263,7 @@ it("sends a user without the role away", () => {
 
 ## Theming
 
-The components draw every colour, corner radius and label size from theme variables with a light
+The components draw every color, corner radius, and label size from theme variables with a light
 default. Set any of them in the app's own `@theme` to restyle every component at once, or in a
 selector such as `.dark` for a scoped theme:
 
@@ -1349,18 +1359,19 @@ with it and has to set the ones it uses itself.
 ## Requirements
 
 - Next.js 16 and React 19, as peer dependencies the app installs itself.
-- For the root entry, `auth`, `api`, `server`, `session/react`, `ui` and `admin`: next-auth 4.24
+- For the root entry, `auth`, `api`, `server`, `session/react`, `ui`, and `admin`: next-auth 4.24
   or later and axios 1.20 or later, as optional peer dependencies. A site without sign-in, which
-  uses only entries such as `seo`, `next-config`, `markdown`, `toast` or `validation`, leaves them
+  uses only entries such as `seo`, `next-config`, `markdown`, `toast`, or `validation`, leaves them
   out.
 - For `@sjolystinnovation/app-kit/validation`: zod 4, as an optional peer dependency.
 - For `@sjolystinnovation/app-kit/testing`: vitest 5, as an optional peer dependency.
 - For `@sjolystinnovation/app-kit/toast`: sonner 2, as an optional peer dependency. Install a single
   copy, because two copies keep two separate toast stores.
 - `jsonwebtoken` comes with the package. `@sjolystinnovation/app-kit/auth` uses it on the server.
-- For `@sjolystinnovation/app-kit/ui`, `@sjolystinnovation/app-kit/admin` and the components in
-  `session/react`: Tailwind CSS 4 and `@heroicons/react` 2. The focus ring and the primary button
-  use the theme's `primary` and `primary-foreground` colours, unless their own variables are set.
+- For the components in `ui`, `admin`, `legal`, `markdown`, `branding`, `payments`, and
+  `session/react`: Tailwind CSS 4. `ui`, `admin`, `branding`, `payments`, and `session/react` also
+  need `@heroicons/react` 2. The focus ring and the primary button use the theme's `primary` and
+  `primary-foreground` colors, unless you set their own variables.
 - TypeScript with `"moduleResolution": "bundler"`. Relative imports here are extensionless, which
   `node16` and `nodenext` reject.
 

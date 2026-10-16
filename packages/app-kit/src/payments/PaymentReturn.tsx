@@ -5,32 +5,34 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { cx } from "../ui/cx";
 
+/** The outcome of a payment, as `PaymentReturn` shows it. */
 export type PaymentReturnState = "success" | "pending" | "failed";
 
-/** The text and the way on for one state. */
+/** The text and the next step for one state. */
 export interface PaymentReturnContent {
   title: string;
   body: string;
-  /** Where the button goes. */
+  /** The button's link target. */
   href: string;
   /** The button's text. */
   cta: string;
   /** A smaller line under the body. */
   note?: string | undefined;
-  /** Anything more under the body, such as a receipt link. */
+  /** Any more content under the body, such as a receipt link. */
   extra?: ReactNode;
 }
 
+/** Props for `PaymentReturn`. */
 export interface PaymentReturnProps {
   state: PaymentReturnState;
   success: PaymentReturnContent;
   pending: PaymentReturnContent;
   failed: PaymentReturnContent;
-  /** Checks the status again. Shows a button for it while pending. */
+  /** A function that checks the status again. While the state is pending, a button runs it. */
   onRefresh?: (() => void) | undefined;
   /** The refresh button's text. Defaults to `Check again`. */
   refreshLabel?: string | undefined;
-  /** Classes for placing it, on the outer element. */
+  /** The classes for placing the component, on its outer element. */
   className?: string | undefined;
 }
 
@@ -42,8 +44,8 @@ const refresh = "px-4 py-2.5 rounded-payment-button bg-button-primary-bg/80 text
 const secondary = "py-2.5 rounded-payment-button bg-payment-secondary-bg hover:bg-payment-secondary-hover-bg text-payment-secondary-text text-sm transition-colors";
 
 /**
- * What a user sees on coming back from a payment provider: confirmed, still pending, or failed.
- * The app decides the state, such as with `usePollUntilFinal`.
+ * Renders what a user sees on coming back from a payment provider: confirmed, still pending, or
+ * failed. The app decides the state, such as with `usePollUntilFinal`.
  */
 export function PaymentReturn({ state, success, pending, failed, onRefresh, refreshLabel = "Check again", className }: PaymentReturnProps) {
   const content = { success, pending, failed }[state];

@@ -9,12 +9,13 @@ export const SHARE_IMAGE_SIZE = { width: 1200, height: 630 } as const;
 /** The robots directive for pages that exist for signed-in users only. */
 export const NOINDEX: Metadata["robots"] = { index: false, follow: false };
 
+/** Options for `defineSite`. */
 export interface SiteConfig<L extends string> {
-  /** The site's name, as in titles, Open Graph and structured data. */
+  /** The site's name, as in titles, Open Graph, and structured data. */
   name: string;
   /** The canonical origin, such as `https://www.example.no`, without a trailing slash. */
   url: string;
-  /** Between a page title and the site name, such as `" | "`. */
+  /** The text between a page title and the site name, such as `" | "`. */
   titleSeparator: string;
   /** The locale segments every page is under, such as `["no", "en"]`. A site without them omits this. */
   locales?: readonly L[] | undefined;
@@ -28,6 +29,7 @@ export interface SiteConfig<L extends string> {
   shareImagePath?: string | undefined;
 }
 
+/** Options for `pageMetadata`. */
 export interface PageMetadataInput<L extends string> {
   locale: L;
   /** The path below the locale segment, such as `/builds/my-pc`. Omit for the front page. */
@@ -35,10 +37,11 @@ export interface PageMetadataInput<L extends string> {
   /** The page title, without the site name. The root layout's template adds it. */
   title?: string | undefined;
   description?: string | undefined;
-  /** Image URLs for the share preview. Defaults to the share image for the locale. */
+  /** The image URLs for the share preview. Defaults to the share image for the locale. */
   images?: string[] | undefined;
 }
 
+/** Options for `siteMetadata`. */
 export interface SiteMetadataInput<L extends string> {
   locale: L;
   description?: string | undefined;
@@ -46,54 +49,60 @@ export interface SiteMetadataInput<L extends string> {
   manifest?: string | undefined;
 }
 
+/** One step in a breadcrumb trail. */
 export interface Crumb {
   name: string;
   /** A site-relative path, such as `/no/builds`. The last crumb is the current page and has none. */
   path?: string | undefined;
 }
 
+/** Options for `localeEntries`. */
 export interface LocaleEntryOptions<L extends string> {
   /** The locales the page exists in. Defaults to all of them. A site without locales ignores it. */
   locales?: readonly L[] | undefined;
-  /** When the page last changed, per locale. Left out when unknown. A site without locales calls it once, with no locale. */
+  /** A function that returns when the page last changed in a locale. An unknown date is left out. A site without locales calls it once, with no locale. */
   lastModified?: ((locale: L) => Date | undefined) | undefined;
 }
 
 /** The legal pages every site has, as `createLegalService` names them. */
 export const LEGAL_PAGE_KEYS = ["terms", "privacy", "cookies"] as const;
 
+/** Options for `legalEntries`. */
 export interface LegalEntriesInput<K extends string, L extends string> {
   /** The legal pages, each at `/<key>` below the locale. Defaults to `LEGAL_PAGE_KEYS`. */
   keys?: readonly K[] | undefined;
-  /** When a page last changed, as the API's timestamp. A site without locales gets no locale. */
+  /** A function that returns when a page last changed, as the API's timestamp. A site without locales passes no locale. */
   updatedAt: (key: K, locale: L | undefined) => Promise<string | null | undefined>;
 }
 
+/** Options for `robots`. */
 export interface RobotsInput {
-  /** Paths below each locale segment that must not be crawled, such as `/admin`. */
+  /** The paths below each locale segment that must not be crawled, such as `/admin`. */
   privatePaths?: readonly string[] | undefined;
-  /** Paths outside the locale segments that must not be crawled, such as `/api/`. */
+  /** The paths outside the locale segments that must not be crawled, such as `/api/`. */
   privateRootPaths?: readonly string[] | undefined;
   /** Whether search engines may index this deployment. Defaults to `isIndexableEnvironment()`. */
   indexable?: boolean | undefined;
 }
 
+/** Options for `organizationNode`. */
 export interface OrganizationOptions {
   /** The schema.org type, such as `ComputerStore`, or several, such as `["Organization", "LocalBusiness"]`. Defaults to `Organization`. */
   type?: string | readonly string[] | undefined;
-  /** Pages about the same business elsewhere, such as its entry in Brønnøysundregistrene. */
+  /** The pages about the same business elsewhere, such as its entry in Brønnøysundregistrene. */
   sameAs?: readonly string[] | undefined;
   /** The ISO country code for the address and the area served. Defaults to `NO`. */
   country?: string | undefined;
-  /** Site-relative paths of the square image and the logo. Default to `/icon.png` and `/logo.png`. */
+  /** The site-relative path of the square image. Defaults to `/icon.png`. */
   image?: string | undefined;
+  /** The site-relative path of the logo. Defaults to `/logo.png`. */
   logo?: string | undefined;
 }
 
 /**
- * One leading slash, no trailing slash. `""` and `"/"` both mean the front page. Tabs and line
- * breaks are removed, as a URL parser removes them, and leading slashes and backslashes collapse
- * to one, so a path always stays on the site's own host.
+ * Normalizes a site path to one leading slash and no trailing slash. `""` and `"/"` both mean the
+ * front page. Tabs and line breaks are removed, as a URL parser removes them, and leading slashes
+ * and backslashes collapse to one, so a path always stays on the site's own host.
  */
 export function normalizePath(path: string): string {
   const clean = path.replace(/[\t\n\r]/g, "");
@@ -103,8 +112,8 @@ export function normalizePath(path: string): string {
 }
 
 /**
- * The URL, metadata, sitemap, robots and structured data helpers for one site, bound to its name,
- * canonical origin and locales.
+ * Creates the URL, metadata, sitemap, robots, and structured data helpers for one site, bound to its
+ * name, canonical origin, and locales.
  */
 export function defineSite<L extends string = string>(config: SiteConfig<L>) {
   const locales = config.locales ?? [];
@@ -113,11 +122,11 @@ export function defineSite<L extends string = string>(config: SiteConfig<L>) {
   const shareImagePath = config.shareImagePath ?? "/og";
   const origin = new URL(config.url).origin;
 
-  /** A site-relative URL for a page in one locale, such as `/no/builds`. A site without locales has no segment. */
+  /** Builds a site-relative URL for a page in one locale, such as `/no/builds`. A site without locales has no segment. */
   const localePath = (locale: L | undefined, path = ""): string =>
     locale === undefined || locales.length === 0 ? normalizePath(path) || "/" : `/${locale}${normalizePath(path)}`;
 
-  /** An absolute URL on the canonical origin, without a trailing slash. */
+  /** Builds an absolute URL on the canonical origin, without a trailing slash. */
   const absoluteUrl = (path = ""): string => {
     const url = new URL(normalizePath(path) || "/", config.url);
     // A path that would leave the site's origin gives the front page instead.
@@ -127,7 +136,7 @@ export function defineSite<L extends string = string>(config: SiteConfig<L>) {
 
   const absoluteLocaleUrl = (locale: L, path = ""): string => absoluteUrl(localePath(locale, path));
 
-  /** Language alternates by BCP 47 tag. `x-default` points at the default locale. */
+  /** Builds the language alternates by BCP 47 tag. `x-default` points at the default locale. */
   const languageAlternates = (path: string): Record<string, string> => ({
     ...Object.fromEntries(locales.map(l => [tag(l), localePath(l, path)])),
     ...(defaultLocale !== undefined ? { "x-default": localePath(defaultLocale, path) } : {}),
@@ -145,7 +154,7 @@ export function defineSite<L extends string = string>(config: SiteConfig<L>) {
     alt: fullTitle(locale),
   });
 
-  /** The canonical URL, hreflang set and Open Graph for one public page. */
+  /** Builds the canonical URL, hreflang set, and Open Graph for one public page. */
   const pageMetadata = ({ locale, path = "", title, description, images }: PageMetadataInput<L>): Metadata => {
     const canonical = localePath(locale, path);
     return {
@@ -167,7 +176,7 @@ export function defineSite<L extends string = string>(config: SiteConfig<L>) {
     };
   };
 
-  /** The metadata for the locale root layout: the title template, the index directive and the front page's canonical. */
+  /** Builds the metadata for the locale root layout: the title template, the index directive, and the front page's canonical. */
   const siteMetadata = ({ locale, description, manifest }: SiteMetadataInput<L>): Metadata => {
     const title = fullTitle(locale);
     return {
@@ -180,12 +189,13 @@ export function defineSite<L extends string = string>(config: SiteConfig<L>) {
   };
 
   /**
-   * One sitemap entry per locale a page is served in, each listing the others as alternates. A site
-   * without locales has one URL per page, so it gets one entry with no alternates.
+   * Builds one sitemap entry per locale a page is served in, each listing the others as alternates.
+   * A site without locales has one URL per page, so it gets one entry with no alternates.
    */
   const localeEntries = (path: string, options: LocaleEntryOptions<L> = {}): MetadataRoute.Sitemap => {
     if (locales.length === 0) {
-      // There is no locale to pass, and the callback's type cannot say so without making every caller's simpler.
+      // There is no locale to pass. The callback's type cannot say so without making every caller
+      // handle undefined.
       const lastModified = options.lastModified?.(undefined as never);
       return [{ url: absoluteUrl(path), ...(lastModified ? { lastModified } : {}) }];
     }
@@ -202,14 +212,14 @@ export function defineSite<L extends string = string>(config: SiteConfig<L>) {
     });
   };
 
-  /** Runs `load` for every locale at once and keys the results by locale. A site without locales gets `{}`. */
+  /** Runs `load` for every locale in parallel and keys the results by locale. A site without locales gets `{}`. */
   const forEachLocale = async <T>(load: (locale: L) => Promise<T>): Promise<Partial<Record<L, T>>> =>
     Object.fromEntries(await Promise.all(locales.map(async locale => [locale, await load(locale)] as const))) as Partial<Record<L, T>>;
 
   /**
-   * The legal pages' sitemap entries, each dated by when it last changed in that locale. The
-   * timestamps are fetched at once. An error from `updatedAt` fails the sitemap, so a stale one is
-   * served rather than one without dates.
+   * Builds the legal pages' sitemap entries, each dated by when it last changed in that locale. The
+   * timestamps are fetched in parallel. An error from `updatedAt` fails the sitemap, so a stale one
+   * is served rather than one without dates.
    */
   const legalEntries = async <K extends string = (typeof LEGAL_PAGE_KEYS)[number]>({
     keys,
@@ -224,8 +234,9 @@ export function defineSite<L extends string = string>(config: SiteConfig<L>) {
   };
 
   /**
-   * robots.txt. A deployment that is not production disallows everything. Otherwise the private
-   * paths are disallowed under every locale segment, since a bare `/admin` matches nothing there.
+   * Builds robots.txt. A deployment that is not production disallows everything. Otherwise the
+   * private paths are disallowed under every locale segment, since a bare `/admin` matches nothing
+   * there.
    */
   const robots = ({ privatePaths = [], privateRootPaths = [], indexable = isIndexableEnvironment() }: RobotsInput = {}): MetadataRoute.Robots => {
     if (!indexable) return { rules: { userAgent: "*", disallow: "/" } };
@@ -238,11 +249,11 @@ export function defineSite<L extends string = string>(config: SiteConfig<L>) {
     };
   };
 
-  /** An `@id` for an entity that is the same on every page. Page-scoped nodes use the page URL. */
+  /** Builds an `@id` for an entity that is the same on every page. Page-scoped nodes use the page URL. */
   const siteId = (fragment: string): string => `${config.url}/#${fragment}`;
   const ids = { organization: siteId("organization"), website: siteId("website") } as const;
 
-  /** The business, under a stable `@id` that page-scoped nodes point at. */
+  /** Builds the business node, under a stable `@id` that page-scoped nodes point at. */
   const organizationNode = (company: OrganizationInfo, options: OrganizationOptions = {}): SchemaNode => {
     const country = options.country ?? "NO";
     const type = typeof options.type === "string" ? options.type || undefined : options.type?.length ? [...options.type] : undefined;
@@ -273,7 +284,7 @@ export function defineSite<L extends string = string>(config: SiteConfig<L>) {
     };
   };
 
-  /** The site as an entity, so search engines attribute its pages to it and to the business. */
+  /** Builds the site as an entity, so search engines attribute its pages to it and to the business. */
   const webSiteNode = (locale: L): SchemaNode => ({
     "@type": "WebSite",
     "@id": ids.website,
@@ -283,7 +294,7 @@ export function defineSite<L extends string = string>(config: SiteConfig<L>) {
     publisher: ref(ids.organization),
   });
 
-  /** The trail search results show in place of the raw URL. The last crumb has no `item`. */
+  /** Builds the trail that search results show in place of the raw URL. The last crumb has no `item`. */
   const breadcrumbNode = (crumbs: Crumb[], pageUrl: string): SchemaNode => ({
     "@type": "BreadcrumbList",
     "@id": `${pageUrl}#breadcrumb`,
@@ -326,4 +337,5 @@ export function defineSite<L extends string = string>(config: SiteConfig<L>) {
   };
 }
 
+/** The helpers `defineSite` returns. */
 export type Site<L extends string = string> = ReturnType<typeof defineSite<L>>;

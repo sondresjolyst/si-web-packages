@@ -5,14 +5,14 @@ import { cx } from "./cx";
 
 type ToggleBase = Omit<ButtonHTMLAttributes<HTMLButtonElement>, "onChange" | "role" | "type" | "aria-checked"> & {
   checked: boolean;
-  /** Called with the new state when the switch is flipped. */
+  /** A function called with the new state when the switch is flipped. */
   onChange: (checked: boolean) => void;
 };
 
-/** A switch needs a name. Either a visible `label`, or an `aria-label` when there is none. */
+/** Props for `Toggle`. A switch needs a name: either a visible `label`, or an `aria-label` when there is none. */
 export type ToggleProps = ToggleBase & ({ label: string } | { label?: undefined; "aria-label": string });
 
-/** An on and off switch, for a setting that takes effect at once. */
+/** Renders an on and off switch, for a setting that takes effect at once. */
 export function Toggle({ checked, onChange, label, className, disabled, onClick, ...props }: ToggleProps) {
   const handleClick = (event: MouseEvent<HTMLButtonElement>) => {
     onClick?.(event);

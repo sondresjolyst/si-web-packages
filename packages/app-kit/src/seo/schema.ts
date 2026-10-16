@@ -10,9 +10,10 @@ export interface SchemaRef {
   "@id": string;
 }
 
+/** Creates a reference to the node with this `@id`. */
 export const ref = (id: string): SchemaRef => ({ "@id": id });
 
-/** The JSON-LD document for one page. `<` is escaped, so the payload cannot close the script tag. */
+/** Serializes the JSON-LD document for one page. `<` is escaped, so the payload cannot close the script tag. */
 export function serializeGraph(nodes: SchemaNode[]): string {
   return JSON.stringify({
     "@context": "https://schema.org",
@@ -20,7 +21,10 @@ export function serializeGraph(nodes: SchemaNode[]): string {
   }).replace(/</g, "\\u003c");
 }
 
-/** The business as the API describes it. Blank fields are left out of the structured data. */
+/**
+ * The business as the API describes it. The structured data leaves out blank fields, except the
+ * street address, which falls back to the one-line address.
+ */
 export interface OrganizationInfo {
   name: string;
   legalName?: string | undefined;

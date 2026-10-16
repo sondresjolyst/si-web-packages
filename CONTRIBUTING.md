@@ -1,8 +1,8 @@
 # Contributing
 
-Thanks for taking a look. Bug reports, questions and pull requests are all welcome. For anything
-bigger than a small fix, open an issue first so we can agree on the shape before you spend time on
-it.
+Thanks for taking a look. Bug reports, questions, and pull requests are all welcome. For anything
+bigger than a small fix, open an issue first, so that you and the maintainers can agree on the
+shape before you spend time on it.
 
 ## Getting set up
 
@@ -10,7 +10,7 @@ it.
 pnpm install
 ```
 
-pnpm is pinned by the `packageManager` field in `package.json`, so you do not need to pick a version.
+The `packageManager` field in `package.json` pins pnpm, so you do not need to pick a version.
 CI runs Node 26.
 
 ## Running the checks
@@ -25,19 +25,19 @@ CI runs the same three on every pull request, so running them first saves you a 
 
 ## Good to know before you change the source
 
-The packages here have no build step. `exports` points straight at `src`, so what gets published is
-TypeScript. Each consuming app compiles it through `transpilePackages`. The reason is the
+The packages here have no build step. `exports` points straight at `src`, so the published package
+is TypeScript. Each consuming app compiles it through `transpilePackages`. The reason is the
 `"use client"` directive. Bundlers strip it or move it, and the app then breaks at runtime, not at
 build time.
 
-A few things follow from that, and they are easy to trip over:
+A few rules follow from that, and they are easy to miss:
 
-- `react`, `react-dom`, `next`, `next-auth` and `axios` are peer dependencies. A second copy of React
-  breaks hooks, and axios interceptors need the app's own instance. Ranges stay at the major unless
-  the code or a security fix needs a higher floor, such as next-auth 4.24 and axios 1.20.
+- `react`, `react-dom`, `next`, `next-auth`, and `axios` are peer dependencies. A second copy of
+  React breaks hooks, and axios interceptors need the app's own instance. Ranges stay at the major
+  unless the code or a security fix needs a higher floor, such as next-auth 4.24 and axios 1.20.
 - Relative imports stay extensionless, so consumers need `"moduleResolution": "bundler"`.
 - Consumers typecheck this source with their own `compilerOptions`. It has to hold up under
-  settings stricter than the ones in this repository, and `skipLibCheck` will not save you.
+  settings stricter than the ones in this repository, and `skipLibCheck` does not exempt it.
 - `"use client"` belongs in each component and hook file, not in an entry point's `index.ts`. On a
   barrel it makes every export of that entry a client reference. Server code that imports one then
   gets a proxy, not a function.
@@ -50,13 +50,14 @@ JavaScript compiler API for it to use. A bump would break linting entirely.
 Add the entry point in the same change as the code behind it, so the published package never
 advertises an import that exports nothing.
 
-1. New directory under `packages/app-kit/src`.
-2. New line in `exports` in `packages/app-kit/package.json`.
-3. A row in `packages/app-kit/README.md`.
+1. Create a directory under `packages/app-kit/src`.
+2. Add a line to `exports` in `packages/app-kit/package.json`.
+3. Add a row to `packages/app-kit/README.md`.
 
 ## Commit messages
 
-We use [Conventional Commits](https://www.conventionalcommits.org/), scoped with the entry point:
+Commit messages follow [Conventional Commits](https://www.conventionalcommits.org/), scoped with the
+entry point:
 
 ```
 fix(session): evict every refresh token past the cap
@@ -76,11 +77,11 @@ Maintainers handle these. Merging to `main` opens a release pull request. Mergin
 release and stages it on npm through OIDC
 [trusted publishing](https://docs.npmjs.com/trusted-publishers), so no npm token is stored here.
 
-A staged version cannot be installed until a maintainer approves it with two-factor authentication:
+Nobody can install a staged version until a maintainer approves it with two-factor authentication:
 
 ```sh
 npm stage list @sjolystinnovation/app-kit
 npm stage approve <stage-id>
 ```
 
-If a tagged release never reached npm, run the Release workflow by hand and pick the package.
+If a tagged release never reached npm, run the Release workflow manually and pick the package.

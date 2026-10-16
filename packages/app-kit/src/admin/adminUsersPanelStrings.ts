@@ -1,8 +1,8 @@
 // Plain values, with no "use client", so a server component can import them.
 
 /**
- * The users panel's text. Pass the app's own language. The defaults are English. `{name}` and `{role}`
- * are filled in where a text names them.
+ * The users panel's text. Pass the app's own language. The defaults are English. The panel fills in
+ * `{name}` and `{role}` where a text names them.
  */
 export interface AdminUsersPanelStrings {
   users: string;
@@ -19,7 +19,7 @@ export interface AdminUsersPanelStrings {
   /** The tag after a deleted user's name. */
   deleted: string;
   delete: string;
-  /** Before the role name on the button that takes a role away. */
+  /** The text before the role name on the button that takes a role away. */
   remove: string;
   noRoles: string;
   addRole: string;

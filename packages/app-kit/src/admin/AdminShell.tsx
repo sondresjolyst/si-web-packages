@@ -13,6 +13,7 @@ export interface AdminTab {
 
 type GateProps = RoleGateProps extends infer P ? (P extends unknown ? Omit<P, "children"> : never) : never;
 
+/** Props for `AdminShell`. The gate props are `RoleGate`'s, without `children`. */
 export type AdminShellProps = GateProps & {
   title: ReactNode;
   tabs: readonly AdminTab[];
@@ -48,6 +49,6 @@ export function AdminShell({ title, tabs, children, ...gate }: AdminShellProps) 
       {children}
     </div>
   );
-  // The gate props came in as one of RoleGate's two shapes, so they go back as that shape.
+  // The gate props arrive as one of RoleGate's two shapes, so they go back as that shape.
   return <RoleGate {...({ ...gate, children: page } as RoleGateProps)} />;
 }

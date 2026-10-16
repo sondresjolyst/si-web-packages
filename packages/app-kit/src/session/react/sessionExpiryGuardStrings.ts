@@ -7,7 +7,7 @@
 export interface SessionExpiryGuardStrings {
   expiredTitle: string;
   expiredBody: string;
-  /** Every `{minutes}` is replaced with the minutes left. */
+  /** The warning before expiry. Every `{minutes}` is replaced with the minutes left. */
   expiringSoon: string;
   reSignIn: string;
   notRestored: string;

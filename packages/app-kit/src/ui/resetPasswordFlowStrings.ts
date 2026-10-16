@@ -6,27 +6,27 @@
  */
 export interface ResetPasswordFlowStrings {
   title: string;
-  /** Shown before the sign-in link under the title, such as "Remembered it?". */
+  /** The text shown before the sign-in link under the title, such as "Remembered it?". */
   signInPrompt: string | null;
   signIn: string;
-  /** The link back to sign-in once the password is set. */
+  /** The text of the link back to sign-in once the password is set. */
   backToSignIn: string;
-  /** Shown above the email field on the first step. */
+  /** The text shown above the email field on the first step. */
   intro: string | null;
-  /** Shown at the top of the second step, once a code is on its way. */
+  /** The text shown at the top of the second step, once a code is on its way. */
   codeSent: string | null;
   email: string;
   code: string;
   newPassword: string;
-  /** Shown under the new password field. */
+  /** The text shown under the new password field. */
   passwordHint: string | null;
   requestCode: string;
   requestingCode: string;
   setPassword: string;
   settingPassword: string;
-  /** Shown when the password is set. Null shows the API's own message, or only the link when it sends none. */
+  /** The text shown when the password is set. Null shows the API's own message, or only the link when the API sends none. */
   done: string | null;
-  /** Shown for a password the rules refuse. Null lists each rule it breaks. */
+  /** The text shown for a password the rules refuse. Null lists each rule it breaks. */
   passwordInvalid: string | null;
   somethingWentWrong: string;
 }

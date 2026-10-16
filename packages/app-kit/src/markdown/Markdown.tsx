@@ -5,20 +5,20 @@ import remarkGfm from "remark-gfm";
 
 type Tag = keyof React.JSX.IntrinsicElements;
 
-/** The props without the `node` react-markdown passes, which is no DOM attribute. */
+/** Copies the props without the `node` that react-markdown passes, since `node` is no DOM attribute. */
 function domProps<P extends ExtraProps>(props: P): Omit<P, "node"> {
   const rest = { ...props };
   delete rest.node;
   return rest;
 }
 
-/** An app's element, given the props without `node`, so it can spread them onto a DOM element. */
+/** Wraps an app's element so it gets the props without `node` and can spread them onto a DOM element. */
 function withoutNode(Element: ElementType) {
   const Wrapped = (props: ExtraProps) => <Element {...domProps(props)} />;
   return Wrapped;
 }
 
-/** An element with fixed classes. */
+/** Creates an element with fixed classes. */
 function styled<T extends Tag>(Element: T, className: string) {
   const Styled = (props: ComponentPropsWithoutRef<T> & ExtraProps) => {
     const Component = Element as ElementType;
@@ -27,7 +27,7 @@ function styled<T extends Tag>(Element: T, className: string) {
   return Styled;
 }
 
-/** The default look. A heading level one becomes a level two, since the page has its own `h1`. */
+/** The default elements. A level one heading becomes a level two heading, since the page has its own `h1`. */
 export const markdownComponents: Components = {
   h1: styled("h2", "text-lg font-semibold text-markdown-heading"),
   h2: styled("h2", "text-base font-semibold text-markdown-heading pt-2"),
@@ -54,20 +54,22 @@ export const markdownComponents: Components = {
 
 const isExternal = (href: string | undefined) => href != null && /^https?:\/\//i.test(href);
 
+/** Props for `Markdown`. */
 export interface MarkdownProps {
-  /** Markdown text. Empty, null or undefined renders nothing. */
+  /** The Markdown text. An empty string, null, or undefined renders nothing. */
   children: string | null | undefined;
-  /** Replaces the default element for a tag, such as `{ p: MyParagraph }`. It gets the props without `node`. */
+  /** The elements that replace the default element for a tag, such as `{ p: MyParagraph }`. Each gets the props without `node`. */
   components?: Components | undefined;
-  /** Opens links to other sites in a new tab, without passing the opener or referrer. */
+  /** Whether links to other sites open in a new tab, without passing the opener or referrer. Defaults to `false`. */
   externalLinks?: boolean | undefined;
-  /** Wraps the output in a `div` with these classes. Without it the elements render bare, so a parent's `space-y-*` spaces them. */
+  /** The classes for a `div` around the output. Without it, the elements render bare, so a parent's `space-y-*` spaces them. */
   className?: string | undefined;
 }
 
 /**
- * Markdown from an editor or the API, with GitHub tables, lists and links. Raw HTML is never
- * rendered, and the output is sanitized, so the text cannot inject scripts, styles or event handlers.
+ * Renders Markdown from an editor or the API, with GitHub tables, lists, and links. Raw HTML is
+ * never rendered, and the output is sanitized, so the text cannot inject scripts, styles, or event
+ * handlers.
  */
 export function Markdown({ children, components, externalLinks = false, className }: MarkdownProps) {
   if (!children) return null;

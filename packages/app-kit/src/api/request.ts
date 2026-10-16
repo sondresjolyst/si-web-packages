@@ -3,7 +3,7 @@ import { formatApiError, type StatusMessages } from "../errors";
 
 /**
  * Runs an API call and returns its data. A failure throws an `Error` with a message for the user,
- * from `formatApiError`. A cancelled call rethrows the cancel as it is, so the caller can ignore it.
+ * from `formatApiError`. A canceled call rethrows the cancel as it is, so the caller can ignore it.
  */
 export async function request<T>(
   call: () => Promise<{ data: T }>,

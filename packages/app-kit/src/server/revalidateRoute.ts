@@ -4,11 +4,12 @@ import jwt from "jsonwebtoken";
 import { getToken, type JWT } from "next-auth/jwt";
 import { ABSOLUTE_SESSION_MAX_AGE, CLOCK_TOLERANCE_S, isTerminalSessionError } from "../session/expiry";
 
+/** Options for `createRevalidateRoute`. */
 export interface RevalidateRouteOptions {
   /**
-   * Each target the client may send, with the page paths it purges. A path with a dynamic segment,
-   * such as `/builds/[slug]`, purges every page of that route. The target name is also purged as a
-   * cache tag, so tag fetches with it.
+   * The targets the client may send, each with the page paths it purges. A path with a dynamic
+   * segment, such as `/builds/[slug]`, purges every page of that route. The route also purges the
+   * target name as a cache tag, so tag fetches with it.
    */
   targets: Record<string, readonly string[]>;
   /** The role allowed to purge, as it appears in the session user's roles. */
@@ -19,10 +20,10 @@ type Token = JWT | null;
 
 const rolesOf = (token: Token): string[] => (token?.user as { roles?: string[] } | undefined)?.roles ?? [];
 
-// getToken only decrypts the cookie, without the jwt callback. So the checks that callback makes are
-// made here: a refused refresh still carries its roles, and the cookie outlives the seven days. The
-// roles must also come from an access token that has not expired, so a copied cookie of a user who
-// lost the role stops working within the token's lifetime.
+// getToken only decrypts the cookie, without the jwt callback. So this file repeats the checks that
+// callback makes: a refused refresh still carries its roles, and the cookie outlives the seven
+// days. The roles must also come from an access token that has not expired, so a copied cookie of a
+// user who lost the role stops working within the token's lifetime.
 function isLive(token: Token): boolean {
   if (!token || isTerminalSessionError(token.error as string | undefined)) return false;
   const loginAt = token.loginAt;
@@ -40,7 +41,8 @@ function accessTokenValid(accessToken: unknown): boolean {
 }
 
 /**
- * A `POST` route handler that purges cached pages after an edit, for `app/api/revalidate/route.ts`.
+ * Creates a `POST` route handler that purges cached pages after an edit, for
+ * `app/api/revalidate/route.ts`.
  * It answers 403 unless the caller has a live session with `role`, 415 unless the body is JSON, and
  * 400 for a target it does not know.
  */

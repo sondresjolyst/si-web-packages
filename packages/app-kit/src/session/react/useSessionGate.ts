@@ -6,7 +6,7 @@ import { useState, useSyncExternalStore } from "react";
 import { getSessionPromptOpen, isTerminalSessionError, subscribeSessionPrompt } from "../expiry";
 
 /**
- * Whether a protected page may render, and whether it must stay rendered.
+ * Checks whether a protected page may render, and whether it must stay rendered.
  *
  * Every gate on the way down should use this, so they all agree. A nested layout that decides on
  * its own can blank the page. That undoes the in-place recovery the re-sign-in prompt exists for.
@@ -44,8 +44,8 @@ export function useSessionGate() {
     wasUsable,
     recovering,
     /**
-     * The one answer every gate on the way down uses. A layout that decides this again can blank
-     * the page that the gate above it chose to keep.
+     * Whether the page may render. Every gate on the way down uses this one answer. A layout that
+     * decides it again can blank the page that the gate above it chose to keep.
      */
     mayRender:
       recovering ||

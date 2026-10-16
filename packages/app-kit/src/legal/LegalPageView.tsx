@@ -6,11 +6,11 @@ import { withDefaults, type TextOverrides } from "../ui/withDefaults";
 
 /** The legal page's text around the content. Pass the app's own language. The defaults are English. */
 export interface LegalPageViewStrings {
-  /** Before the date the page last changed. */
+  /** The text before the date the page last changed. */
   updated: string;
-  /** Shown in place of the content when nobody has written the page yet. */
+  /** The text shown in place of the content when nobody has written the page yet. */
   missing: string;
-  /** The link back to the front page. */
+  /** The text of the link back to the front page. */
   toFrontPage: string;
 }
 
@@ -20,19 +20,20 @@ export const defaultLegalPageViewStrings: LegalPageViewStrings = {
   toFrontPage: "Back to the front page",
 };
 
+/** Props for `LegalPageView`. */
 export interface LegalPageViewProps {
   /** The page from the API, or null when nobody has written it yet. */
   page: LegalPage | null;
   /** The heading while there is no page. */
   title: string;
-  /** The front page, for the link at the bottom. */
+  /** The front page's path, for the link at the bottom. */
   homeHref: string;
   /** The BCP 47 tag the date is written in, such as `nb-NO`. */
   dateLocale: string;
   strings?: TextOverrides<LegalPageViewStrings> | undefined;
 }
 
-/** A terms, privacy or cookies page as an admin wrote it: the title, when it last changed and the Markdown body. */
+/** Renders a terms, privacy, or cookies page as an admin wrote it: the title, when it last changed, and the Markdown body. */
 export function LegalPageView({ page, title, homeHref, dateLocale, strings }: LegalPageViewProps) {
   const text = withDefaults(defaultLegalPageViewStrings, strings);
   // A malformed timestamp leaves the date out rather than failing the page.

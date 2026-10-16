@@ -34,10 +34,11 @@ function msUntilNextChange(remaining: number): number | null {
 }
 
 
+/** Props for `SessionExpiryGuard`. */
 export interface SessionExpiryGuardProps {
-  /** Where a sign-in as a different user is sent after it is signed out. */
+  /** The path a sign-in as a different user is sent to after it is signed out. */
   loginHref: string;
-  /** Runs after the prompt signs the user back in, such as to show a toast. */
+  /** A function that runs after the prompt signs the user back in, such as to show a toast. */
   onRestored?: (() => void) | undefined;
   strings?: TextOverrides<SessionExpiryGuardStrings> | undefined;
   formStrings?: TextOverrides<CredentialsFormStrings> | undefined;

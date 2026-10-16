@@ -9,10 +9,11 @@ export interface StatSeries<T> {
   /** The field of each day's row the line plots. A missing or non-numeric value counts as zero. */
   key: keyof T & string;
   label: string;
-  /** The line's colour. Defaults to the next colour in `STAT_SERIES_COLORS`. */
+  /** The line's color. Defaults to the next color in `STAT_SERIES_COLORS`. */
   color?: string | undefined;
 }
 
+/** Props for `StatHistoryChart`. */
 export interface StatHistoryChartProps<T extends { date: string }> {
   /** One row per day, oldest first, with `date` as `YYYY-MM-DD`. */
   data: readonly T[];
@@ -25,8 +26,8 @@ const H = 240;
 const PAD = { top: 16, right: 16, bottom: 28, left: 32 };
 
 /**
- * A line per series over the days, with the scale from zero to the highest shown value. The legend
- * buttons hide and show a line, and the scale follows the lines that are shown.
+ * Renders a line per series over the days, with the scale from zero to the highest shown value. The
+ * legend buttons hide and show a line, and the scale follows the lines that are shown.
  */
 export function StatHistoryChart<T extends { date: string }>({ data, series, strings }: StatHistoryChartProps<T>) {
   const text = withDefaults(defaultStatHistoryChartStrings, strings);

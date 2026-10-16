@@ -11,7 +11,7 @@ export interface LegalPagesEditorStrings {
   save: string;
   saving: string;
   loadFailed: string;
-  /** When the title or the content is blank. */
+  /** The message shown when the title or the content is blank. */
   required: string;
   saved: string;
   saveFailed: string;

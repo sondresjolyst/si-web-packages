@@ -1,6 +1,6 @@
 // Plain values, with no "use client", so a server component can import them.
 
-/** Thrown from `onSignedIn` to refuse a sign-in. Its message is shown in the form. */
+/** Thrown from `onSignedIn` to refuse a sign-in. The form shows its message. */
 export class SignInRejected extends Error {}
 
 /** The form's text. Pass the app's own language. The defaults are English. */

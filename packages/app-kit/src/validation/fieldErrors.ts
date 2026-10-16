@@ -1,11 +1,12 @@
 import type { z } from "zod";
 
-/** Picks the text shown for an issue, such as a translated message by the issue's code. */
+/** A function that picks the text shown for an issue, such as a translated message by the issue's code. */
 export type IssueMessage = (issue: z.core.$ZodIssue) => string;
 
 /**
- * A failed parse's issues by the top-level field they belong to, for showing beside each input. By
- * default each field gets its first issue's message. With `all: true` it gets every message, in order.
+ * Groups a failed parse's issues by the top-level field they belong to, for showing beside each
+ * input. By default each field gets its first issue's message. With `all: true` it gets every
+ * message, in order.
  * `message` replaces zod's text, such as with the app's own translations. Issues without a field,
  * from a refinement of the whole object, are left out.
  */

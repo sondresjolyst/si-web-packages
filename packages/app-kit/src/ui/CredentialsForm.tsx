@@ -14,14 +14,15 @@ import { TextInput } from "./TextInput";
 import { withDefaults, type TextOverrides } from "./withDefaults";
 
 
+/** Props for `CredentialsForm`. */
 export interface CredentialsFormProps {
   initialEmail?: string | undefined;
-  /** Runs after next-auth accepts the credentials. Throw `SignInRejected` to refuse with a reason. */
+  /** A function that runs after next-auth accepts the credentials. Throw `SignInRejected` from it to refuse with a reason. */
   onSignedIn: () => void | Promise<void>;
-  /** Extra buttons next to the submit button, such as a close button. */
+  /** The extra buttons next to the submit button, such as a close button. */
   children?: ReactNode;
   strings?: TextOverrides<CredentialsFormStrings> | undefined;
-  /** Runs when a sign-in starts and when it ends, such as to stop a dialog closing mid-request. */
+  /** A function that runs when a sign-in starts and when it ends, such as to stop a dialog closing mid-request. */
   onPendingChange?: ((pending: boolean) => void) | undefined;
 }
 
@@ -32,7 +33,7 @@ function refusedForCsrf(url: string | null | undefined): boolean {
   return parsed.pathname.endsWith("/signin") && parsed.searchParams.get("csrf") === "true";
 }
 
-/** Email and password sign-in through next-auth's credentials provider. */
+/** Renders email and password sign-in through next-auth's credentials provider. */
 export function CredentialsForm({
   initialEmail = "",
   onSignedIn,
