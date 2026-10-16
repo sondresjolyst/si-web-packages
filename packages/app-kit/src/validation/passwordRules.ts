@@ -21,8 +21,8 @@ export const defaultPasswordStrings: PasswordStrings = {
 };
 
 /**
- * The message of every password rule the password breaks, in the order `passwordSchema` checks them.
- * An empty list means the APIs accept it.
+ * Lists the message of every password rule the password breaks, in the order `passwordSchema`
+ * checks them. An empty list means the APIs accept it.
  */
 export function passwordProblems(password: string, strings?: TextOverrides<PasswordStrings>): string[] {
   const text = withDefaults(defaultPasswordStrings, strings);

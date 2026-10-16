@@ -7,23 +7,24 @@ import { useSessionGate } from "./useSessionGate";
 interface RoleGateBase {
   /** The role the page needs, as it appears in `session.user.roles`. */
   role: string;
-  /** What shows while the session or its roles are not known yet. */
+  /** The content shown while the session or its roles are not known yet. */
   fallback?: ReactNode | undefined;
   children: ReactNode;
 }
 
-/** Shows `denied` to a signed-in user without the role. */
+/** The props that show `denied` to a signed-in user without the role. */
 interface RoleGateWithDenied extends RoleGateBase {
   denied: ReactNode;
   deniedHref?: never;
 }
 
-/** Sends a signed-in user without the role to `deniedHref`. */
+/** The props that send a signed-in user without the role to `deniedHref`. */
 interface RoleGateWithDeniedHref extends RoleGateBase {
   deniedHref: string;
   denied?: never;
 }
 
+/** Props for `RoleGate`. Pass either `denied` or `deniedHref`. */
 export type RoleGateProps = RoleGateWithDenied | RoleGateWithDeniedHref;
 
 /**

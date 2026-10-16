@@ -3,20 +3,21 @@ import { SHARE_IMAGE_SIZE } from "../site";
 
 export { SHARE_IMAGE_SIZE };
 
+/** Options for `shareImage`. */
 export interface ShareImageInput {
   name: string;
   tagline: string;
   /**
-   * Colours as literals. The image renders outside the browser, so it cannot read CSS custom
+   * The colors as literals. The image renders outside the browser, so it cannot read CSS custom
    * properties. `primary` is the bar above the name.
    */
   colors: { background: string; foreground: string; primary: string };
 }
 
 /**
- * The default share preview: the name, a bar in the brand colour and the tagline. Return it from a
- * route such as `[locale]/og/route.tsx`, which `pageMetadata` points at. A route, not the
- * `opengraph-image` file convention, since a page's own `openGraph` block replaces that image.
+ * Renders the default share preview: the name, a bar in the brand color, and the tagline. Return it
+ * from a route such as `[locale]/og/route.tsx`, which `pageMetadata` points at. It is a route, not
+ * the `opengraph-image` file convention, since a page's own `openGraph` block replaces that image.
  */
 export function shareImage({ name, tagline, colors }: ShareImageInput): ImageResponse {
   return new ImageResponse(

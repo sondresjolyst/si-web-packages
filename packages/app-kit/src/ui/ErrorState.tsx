@@ -4,6 +4,7 @@ import Link from "next/link";
 import { cx } from "./cx";
 import { withDefaults, type TextOverrides } from "./withDefaults";
 
+/** The error page's text. Pass the app's own language. The defaults are English. */
 export interface ErrorStateStrings {
   title: string;
   body: string;
@@ -18,17 +19,18 @@ export const defaultErrorStateStrings: ErrorStateStrings = {
   home: "Go to the front page",
 };
 
+/** Props for `ErrorState`. */
 export interface ErrorStateProps {
   /** The `reset` Next passes to an `error.tsx`. It renders the page again. */
   reset: () => void;
-  /** Where the front page link goes, such as `/` or `/en`. */
+  /** The front page link's target, such as `/` or `/en`. */
   homeHref: string;
   strings?: TextOverrides<ErrorStateStrings> | undefined;
-  /** Classes for placing it, on the outer element. */
+  /** The classes for placing the component, on its outer element. */
   className?: string | undefined;
 }
 
-/** What an `error.tsx` shows when a page cannot be rendered. The response is still a 500. */
+/** Renders the content of an `error.tsx` when a page cannot be rendered. The response is still a 500. */
 export function ErrorState({ reset, homeHref, strings, className }: ErrorStateProps) {
   const text = withDefaults(defaultErrorStateStrings, strings);
   return (

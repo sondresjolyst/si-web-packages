@@ -4,7 +4,7 @@
 export interface LoginPageStrings {
   title: string;
   forgotPassword: string;
-  /** Shown before the register link, such as "No account?". Null leaves it out. */
+  /** The text shown before the register link, such as "No account?". Null leaves it out. */
   registerPrompt: string | null;
   register: string;
 }

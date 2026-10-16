@@ -3,8 +3,9 @@ import { getSession } from "next-auth/react";
 import { isTerminalSessionError, openSessionPrompt } from "../session/expiry";
 
 /**
- * An axios instance for the signed-in API, for browser code. Each request carries the session's
- * access token. A 401 on a dead session opens the re-sign-in prompt, so the page keeps its state.
+ * Creates an axios instance for the signed-in API, for browser code. Each request carries the
+ * session's access token. A 401 on a dead session opens the re-sign-in prompt, so the page keeps
+ * its state.
  */
 export function createApiClient(baseURL: string): AxiosInstance {
   if (!baseURL) {

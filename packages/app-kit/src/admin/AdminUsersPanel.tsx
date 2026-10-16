@@ -9,12 +9,13 @@ import { Toggle } from "../ui/Toggle";
 import { withDefaults, type TextOverrides } from "../ui/withDefaults";
 import { defaultAdminUsersPanelStrings, type AdminUsersPanelStrings } from "./adminUsersPanelStrings";
 
+/** Props for `AdminUsersPanel`. */
 export interface AdminUsersPanelProps {
   /** The user admin calls, such as `createAdminUsersService(api)`. */
   service: ReturnType<typeof createAdminUsersService>;
   /** The roles an admin may give, from the app's own endpoint. */
   getRoles: () => Promise<string[]>;
-  /** The role a new invite starts with. `Admin` by default. */
+  /** The role a new invite starts with. Defaults to `Admin`. */
   defaultInviteRole?: string | undefined;
   strings?: TextOverrides<AdminUsersPanelStrings> | undefined;
 }
@@ -39,7 +40,7 @@ export function AdminUsersPanel({ service, getRoles, defaultInviteRole = "Admin"
   const [roleLoading, setRoleLoading] = useState(false);
   const [invite, setInvite] = useState({ email: "", firstName: "", lastName: "", role: defaultInviteRole });
   const [inviting, setInviting] = useState(false);
-  // Bumped to fetch the list again after a change, through the same effect as every other load.
+  // Bumping it fetches the list again after a change, through the same effect as every other load.
   const [reloads, setReloads] = useState(0);
   // The latest service, so an inline one does not fetch the list again on every render. The roles
   // load once, so the first getRoles is enough.

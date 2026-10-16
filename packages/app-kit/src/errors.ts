@@ -1,14 +1,14 @@
 import axios, { type AxiosResponse } from "axios";
 
 /**
- * Messages to show for a status code. On a 4xx they are used when the response carries no specific
- * message of its own. On a 5xx they win over the body. Key 0 covers a request that got no response,
- * because of a dropped connection or a timeout.
+ * The messages to show for a status code. On a 4xx, `formatApiError` uses them when the response
+ * carries no specific message of its own. On a 5xx, they win over the body. Key 0 covers a request
+ * that got no response, because of a dropped connection or a timeout.
  */
 export type StatusMessages = Partial<Record<number, string>>;
 
 /**
- * Axios codes for a request that never got a response from the network. A browser reports every
+ * The axios codes for a request that never got a response from the network. A browser reports every
  * network failure as ERR_NETWORK. On the server, Node reports the specific cause.
  */
 const NO_RESPONSE_CODES = new Set([
@@ -36,8 +36,8 @@ const NO_RESPONSE_CODES = new Set([
  * as "Bad Gateway". A problem details `title` is never used. ASP.NET Core fills it with generic text
  * such as "Bad Request", which says less than `fallback`.
  *
- * Only single line text counts as a message. Axios's own message, such as "Request failed with
- * status code 500", is never shown. A cancelled request gives `fallback`. Any other `Error` gives
+ * Only single-line text counts as a message. Axios's own message, such as "Request failed with
+ * status code 500", is never shown. A canceled request gives `fallback`. Any other `Error` gives
  * its message.
  */
 export function formatApiError(
@@ -60,18 +60,18 @@ export function formatApiError(
   return fallback;
 }
 
-/** The message the body carries for this failure, if it carries one. */
+/** Gets the message the body carries for this failure, if it carries one. */
 function readBody(response: AxiosResponse): string | undefined {
   const data = parseIfJson(response.data);
   if (typeof data === "string") return singleLine(data);
-  // Only a parsed JSON object has fields to read. A Document, Blob or ArrayBuffer does not.
+  // Only a parsed JSON object has fields to read. A Document, Blob, or ArrayBuffer does not.
   if (!isPlainObject(data)) return undefined;
   return firstText(data.message) ?? firstValidationError(data.errors) ?? singleLine(data.detail);
 }
 
 /**
- * Axios leaves a JSON body as a string when the request asked for text, so parse it here. Plain text
- * such as "Invalid email or password." is not valid JSON and stays as it is.
+ * Parses a JSON body that axios left as a string because the request asked for text. Plain text such
+ * as "Invalid email or password." is not valid JSON and stays as it is.
  */
 function parseIfJson(data: unknown): unknown {
   if (typeof data !== "string") return data;
@@ -98,12 +98,12 @@ function firstValidationError(errors: unknown): string | undefined {
   return undefined;
 }
 
-/** A single line of text, or the first entry when the value is a list of them. */
+/** Gets a single line of text, or the first entry when the value is a list of them. */
 function firstText(value: unknown): string | undefined {
   return singleLine(Array.isArray(value) ? value[0] : value);
 }
 
-/** The trimmed text, when it is one line of text and not HTML. */
+/** Gets the trimmed text, when it is one line of text and not HTML. */
 function singleLine(value: unknown): string | undefined {
   if (typeof value !== "string") return undefined;
   const text = value.trim();

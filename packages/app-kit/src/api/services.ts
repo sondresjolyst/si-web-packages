@@ -4,7 +4,7 @@ import type { Branding } from "../branding/types";
 import { request } from "./request";
 
 /**
- * An axios instance for the API's anonymous endpoints, without the session's token. Like
+ * Creates an axios instance for the API's anonymous endpoints, without the session's token. Like
  * `createApiClient`, it only sends requests to `baseURL`.
  */
 export function createPublicClient(baseURL: string): AxiosInstance {
@@ -14,7 +14,7 @@ export function createPublicClient(baseURL: string): AxiosInstance {
   return axios.create({ baseURL, allowAbsoluteUrls: false });
 }
 
-/** Runs after an admin change saves, such as to purge the pages that show it. */
+/** A callback that runs after an admin change saves, such as to purge the pages that show it. */
 export type OnSaved = () => Promise<void> | void;
 
 async function currentUserId(): Promise<string> {
@@ -35,8 +35,8 @@ export interface UserProfile {
 }
 
 /**
- * Password reset and the signed-in user's account, on the auth and account endpoints of
- * SjolystInnovation.AppKit.Auth. `api` carries the session, `publicApi` does not.
+ * Creates the calls for password reset and the signed-in user's account, on the auth and account
+ * endpoints of SjolystInnovation.AppKit.Auth. `api` carries the session, and `publicApi` does not.
  */
 export function createUserService(api: AxiosInstance, publicApi: AxiosInstance) {
   return {
@@ -88,7 +88,7 @@ export interface SiteSettings {
   publicPhone: string;
 }
 
-/** The admin's company settings on SjolystInnovation.AppKit.SiteSettings. */
+/** Creates the admin calls for the company settings on SjolystInnovation.AppKit.SiteSettings. */
 export function createSettingsService(api: AxiosInstance, options: { onSaved?: OnSaved } = {}) {
   return {
     get: () => request(() => api.get<SiteSettings>("/settings"), "Failed to load settings"),
@@ -102,8 +102,8 @@ export function createSettingsService(api: AxiosInstance, options: { onSaved?: O
 }
 
 /**
- * The logo and favicon on SjolystInnovation.AppKit.SiteSettings. Reading is anonymous and answers
- * no branding when the API cannot be reached, so a page still renders.
+ * Creates the calls for the logo and favicon on SjolystInnovation.AppKit.SiteSettings. Reading is
+ * anonymous and returns no branding when the API cannot be reached, so a page still renders.
  */
 export function createBrandingService(api: AxiosInstance, publicApi: AxiosInstance, options: { onSaved?: OnSaved } = {}) {
   return {
@@ -115,7 +115,7 @@ export function createBrandingService(api: AxiosInstance, publicApi: AxiosInstan
       }
     },
 
-    /** Sends the form `BrandingManager` builds: `logo`, `icon`, `removeLogo` and `removeIcon`. */
+    /** Sends the form `BrandingManager` builds: `logo`, `icon`, `removeLogo`, and `removeIcon`. */
     async update(form: FormData): Promise<Branding> {
       const saved = await request(() => api.put<Branding>("/branding", form), "Failed to save branding");
       await options.onSaved?.();
@@ -134,8 +134,9 @@ export interface LegalPage<Key extends string = string> {
 }
 
 /**
- * The terms, privacy and cookie pages on SjolystInnovation.AppKit.SiteSettings. Reading is anonymous
- * and answers null for a page that is missing or cannot be read, so a page shows its fallback.
+ * Creates the calls for the terms, privacy, and cookie pages on
+ * SjolystInnovation.AppKit.SiteSettings. Reading is anonymous and returns null for a page that is
+ * missing or cannot be read, so a page shows its fallback.
  */
 export function createLegalService<Key extends string = "terms" | "privacy" | "cookies">(
   api: AxiosInstance,
@@ -176,7 +177,7 @@ export interface AdminUser {
   roles: string[];
 }
 
-/** User administration on SjolystInnovation.AppKit.Auth: the list, roles, invites and deletion. */
+/** Creates the user administration calls on SjolystInnovation.AppKit.Auth: the list, roles, invites, and deletion. */
 export function createAdminUsersService(api: AxiosInstance) {
   return {
     getUsers: (includeDeleted = false) =>

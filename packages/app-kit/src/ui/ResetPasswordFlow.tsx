@@ -10,18 +10,20 @@ import { defaultResetPasswordFlowStrings, type ResetPasswordFlowStrings } from "
 import { TextInput } from "./TextInput";
 import { withDefaults, type TextOverrides } from "./withDefaults";
 
+/** Props for `ResetPasswordFlow`. */
 export interface ResetPasswordFlowProps {
-  /** Asks the API to email a reset code, such as `createUserService`'s `requestPasswordReset`. */
+  /** A function that asks the API to email a reset code, such as `createUserService`'s `requestPasswordReset`. */
   requestReset: (data: { email: string }) => Promise<unknown>;
-  /** Sets the new password with the code, such as `createUserService`'s `resetPassword`. */
+  /** A function that sets the new password with the code, such as `createUserService`'s `resetPassword`. */
   reset: (data: { email: string; code: string; newPassword: string }) => Promise<{ message?: string } | unknown>;
-  /** Where the sign-in links go. */
+  /** The path the sign-in links go to. */
   loginHref: string;
-  /** From the emailed link. A code opens the flow on its last step. */
+  /** The email from the emailed link. */
   initialEmail?: string | undefined;
+  /** The code from the emailed link. A code opens the flow on its last step. */
   initialCode?: string | undefined;
   strings?: TextOverrides<ResetPasswordFlowStrings> | undefined;
-  /** Replaces the page's outer spacing, such as when the flow sits inside the app's own card. */
+  /** The classes that replace the page's outer spacing, such as when the flow sits inside the app's own card. */
   className?: string | undefined;
   /** The password rule messages, for the app's own language. */
   passwordStrings?: TextOverrides<PasswordStrings> | undefined;
@@ -31,9 +33,9 @@ const button =
   "w-full rounded-button bg-button-primary-bg text-button-primary-text font-semibold py-2.5 hover:brightness-95 disabled:opacity-60 transition";
 
 /**
- * Password reset in two steps: the email asks for a code, then the code and a new password set it. The
- * new password is checked against the API's rules before it is sent. A link with the email and code,
- * such as an invite, opens on the second step.
+ * Renders password reset in two steps: the email asks for a code, then the code and a new password
+ * set it. The flow checks the new password against the API's rules before it sends it. A link with
+ * the email and code, such as an invite, opens on the second step.
  */
 export function ResetPasswordFlow({
   requestReset,

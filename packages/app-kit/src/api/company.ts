@@ -18,8 +18,9 @@ export interface CompanyInfo {
 export type CompanyFallback = Partial<CompanyInfo> & { name: string };
 
 /**
- * The company details for public pages: the API's answer, with the app's own values for any field
- * it left blank or could not give. The legal name falls back to the name, and VAT to not registered.
+ * Builds the company details for public pages from the API's answer, with the app's own values for
+ * any field it left blank or could not give. The legal name falls back to the name, and VAT to not
+ * registered.
  */
 export function mergeCompanyInfo(data: Partial<CompanyInfo> | null | undefined, fallback: CompanyFallback): CompanyInfo {
   const name = data?.name || fallback.name;
@@ -39,7 +40,7 @@ export function mergeCompanyInfo(data: Partial<CompanyInfo> | null | undefined, 
   };
 }
 
-/** The org number with the Norwegian ` MVA` suffix once the business is VAT registered. Empty without a number. */
+/** Formats the org number with the Norwegian ` MVA` suffix once the business is VAT registered. Returns `""` without a number. */
 export function formatOrgNumber({ orgNumber, vatRegistered }: { orgNumber?: string | null | undefined; vatRegistered?: boolean | null | undefined }): string {
   if (!orgNumber) return "";
   return vatRegistered ? `${orgNumber} MVA` : orgNumber;

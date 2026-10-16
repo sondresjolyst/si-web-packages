@@ -4,10 +4,11 @@ import { useRouter } from "next/navigation";
 import { useEffect, type ReactNode } from "react";
 import { useSessionGate } from "./useSessionGate";
 
+/** Props for `ProtectedGate`. */
 export interface ProtectedGateProps {
-  /** Where a signed-out visitor, or a session dead on arrival, is sent. */
+  /** The path a signed-out visitor, or a session dead on arrival, is sent to. */
   loginHref: string;
-  /** What shows while the page may not render yet. */
+  /** The content shown while the page may not render yet. */
   fallback?: ReactNode | undefined;
   children: ReactNode;
 }

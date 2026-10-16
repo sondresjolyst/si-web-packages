@@ -6,7 +6,7 @@ export interface Header {
   value: string;
 }
 
-/** The API's origin, such as `https://api.example.com`. Empty when the URL is missing or invalid. */
+/** Gets the API's origin, such as `https://api.example.com`. Returns `""` when the URL is missing or invalid. */
 export function apiOrigin(apiUrl: string | undefined): string {
   if (!apiUrl) return "";
   try {
@@ -16,7 +16,7 @@ export function apiOrigin(apiUrl: string | undefined): string {
   }
 }
 
-/** The API's base URL with its path, such as `https://api.example.com/api`, without a trailing slash. Empty when missing or invalid. */
+/** Gets the API's base URL with its path, such as `https://api.example.com/api`, without a trailing slash. Returns `""` when the URL is missing or invalid. */
 export function apiBaseUrl(apiUrl: string | undefined): string {
   if (!apiUrl) return "";
   try {
@@ -26,30 +26,31 @@ export function apiBaseUrl(apiUrl: string | undefined): string {
   }
 }
 
+/** Options for `contentSecurityPolicy` and `securityHeaders`. */
 export interface CspOptions {
-  /** The app's API URL, usually `process.env.NEXT_PUBLIC_API_URL`. Its origin may be fetched from. */
+  /** The app's API URL, usually `process.env.NEXT_PUBLIC_API_URL`. The policy allows fetches to its origin. */
   apiUrl: string | undefined;
-  /** Development builds also allow `'unsafe-eval'`, which hot reload needs. */
+  /** Whether this is a development build. A development build also allows `'unsafe-eval'`, which hot reload needs. */
   dev: boolean;
-  /** Also allow `ws:` and `wss:` to the API, for a WebSocket such as SignalR. */
+  /** Whether to also allow `ws:` and `wss:` to the API, for a WebSocket such as SignalR. */
   websocket?: boolean | undefined;
-  /** Also allow images from the API origin. Not needed when images go through the content images rewrite. */
+  /** Whether to also allow images from the API origin. You do not need it when images go through the content images rewrite. */
   imgFromApi?: boolean | undefined;
-  /** Extra sources for `connect-src`. */
+  /** The extra sources for `connect-src`. */
   connectSrc?: readonly string[] | undefined;
-  /** Extra sources for `img-src`. */
+  /** The extra sources for `img-src`. */
   imgSrc?: readonly string[] | undefined;
-  /** Sources for `frame-src`. Defaults to `'none'`, since no page embeds a frame. */
+  /** The sources for `frame-src`. Defaults to `'none'`, since no page embeds a frame. */
   frameSrc?: readonly string[] | undefined;
-  /** Sources for `object-src`. Defaults to `'none'`, since no page embeds an object. */
+  /** The sources for `object-src`. Defaults to `'none'`, since no page embeds an object. */
   objectSrc?: readonly string[] | undefined;
 }
 
 const sources = (list: readonly (string | false | undefined)[]) => list.filter(Boolean).join(" ");
 
 /**
- * The Content-Security-Policy for an app's pages. Scripts allow `'unsafe-inline'`, because a nonce
- * would make every statically rendered page dynamic.
+ * Builds the Content-Security-Policy for an app's pages. Scripts allow `'unsafe-inline'`, because a
+ * nonce would make every statically rendered page dynamic.
  */
 export function contentSecurityPolicy(o: CspOptions): string {
   const origin = apiOrigin(o.apiUrl);
@@ -70,7 +71,7 @@ export function contentSecurityPolicy(o: CspOptions): string {
   ].join("; ");
 }
 
-/** The security headers for an app's pages, including the Content-Security-Policy. */
+/** Builds the security headers for an app's pages, including the Content-Security-Policy. */
 export function securityHeaders(o: CspOptions & { permissionsPolicy?: string | undefined }): Header[] {
   return [
     { key: "X-Content-Type-Options", value: "nosniff" },
@@ -84,9 +85,9 @@ export function securityHeaders(o: CspOptions & { permissionsPolicy?: string | u
 }
 
 /**
- * Content images, proxied so the browser never contacts the API host. A rewrite rather than a route
- * handler, so the query string and the Accept header, which webp needs, pass through. No rewrite
- * when the API URL is missing or invalid.
+ * Builds the rewrite that proxies content images, so the browser never contacts the API host. It is
+ * a rewrite rather than a route handler, so the query string and the Accept header, which webp
+ * needs, pass through. Returns no rewrite when the API URL is missing or invalid.
  */
 export function contentImagesRewrite(apiUrl: string | undefined, o: { source?: string | undefined; upstreamPath?: string | undefined } = {}) {
   const base = apiBaseUrl(apiUrl);
@@ -96,33 +97,34 @@ export function contentImagesRewrite(apiUrl: string | undefined, o: { source?: s
   return [{ source: `${source}/:path*`, destination: `${base}${upstream}/:path*` }];
 }
 
+/** Options for `defineAppConfig`. */
 export interface AppConfigOptions extends CspOptions {
-  /** Proxy `/content-images/*` to the API. See `contentImagesRewrite`. */
+  /** Whether to proxy `/content-images/*` to the API. See `contentImagesRewrite`. */
   contentImages?: boolean | undefined;
   /**
-   * Headers for particular paths. Every path gets the page headers, and these come after them, so
-   * they replace a page header of the same name.
+   * The headers for particular paths. Every path gets the page headers, and these come after them,
+   * so they replace a page header of the same name.
    */
   pathHeaders?: readonly { source: string; headers: Header[] }[] | undefined;
-  /** Replaces the default Permissions-Policy. */
+  /** A Permissions-Policy that replaces the default one. */
   permissionsPolicy?: string | undefined;
   /**
-   * Seconds a cache may go on serving a page after it goes stale. Next's default is a year, long
-   * enough for a browser to hand back an old page and fetch the current one behind it. Defaults to
-   * 300, matching the client router cache's stale time.
+   * The number of seconds a cache may go on serving a page after it goes stale. Next's default is a
+   * year, long enough for a browser to hand back an old page and fetch the current one behind it.
+   * Defaults to `300`, matching the client router cache's stale time.
    */
   expireTime?: number | undefined;
   /**
-   * Write revalidated pages to disk. Off by default: with a read-only root filesystem Next cannot
-   * write to `.next/server/app`, so the incremental cache stays in memory.
+   * Whether to write revalidated pages to disk. Defaults to `false`. With a read-only root
+   * filesystem, Next cannot write to `.next/server/app`, so the incremental cache stays in memory.
    */
   isrFlushToDisk?: boolean | undefined;
 }
 
 /**
- * The shared Next config for an app: the standalone build, app-kit transpiled, no `X-Powered-By`,
- * the security headers on every page, and optionally the content images rewrite. `extra` is merged
- * over it, with `transpilePackages` and `images` combined.
+ * Builds the shared Next config for an app: the standalone build, app-kit transpiled, no
+ * `X-Powered-By`, the security headers on every page, and optionally the content images rewrite.
+ * `extra` is merged over it, with `transpilePackages` and `images` combined.
  */
 export function defineAppConfig(o: AppConfigOptions, extra: NextConfig = {}): NextConfig {
   const pageHeaders = securityHeaders(o);

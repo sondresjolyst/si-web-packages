@@ -4,18 +4,18 @@
  */
 export interface SessionConfig {
   /**
-   * Name of the environment variable holding the API JWT secret, such as API_JWT_SECRET. Apps that
-   * talk to more than one API, or that deploy several apps side by side, need distinct names.
+   * The name of the environment variable holding the API JWT secret, such as `API_JWT_SECRET`. Apps
+   * that talk to more than one API, or that deploy several apps side by side, need distinct names.
    */
   jwtSecretEnvVar: string;
   /**
-   * Where an expired or rejected session sends the browser. An app with a locale prefix uses
-   * something like "/en/login". An app without one uses "/login".
+   * The path an expired or rejected session sends the browser to. An app with a locale prefix uses
+   * something like `"/en/login"`. An app without one uses `"/login"`.
    */
   loginRoute: string;
   /**
-   * Prefix for the localStorage keys holding form drafts, usually the app's name, such as
-   * "example". Drafts are stored under `<prefix>:draft:<owner>:<scope>`, so the prefix itself
+   * The prefix for the localStorage keys holding form drafts, usually the app's name, such as
+   * `"example"`. Drafts are stored under `<prefix>:draft:<owner>:<scope>`, so the prefix itself
    * has no trailing colon.
    */
   draftStoragePrefix: string;
@@ -31,8 +31,8 @@ export function defineSessionConfig(config: SessionConfig): SessionConfig {
 }
 
 /**
- * The key prefix for form drafts. Throws on a colon or an empty name. Those build keys such as
- * "app:draft::draft:", which match no draft saved under "app:draft:".
+ * Gets the key prefix for form drafts. Throws on a colon or an empty name. Those build keys such as
+ * `"app:draft::draft:"`, which match no draft saved under `"app:draft:"`.
  */
 export function draftPrefix(config: Pick<SessionConfig, "draftStoragePrefix">): string {
   const name = config.draftStoragePrefix;

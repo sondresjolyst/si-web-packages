@@ -1,18 +1,19 @@
 "use client";
 
+/** Props for `LocaleTabs`. */
 export interface LocaleTabsProps<L extends string> {
   locales: readonly L[];
   /** Each locale's tab label, such as `Norsk`. */
   labels: Record<L, string>;
   active: L;
   onChange: (locale: L) => void;
-  /** Which locales have content. A locale marked false gets a dot titled `notFilled`. */
+  /** The locales that have content. A locale set to `false` gets a dot titled `notFilled`. */
   filled?: Partial<Record<L, boolean>> | undefined;
-  /** The dot's title, such as "Not filled in". */
+  /** The dot's title. Defaults to "Not filled in". */
   notFilled?: string | undefined;
 }
 
-/** Tabs for editing one translation at a time. */
+/** Renders tabs for editing one translation at a time. */
 export function LocaleTabs<L extends string>({ locales, labels, active, onChange, filled, notFilled = "Not filled in" }: LocaleTabsProps<L>) {
   return (
     <div className="flex items-center gap-1 border-b border-gray-200">

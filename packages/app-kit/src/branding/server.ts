@@ -2,22 +2,23 @@ import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import type { Branding } from "./types";
 
+/** Options for `brandingIcon`. */
 export interface BrandingIconOptions {
-  /** Loads the branding, such as a cached GET of `/branding`. Throws when the API cannot be reached. */
+  /** A function that loads the branding, such as a cached GET of `/branding`. It throws when the API cannot be reached. */
   load: () => Promise<Branding | null | undefined>;
   /** The bundled icon for when none is set, such as `public/icon.png`. */
   fallbackPath: string;
-  /** Its content type, such as `image/png` or `image/svg+xml`. */
+  /** The bundled icon's content type, such as `image/png` or `image/svg+xml`. */
   fallbackType: string;
 }
 
 /**
- * The response for an `app/icon.ts` route: the favicon set in admin settings when it is a PNG,
- * JPEG, WebP, GIF or ICO, or the bundled one otherwise. Both carry `nosniff`, and a sandbox CSP
- * that a CSP header from the app's `next.config` replaces.
- * When the branding cannot be loaded it answers 503 with `no-store`, not the
- * bundled icon, since a browser would cache that in place of the one set in settings. The route
- * needs `dynamic = "force-dynamic"`, or the build bakes in the icon of the moment.
+ * Builds the response for an `app/icon.ts` route: the favicon set in admin settings when it is a
+ * PNG, JPEG, WebP, GIF, or ICO, or the bundled one otherwise. Both carry `nosniff`, and a sandbox
+ * CSP that a CSP header from the app's `next.config` replaces. When the branding cannot be loaded,
+ * it answers 503 with `no-store` instead of the bundled icon, since a browser would cache that in
+ * place of the one set in settings. The route needs `dynamic = "force-dynamic"`, or the build bakes
+ * in the icon of the moment.
  */
 export async function brandingIcon({ load, fallbackPath, fallbackType }: BrandingIconOptions): Promise<Response> {
   let branding: Branding | null | undefined;
@@ -47,7 +48,7 @@ const RASTER_TYPES = new Set(["image/png", "image/jpeg", "image/webp", "image/gi
 const HARDENING = { "X-Content-Type-Options": "nosniff", "Content-Security-Policy": "default-src 'none'; sandbox" };
 
 /**
- * A short digest of icon bytes, for a URL that changes when the icon does, such as
+ * Computes a short digest of icon bytes, for a URL that changes when the icon does, such as
  * `/icon?v=<digest>` in the web app manifest. Android refreshes a home screen icon only when the
  * manifest changes.
  */

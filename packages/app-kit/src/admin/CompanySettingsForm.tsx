@@ -8,11 +8,12 @@ import { Toggle } from "../ui/Toggle";
 import { withDefaults, type TextOverrides } from "../ui/withDefaults";
 import { defaultCompanySettingsFormStrings, type CompanySettingsFormStrings } from "./companySettingsFormStrings";
 
+/** Props for `CompanySettingsForm`. */
 export interface CompanySettingsFormProps {
   /** The settings calls, such as `createSettingsService(api)`. */
   service: { get: () => Promise<SiteSettings>; update: (settings: SiteSettings) => Promise<SiteSettings> };
   strings?: TextOverrides<CompanySettingsFormStrings> | undefined;
-  /** Shown below the form once the settings have loaded, such as the `BrandingManager`. */
+  /** The content shown below the form once the settings have loaded, such as the `BrandingManager`. */
   children?: ReactNode;
 }
 

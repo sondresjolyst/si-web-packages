@@ -32,6 +32,7 @@ function read<T>(storageKey: string): T | null {
   }
 }
 
+/** Options for `useFormDraft`. */
 export interface FormDraftOptions<T> {
   /**
    * The signed-in user's id. A browser profile can be shared, so drafts are stored per user. That
@@ -40,27 +41,28 @@ export interface FormDraftOptions<T> {
    * known.
    */
   owner: string | undefined;
-  /** Identifies the form and the entity it edits, for example `recipe:new` or `recipe:42`. */
+  /** The key for the form and the entity it edits, for example `recipe:new` or `recipe:42`. */
   scope: string;
   /** The form's current values. They must survive `JSON.stringify`. */
   value: T;
 }
 
+/** What `useFormDraft` returns. */
 export interface FormDraft<T> {
   /**
-   * The stored draft, while it is still waiting to be restored or dismissed. Read once the owner is
-   * known and again whenever the owner or scope changes, so it can appear after mount.
+   * The stored draft, while it is still waiting to be restored or dismissed. The hook reads it once
+   * the owner is known and again whenever the owner or scope changes, so it can appear after mount.
    */
   pending: T | null;
-  /** Stop offering the draft. The caller applies the values it wants. */
+  /** Stops offering the draft. The caller applies the values it wants. */
   dismiss: () => void;
-  /** Drop the stored draft after a successful save. */
+  /** Drops the stored draft. Call it after a successful save. */
   clear: () => void;
 }
 
 /**
- * Keeps a form's values in localStorage so a sign-out, reload or closed tab does not lose them.
- * Values are written half a second after the last change, so only that last half second is at risk.
+ * Keeps a form's values in localStorage so a sign-out, reload, or closed tab does not lose them. The
+ * hook writes them half a second after the last change, so only that last half second is at risk.
  *
  * A draft found at mount is offered for restore, not applied. So an edit form never silently
  * overwrites what the API returned. Saving starts at once, whether or not the offer is answered.

@@ -8,17 +8,18 @@ import type { CredentialsFormStrings } from "./credentialsFormStrings";
 import { defaultLoginPageStrings, type LoginPageStrings } from "./loginPageStrings";
 import { withDefaults, type TextOverrides } from "./withDefaults";
 
+/** Props for `LoginPage`. */
 export interface LoginPageProps {
-  /** Where a signed-in user goes. */
+  /** The path a signed-in user goes to. */
   redirectTo: string;
-  /** The password reset page. */
+  /** The password reset page's path. */
   resetHref: string;
-  /** The sign-up page. Without it the page has no register link. */
+  /** The sign-up page's path. Without it, the page has no register link. */
   registerHref?: string | undefined;
   strings?: TextOverrides<LoginPageStrings> | undefined;
   /** The form's own text, passed to `CredentialsForm`. */
   formStrings?: TextOverrides<CredentialsFormStrings> | undefined;
-  /** Replaces the page's outer spacing, such as when the page sits inside the app's own card. */
+  /** The classes that replace the page's outer spacing, such as when the page sits inside the app's own card. */
   className?: string | undefined;
 }
 

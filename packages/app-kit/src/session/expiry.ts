@@ -1,11 +1,11 @@
-/** How long a session lasts after sign-in, however often it is refreshed. Seven days. */
+/** How long a session lasts after sign-in, in milliseconds, however often it is refreshed. Seven days. */
 export const ABSOLUTE_SESSION_MAX_AGE = 7 * 24 * 60 * 60 * 1000;
 
-/** How far this server's clock may differ from the API's when a token's times are checked. */
+/** How far this server's clock may differ from the API's, in seconds, when a token's times are checked. */
 export const CLOCK_TOLERANCE_S = 60;
 
 /**
- * Errors the jwt callback sets when the session cannot be recovered without a new sign-in. A
+ * The errors the jwt callback sets when the session cannot be recovered without a new sign-in. A
  * transient refresh failure, such as a network error or an API restart, sets no error, so the
  * session keeps working and a later session read retries the refresh.
  */
@@ -31,7 +31,7 @@ export type SessionError = (typeof SESSION_ERRORS)[keyof typeof SESSION_ERRORS];
 
 const TERMINAL: ReadonlySet<string> = new Set(Object.values(SESSION_ERRORS));
 
-/** Whether a session error means the user has to sign in again. */
+/** Checks whether a session error means the user has to sign in again. */
 export function isTerminalSessionError(error: string | undefined): boolean {
   return error != null && TERMINAL.has(error);
 }
@@ -58,19 +58,21 @@ function emit(): void {
   for (const listener of [...state.listeners]) listener();
 }
 
-/** Ask the user to sign in again without leaving the page. */
+/** Asks the user to sign in again without leaving the page. */
 export function openSessionPrompt(): void {
   if (state.open) return;
   state.open = true;
   emit();
 }
 
+/** Closes the re-sign-in prompt. */
 export function closeSessionPrompt(): void {
   if (!state.open) return;
   state.open = false;
   emit();
 }
 
+/** Subscribes to the prompt opening and closing. Returns a function that unsubscribes. */
 export function subscribeSessionPrompt(listener: () => void): () => void {
   state.listeners.add(listener);
   return () => {
@@ -78,6 +80,7 @@ export function subscribeSessionPrompt(listener: () => void): () => void {
   };
 }
 
+/** Checks whether the re-sign-in prompt is open. */
 export function getSessionPromptOpen(): boolean {
   return state.open;
 }

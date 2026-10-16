@@ -4,21 +4,22 @@ import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline";
 import { useState, type InputHTMLAttributes } from "react";
 import { FieldError, FieldLabel, inputClass, useField } from "./field";
 
-/** The input's type is left out: the component switches it to show and hide the value. */
+/** Props for `PasswordInput`. They leave out the input's `type`, since the component switches it to show and hide the value. */
 export interface PasswordInputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, "type"> {
   label: string;
   error?: string | undefined;
-  /** Accessible name of the toggle while the password is hidden. */
+  /** The accessible name of the toggle while the password is hidden. */
   showPasswordLabel?: string | undefined;
-  /** Accessible name of the toggle while the password is visible. */
+  /** The accessible name of the toggle while the password is visible. */
   hidePasswordLabel?: string | undefined;
   /**
-   * Classes for placing the field, such as a margin. They go on the outer element, which holds the
-   * label, the input and the error. Restyle the field through the theme variables.
+   * The classes for placing the field, such as a margin. They go on the outer element, which holds
+   * the label, the input, and the error. Restyle the field through the theme variables.
    */
   className?: string;
 }
 
+/** Renders a labeled password field with a button that shows and hides the value. */
 export function PasswordInput({
   label,
   error,

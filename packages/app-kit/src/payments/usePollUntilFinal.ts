@@ -2,26 +2,28 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
+/** What `usePollUntilFinal` returns. */
 export interface PollResult<T> {
   /** The latest value, or null before the first answer. */
   data: T | null;
-  /** True until a final value, the last retry or a failed fetch. */
+  /** True until a final value, the last retry, or a failed fetch. */
   loading: boolean;
   /** Polls again from the start, with the spinner showing. */
   refresh: () => void;
 }
 
+/** Options for `usePollUntilFinal`. */
 export interface PollOptions {
-  /** How many more times to fetch after the first. Defaults to 8. */
+  /** The number of fetches after the first. Defaults to `8`. */
   retries?: number | undefined;
-  /** Milliseconds between fetches. Defaults to 4000. */
+  /** The milliseconds between fetches. Defaults to `4000`. */
   delayMs?: number | undefined;
 }
 
 /**
  * Fetches until the value is final, such as an order a payment provider has not confirmed yet when
- * the user comes back from it. Stops after the retries, on a failed fetch and on unmount. Each fetch
- * uses the latest `fetcher` and `isFinal` given.
+ * the user comes back from it. Stops after the retries, on a failed fetch, and on unmount. Each
+ * fetch uses the latest `fetcher` and `isFinal` given.
  */
 export function usePollUntilFinal<T>(
   fetcher: () => Promise<T | null>,

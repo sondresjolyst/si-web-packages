@@ -1,10 +1,10 @@
 import axios from "axios";
 
 /**
- * The per-field messages of an ASP.NET validation problem, keyed by the field's name in camelCase so
- * they match the form's own names: `{ errors: { OrgNumber: ["..."] } }` becomes
- * `{ orgNumber: ["..."] }`. Takes the failed axios call or the response body. Answers null when there
- * are no field errors, so the caller falls back to one message for the whole form.
+ * Gets the per-field messages of an ASP.NET validation problem, keyed by the field's name in
+ * camelCase so they match the form's own names: `{ errors: { OrgNumber: ["..."] } }` becomes
+ * `{ orgNumber: ["..."] }`. Takes the failed axios call or the response body. Returns null when
+ * there are no field errors, so the caller falls back to one message for the whole form.
  */
 export function apiFieldErrors(error: unknown): Record<string, string[]> | null {
   const data = axios.isAxiosError(error) ? error.response?.data : error;

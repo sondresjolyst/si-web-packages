@@ -20,7 +20,7 @@ export const auth = {
   update: vi.fn(),
 };
 
-/** A signed-in session with `roles`. Defaults to an admin. */
+/** Builds a signed-in session with `roles`. Defaults to an admin. */
 export function makeSession({ roles = ["Admin"], ...overrides }: Partial<Session> & { roles?: string[] } = {}): Session {
   return {
     user: { id: "1", name: "admin", email: "a@b.no", roles },
@@ -40,7 +40,7 @@ export function setSession(session: Session | null | "loading"): void {
         : { data: session, status: "authenticated" };
 }
 
-/** The `next-auth/react` module, reading `auth`. */
+/** Builds the `next-auth/react` module, reading `auth`. */
 export function nextAuthMock() {
   return {
     useSession: () => ({ ...auth.state, update: (...args: unknown[]) => auth.update(...args) }),
@@ -58,7 +58,7 @@ export const navigation = {
   router: { push: vi.fn(), replace: vi.fn(), refresh: vi.fn(), back: vi.fn(), forward: vi.fn(), prefetch: vi.fn() },
 };
 
-/** The `next/navigation` hooks, reading `navigation`. */
+/** Builds the `next/navigation` hooks, reading `navigation`. */
 export function nextNavigationMock() {
   return {
     useRouter: () => navigation.router,
@@ -79,7 +79,7 @@ export const toastSpies = {
   dismiss: vi.fn(),
 };
 
-/** The `sonner` module, or `@sjolystinnovation/app-kit/toast`. A bare `toast(text)` goes to `toastSpies.message`. */
+/** Builds the `sonner` module, or `@sjolystinnovation/app-kit/toast`. A bare `toast(text)` goes to `toastSpies.message`. */
 export function toastMock() {
   const toast = Object.assign((...args: unknown[]) => toastSpies.message(...args), {
     success: (...args: unknown[]) => toastSpies.success(...args),
@@ -97,7 +97,7 @@ export function toastMock() {
 /** The HTTP calls of an app's axios instance as spies. */
 export const axiosSpies = { get: vi.fn(), post: vi.fn(), put: vi.fn(), patch: vi.fn(), delete: vi.fn() };
 
-/** A module whose default export is an axios instance, such as the app's `services/axiosInstance`. */
+/** Builds a module whose default export is an axios instance, such as the app's `services/axiosInstance`. */
 export function axiosInstanceMock() {
   return { default: axiosSpies };
 }

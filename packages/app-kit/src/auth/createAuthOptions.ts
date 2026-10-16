@@ -44,12 +44,13 @@ interface AuthorizedUser extends User {
   refreshToken: string;
 }
 
+/** Settings for `createAuthOptions`. Pass either `apiUrl` or `http`. */
 export type AuthOptionsSettings = {
   /** The server environment, usually `process.env`. It holds the API JWT secret. */
   env: Record<string, string | undefined>;
 } & (
   | {
-      /** Base URL of the API, such as `https://api.example.com/api`. */
+      /** The base URL of the API, such as `https://api.example.com/api`. */
       apiUrl: string;
       http?: never;
     }
@@ -60,7 +61,8 @@ export type AuthOptionsSettings = {
     }
 );
 
-// Refresh ahead of expiry, so the token is still fresh when the user saves.
+// How far ahead of expiry a refresh falls due, at most, so the token is still fresh when the user
+// saves.
 const MAX_REFRESH_SKEW_MS = 5 * 60 * 1000;
 
 // The soonest a refresh can be due. The floor stops a short-lived token from refreshing on every
@@ -111,9 +113,9 @@ function failureShape(error: unknown) {
 }
 
 /**
- * next-auth options for email and password sign-in against the API. The API issues a short-lived
- * access token and a refresh token that changes on every refresh. The session refreshes ahead of
- * expiry, rides out temporary API failures, and ends seven days after sign-in.
+ * Creates the next-auth options for email and password sign-in against the API. The API issues a
+ * short-lived access token and a refresh token that changes on every refresh. The session refreshes
+ * ahead of expiry, rides out temporary API failures, and ends seven days after sign-in.
  */
 export function createAuthOptions(config: SessionConfig, settings: AuthOptionsSettings): NextAuthOptions {
   const { env } = settings;

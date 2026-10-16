@@ -3,20 +3,22 @@
 import { useCallback, useEffect, useRef, type TextareaHTMLAttributes } from "react";
 import { FieldError, FieldLabel, inputClass, useField } from "./field";
 
+/** Props for `TextArea`. */
 export interface TextAreaProps extends TextareaHTMLAttributes<HTMLTextAreaElement> {
   label: string;
   error?: string | undefined;
   /**
-   * Classes for placing the field, such as a margin. They go on the outer element, which holds the
-   * label, the text area and the error. Restyle the field through the theme variables.
+   * The classes for placing the field, such as a margin. They go on the outer element, which holds
+   * the label, the text area, and the error. Restyle the field through the theme variables.
    */
   className?: string | undefined;
-  /** Grows with its text, from `rows` lines up to `maxRows` lines. On by default. */
+  /** Whether the box grows with its text, from `rows` lines up to `maxRows` lines. Defaults to `true`. */
   autoGrow?: boolean | undefined;
-  /** The most lines an auto-growing box shows before it scrolls. Defaults to 12. */
+  /** The most lines an auto-growing box shows before it scrolls. Defaults to `12`. */
   maxRows?: number | undefined;
 }
 
+/** Renders a labeled text area that can grow with its text. */
 export function TextArea({ label, error, className, autoGrow = true, maxRows = 12, rows = 3, onInput, ...props }: TextAreaProps) {
   const field = useField(props, error);
   const ref = useRef<HTMLTextAreaElement>(null);

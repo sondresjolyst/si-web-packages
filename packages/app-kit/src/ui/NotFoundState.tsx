@@ -2,6 +2,7 @@ import Link from "next/link";
 import { cx } from "./cx";
 import { withDefaults, type TextOverrides } from "./withDefaults";
 
+/** The not-found page's text. Pass the app's own language. The defaults are English. */
 export interface NotFoundStrings {
   code: string;
   body: string;
@@ -14,15 +15,16 @@ export const defaultNotFoundStrings: NotFoundStrings = {
   home: "Go home",
 };
 
+/** Props for `NotFoundState`. */
 export interface NotFoundStateProps {
-  /** Where the home link goes, such as `/` or `/en`. */
+  /** The home link's target, such as `/` or `/en`. */
   homeHref: string;
   strings?: TextOverrides<NotFoundStrings> | undefined;
-  /** Classes for placing it, on the outer element. */
+  /** The classes for placing the component, on its outer element. */
   className?: string | undefined;
 }
 
-/** What a `not-found.tsx` shows. The message is the page's heading. */
+/** Renders the content of a `not-found.tsx`. The message is the page's heading. */
 export function NotFoundState({ homeHref, strings, className }: NotFoundStateProps) {
   const text = withDefaults(defaultNotFoundStrings, strings);
   return (

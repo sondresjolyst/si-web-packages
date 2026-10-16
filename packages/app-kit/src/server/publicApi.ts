@@ -1,20 +1,23 @@
+/** A response from `publicGetWithMeta`, with its `Last-Modified` date. */
 export interface PublicResponse<T> {
   data: T;
-  /** From the `Last-Modified` header, when the endpoint reports one. */
+  /** The date from the `Last-Modified` header, when the endpoint reports one. */
   lastModified: Date | null;
 }
 
+/** Options for one public GET. */
 export interface PublicGetOptions {
-  /** Cache tags, so a revalidate route can purge this fetch by tag. */
+  /** The cache tags, so a revalidate route can purge this fetch by tag. */
   tags?: string[] | undefined;
 }
 
+/** Options for `createPublicApi`. */
 export interface PublicApiOptions {
-  /** Seconds a cached response stays fresh. Defaults to 60. */
+  /** The seconds a cached response stays fresh. Defaults to `60`. */
   revalidate?: number | undefined;
 }
 
-/** The API could not be reached, or answered with no usable content. */
+/** Thrown when the API could not be reached, or answered with no usable content. */
 export class PublicApiError extends Error {
   readonly path: string;
   readonly status: number | null;
@@ -36,9 +39,10 @@ function lastModifiedOf(response: Response): Date | null {
 }
 
 /**
- * Cached GETs against the API's anonymous endpoints, for server components and route handlers.
+ * Creates cached GETs against the API's anonymous endpoints, for server components and route
+ * handlers.
  *
- * A 404 gives null. An unreachable or failing API throws `PublicApiError`, so a failed fetch is
+ * A 404 returns null. An unreachable or failing API throws `PublicApiError`, so a failed fetch is
  * never cached as an empty page in place of a working one.
  */
 export function createPublicApi(baseUrl: string, options: PublicApiOptions = {}) {
@@ -51,7 +55,7 @@ export function createPublicApi(baseUrl: string, options: PublicApiOptions = {})
 
   // The path is joined onto the base URL. A path that does not start with a single "/" is a bug in
   // the caller, so it throws. A path with a dot segment, often a slug from the URL, names no resource,
-  // so it gives null, the same as a 404. A slug goes through encodeURIComponent first.
+  // so it gives null, the same as a 404. Pass a slug through encodeURIComponent first.
   function urlFor(path: string): string | null {
     if (!path.startsWith("/") || path.startsWith("//")) {
       throw new Error(`Public API path must start with a single "/" under the base URL: ${path}`);
@@ -85,12 +89,12 @@ export function createPublicApi(baseUrl: string, options: PublicApiOptions = {})
     }
   }
 
-  /** The data alone. Null when the resource does not exist. */
+  /** Gets the data alone. Returns null when the resource does not exist. */
   async function publicGet<T>(path: string, opts: PublicGetOptions = {}): Promise<T | null> {
     return (await publicGetWithMeta<T>(path, opts))?.data ?? null;
   }
 
-  /** For data a page can do without. Null on any failure, so the page still renders. */
+  /** Gets data a page can do without. Returns null when the API fails, so the page still renders. */
   async function publicGetOptional<T>(path: string, opts: PublicGetOptions = {}): Promise<T | null> {
     try {
       return await publicGet<T>(path, opts);
