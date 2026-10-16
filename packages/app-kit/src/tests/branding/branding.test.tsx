@@ -3,7 +3,9 @@ import { join } from "node:path";
 import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { BRANDING_REFRESH_MS, BrandingManager, BrandingProvider, toDataUrl, useBranding, type Branding } from "../../branding";
+import { BrandingManager, BrandingProvider, useBranding, type Branding } from "../../branding";
+import { BRANDING_REFRESH_MS } from "../../branding/BrandingProvider";
+import { toDataUrl } from "../../branding/types";
 
 const toast = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn() }));
 vi.mock("../../toast", () => ({ toast }));

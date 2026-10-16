@@ -2,23 +2,25 @@
 // them with `import "@sjolystinnovation/app-kit/next-auth";` in one of its own .d.ts files.
 import "next-auth";
 import "next-auth/jwt";
+import type { SessionUser } from "./auth/createAuthOptions";
+import type { SessionError } from "./session/expiry";
 
 declare module "next-auth" {
   interface Session {
-    user: { id: string; name: string; email: string; roles: string[] };
+    user: SessionUser;
     accessToken: string;
-    error?: string | undefined;
-    absoluteExpiresAt?: number;
+    error?: SessionError | undefined;
+    absoluteExpiresAt?: number | undefined;
   }
 }
 
 declare module "next-auth/jwt" {
   interface JWT {
-    accessToken?: string;
-    refreshToken?: string;
-    refreshAt?: number;
-    loginAt?: number;
-    user?: { id: string; name: string; email: string; roles: string[] };
-    error?: string | undefined;
+    accessToken?: string | undefined;
+    refreshToken?: string | undefined;
+    refreshAt?: number | undefined;
+    loginAt?: number | undefined;
+    user?: SessionUser | undefined;
+    error?: SessionError | undefined;
   }
 }

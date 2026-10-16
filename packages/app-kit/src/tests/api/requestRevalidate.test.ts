@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { requestRevalidate } from "../../api";
+import { requestRevalidate } from "../../api/requestRevalidate";
 
 const fetchMock = vi.fn();
 vi.stubGlobal("fetch", fetchMock);

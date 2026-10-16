@@ -4,7 +4,7 @@ import jwt from "jsonwebtoken";
 import type { JWT } from "next-auth/jwt";
 import { createAuthOptions } from "../../auth";
 import { defineSessionConfig } from "../../config";
-import { SESSION_ERRORS, SIGN_IN_ERRORS, isTerminalSessionError } from "../../session";
+import { SESSION_ERRORS, SIGN_IN_ERRORS, isTerminalSessionError, type SessionError } from "../../session";
 
 const SECRET = "a-test-secret-long-enough-for-hmac-sha256";
 
@@ -135,7 +135,8 @@ describe("the jwt callback", () => {
   it("clears a recorded error once a refresh succeeds", async () => {
     respondWith({ token: apiToken(), refreshToken: "RT-next" });
 
-    const result = await runJwt(sessionToken({ refreshAt: 0, error: "ECONNREFUSED" }));
+    // A token written by an older version can carry an error outside the SessionError union.
+    const result = await runJwt(sessionToken({ refreshAt: 0, error: "ECONNREFUSED" as SessionError }));
 
     expect(result.error).toBeUndefined();
     expect(result.refreshToken).toBe("RT-next");

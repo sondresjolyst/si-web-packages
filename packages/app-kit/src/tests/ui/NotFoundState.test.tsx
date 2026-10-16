@@ -2,25 +2,25 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { NotFoundState, defaultNotFoundStrings } from "../../ui";
+import { NotFoundState, defaultNotFoundStateStrings } from "../../ui";
 
 describe("NotFoundState", () => {
   it("explains the missing page in its heading", () => {
     render(<NotFoundState homeHref="/" />);
-    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(defaultNotFoundStrings.body);
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(defaultNotFoundStateStrings.body);
     expect(screen.getByText("404")).toBeInTheDocument();
   });
 
   it("links to the front page", () => {
     render(<NotFoundState homeHref="/no" />);
-    expect(screen.getByRole("link", { name: defaultNotFoundStrings.home })).toHaveAttribute("href", "/no");
+    expect(screen.getByRole("link", { name: defaultNotFoundStateStrings.home })).toHaveAttribute("href", "/no");
   });
 
   it("takes the app's own words, keeping the defaults for the rest", () => {
     render(<NotFoundState homeHref="/no" strings={{ body: "Denne siden finnes ikke.", home: "Til forsiden" }} />);
     expect(screen.getByRole("heading")).toHaveTextContent("Denne siden finnes ikke.");
     expect(screen.getByRole("link", { name: "Til forsiden" })).toBeInTheDocument();
-    expect(screen.getByText(defaultNotFoundStrings.code)).toBeInTheDocument();
+    expect(screen.getByText(defaultNotFoundStateStrings.code)).toBeInTheDocument();
   });
 
   it("is placed by the class it is given", () => {

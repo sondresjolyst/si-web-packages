@@ -135,7 +135,12 @@ export function AdminUsersPanel({ service, getRoles, defaultInviteRole = "Admin"
     }
     setInviting(true);
     try {
-      await serviceRef.current.invite(invite.email.trim(), invite.firstName.trim(), invite.lastName.trim(), invite.role);
+      await serviceRef.current.invite({
+        email: invite.email.trim(),
+        firstName: invite.firstName.trim(),
+        lastName: invite.lastName.trim(),
+        role: invite.role,
+      });
       toast.success(text.inviteSent);
       setInvite({ email: "", firstName: "", lastName: "", role: invite.role });
       reload();

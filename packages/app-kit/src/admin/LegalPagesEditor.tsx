@@ -13,7 +13,7 @@ export interface LegalPagesEditorProps<K extends string, L extends string> {
   /** The legal page calls, such as `createLegalService(api, publicApi)`. */
   service: {
     listAll: () => Promise<LegalPage<K>[]>;
-    save: (key: K, locale: L, title: string, bodyMarkdown: string) => Promise<unknown>;
+    save: (page: { key: K; locale: L; title: string; bodyMarkdown: string }) => Promise<unknown>;
   };
   /** The pages, in tab order. The editor opens on the first. */
   keys: readonly K[];
@@ -71,7 +71,7 @@ export function LegalPagesEditor<K extends string, L extends string>({ service, 
     }
     setSaving(true);
     try {
-      await serviceRef.current.save(activeKey, activeLocale, draft.title.trim(), draft.bodyMarkdown);
+      await serviceRef.current.save({ key: activeKey, locale: activeLocale, title: draft.title.trim(), bodyMarkdown: draft.bodyMarkdown });
       toast.success(text.saved);
     } catch (err) {
       toast.error(err instanceof Error && err.message ? err.message : text.saveFailed);

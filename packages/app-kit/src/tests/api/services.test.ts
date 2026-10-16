@@ -208,7 +208,7 @@ describe("createLegalService", () => {
     const service = createLegalService<"terms" | "refunds">(fakeClient("api", sent, () => page), fakeClient("public", sent), { onSaved });
 
     await service.listAll();
-    await service.save("refunds", "no", "Retur", "## Retur");
+    await service.save({ key: "refunds", locale: "no", title: "Retur", bodyMarkdown: "## Retur" });
 
     expect(sent.map((s) => `${s.client} ${s.method} ${s.url}`)).toEqual(["api get /content/legal", "api put /content/legal/refunds/no"]);
     expect(sent[1].data).toEqual({ title: "Retur", bodyMarkdown: "## Retur" });
@@ -219,7 +219,7 @@ describe("createLegalService", () => {
     const onSaved = vi.fn();
     const service = createLegalService(fakeClient("api", sent, () => ({ detail: "Unsupported locale." }), 400), fakeClient("public", sent), { onSaved });
 
-    await expect(service.save("terms", "de", "x", "y")).rejects.toThrow("Unsupported locale.");
+    await expect(service.save({ key: "terms", locale: "de", title: "x", bodyMarkdown: "y" })).rejects.toThrow("Unsupported locale.");
     expect(onSaved).not.toHaveBeenCalled();
   });
 });
@@ -233,7 +233,7 @@ describe("createAdminUsersService", () => {
     await users.addRole("u/1", "Editor");
     await users.removeRole("u/1", "Sensor Admin");
     await users.deleteUser("u/1");
-    await users.invite("kari@example.no", "Kari", "N", "Default");
+    await users.invite({ email: "kari@example.no", firstName: "Kari", lastName: "N", role: "Default" });
 
     expect(sent.map((s) => `${s.method} ${s.url}`)).toEqual([
       "get /users",

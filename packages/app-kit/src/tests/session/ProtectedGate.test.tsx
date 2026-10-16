@@ -20,7 +20,8 @@ vi.mock("next-auth/react", () => ({
 const session = (error?: string): Session => ({
   user: { id: "1", name: "admin", email: "a@b.no", roles: ["Admin"] },
   accessToken: "token",
-  error,
+  // A session can carry an error outside the SessionError union, which the gate must tolerate.
+  error: error as Session["error"],
   expires: "",
 });
 

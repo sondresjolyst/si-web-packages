@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { act, renderHook } from "@testing-library/react";
 import type { Session } from "next-auth";
 import { closeSessionPrompt, openSessionPrompt } from "../../session";
-import { useSessionGate } from "../../session/react";
+import { useSessionGate } from "../../session/react/useSessionGate";
 
 let pathname = "/admin/recipes/new";
 let sessionState: { data: Session | null; status: "loading" | "authenticated" | "unauthenticated" };

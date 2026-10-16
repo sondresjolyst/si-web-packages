@@ -154,7 +154,7 @@ export function createLegalService<Key extends string = "terms" | "privacy" | "c
 
     listAll: () => request(() => api.get<LegalPage<Key>[]>("/content/legal"), "Failed to load legal pages"),
 
-    async save(key: Key, locale: string, title: string, bodyMarkdown: string) {
+    async save({ key, locale, title, bodyMarkdown }: { key: Key; locale: string; title: string; bodyMarkdown: string }) {
       const page = await request(
         () => api.put<LegalPage<Key>>(`/content/legal/${encodeURIComponent(key)}/${encodeURIComponent(locale)}`, { title, bodyMarkdown }),
         "Failed to save legal page",
@@ -192,7 +192,7 @@ export function createAdminUsersService(api: AxiosInstance) {
     deleteUser: (userId: string) =>
       request(() => api.delete(`/users/${encodeURIComponent(userId)}/account`), "Failed to delete user"),
 
-    invite: (email: string, firstName: string, lastName: string, role: string) =>
+    invite: ({ email, firstName, lastName, role }: { email: string; firstName: string; lastName: string; role: string }) =>
       request(() => api.post("/users/invite", { email, firstName, lastName, role }), "Failed to send invitation"),
   };
 }

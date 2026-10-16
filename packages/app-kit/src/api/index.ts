@@ -2,8 +2,9 @@ export { apiFieldErrors } from "./apiFieldErrors";
 export { formatOrgNumber, mergeCompanyInfo } from "./company";
 export type { CompanyFallback, CompanyInfo } from "./company";
 export { createApiClient } from "./createApiClient";
+export { formatApiError } from "./formatApiError";
+export type { StatusMessages } from "./formatApiError";
 export { request } from "./request";
-export { requestRevalidate } from "./requestRevalidate";
 export { defineRevalidateTargets } from "./revalidateTargets";
 export type { RevalidateTargetPaths, RevalidateTargetsConfig } from "./revalidateTargets";
 export {

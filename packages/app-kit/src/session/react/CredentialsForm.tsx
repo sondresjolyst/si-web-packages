@@ -2,16 +2,16 @@
 
 import { signIn } from "next-auth/react";
 import { useState, type FormEvent, type ReactNode } from "react";
-import { SIGN_IN_ERRORS } from "../session/expiry";
-import { Alert } from "./Alert";
-import { PasswordInput } from "./PasswordInput";
+import { SIGN_IN_ERRORS } from "../expiry";
+import { Alert } from "../../ui/Alert";
+import { PasswordInput } from "../../ui/PasswordInput";
 import {
   SignInRejected,
   defaultCredentialsFormStrings,
   type CredentialsFormStrings,
 } from "./credentialsFormStrings";
-import { TextInput } from "./TextInput";
-import { withDefaults, type TextOverrides } from "./withDefaults";
+import { TextInput } from "../../ui/TextInput";
+import { withDefaults, type TextOverrides } from "../../ui/withDefaults";
 
 
 /** Props for `CredentialsForm`. */

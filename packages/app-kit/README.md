@@ -53,12 +53,8 @@ export const sessionConfig = defineSessionConfig({
 });
 ```
 
-```ts
-import { resolveJwtSecret } from "@sjolystinnovation/app-kit";
-import { sessionConfig } from "@/lib/session";
-
-const secret = resolveJwtSecret(sessionConfig, process.env);
-```
+The root entry point holds only `defineSessionConfig`, `requireEnv`, and `SessionConfig`. It
+imports no peer dependency, so it works in browser code, server code, and `next.config.ts`.
 
 ## API
 
@@ -85,29 +81,11 @@ Returns `value`, or throws `Missing <name>.` when it is unset or empty. Pass the
 place, such as `process.env.NEXT_PUBLIC_API_URL`, so Next.js can inline a public variable at build
 time.
 
-### `resolveJwtSecret(config, env)`
-
-`(config: SessionConfig, env: Record<string, string | undefined>) => string`
-
-Reads the secret named by `config.jwtSecretEnvVar`. Throws when that variable is unset or empty,
-with the variable's name in the message.
-
-```ts
-resolveJwtSecret(sessionConfig, { API_JWT_SECRET: "s3cret" });
-// "s3cret"
-
-resolveJwtSecret(sessionConfig, {});
-// Error: Missing API_JWT_SECRET. The app verifies API session tokens with it.
-```
-
-The environment is a parameter, so the root entry point needs no Node types and works in browser
-code. `@sjolystinnovation/app-kit/auth` is server only and loads Node types.
-
 ### `formatApiError(error, fallback, statusMessages?)`
 
 `(error: unknown, fallback: string, statusMessages?: StatusMessages) => string`
 
-Turns a failed request into one line a user can read.
+From `@sjolystinnovation/app-kit/api`. Turns a failed request into one line a user can read.
 
 On a 4xx response, it uses the first of these:
 
@@ -135,6 +113,8 @@ A few more rules:
   download. A failed download gets `statusMessages` or `fallback`.
 
 ```ts
+import { formatApiError } from "@sjolystinnovation/app-kit/api";
+
 try {
   await api.post("/users", form);
 } catch (error) {
@@ -256,10 +236,6 @@ and gives an empty string without a number.
 export const getCompanyInfo = async () => mergeCompanyInfo(await publicGetOptional<CompanyInfo>("/company"), COMPANY);
 ```
 
-`requestRevalidate(target, endpoint?)` asks the app's revalidate route to purge the pages behind
-`target`, so an edit shows at once. It posts to `/api/revalidate` unless `endpoint` says otherwise.
-It never throws. On failure, the pages' own revalidate window is the fallback.
-
 `apiFieldErrors(error)` reads the per-field messages of an ASP.NET validation problem from a failed
 call or its body, keyed in camelCase to match the form: `{ errors: { OrgNumber: ["..."] } }` becomes
 `{ orgNumber: ["..."] }`. It returns `null` when there are none, so the form falls back to one
@@ -272,7 +248,14 @@ The services below call the endpoints that the SjolystInnovation.AppKit .NET pac
 do not write them in the app. `api` is a `createApiClient` instance, and `publicApi` is a
 `createPublicClient` one.
 Failures throw an `Error` with the API's message, or with the service's own English fallback.
-`onSaved` runs after a save succeeds, such as `() => requestRevalidate("branding")`.
+`onSaved` runs after a save succeeds, such as `() => revalidateTarget("branding")`. Here
+`revalidateTarget` is the `revalidate` that
+[`defineRevalidateTargets`](#sjolystinnovationapp-kitserver) returns. It posts the target to
+the app's revalidate route and never throws. On failure, the pages' own revalidate window is the
+fallback.
+
+`invite` takes `{ email, firstName, lastName, role }`. `save` takes
+`{ key, locale, title, bodyMarkdown }`.
 
 | Factory | Methods | .NET package |
 | --- | --- | --- |
@@ -325,7 +308,7 @@ Each target maps to the page paths it purges. A path with a dynamic segment, suc
 tag, so tag the fetches behind it with the same name. The handler answers 403 unless the caller has
 a live session with `role`: signed in within the last seven days, with no refused refresh, and with
 an access token that has not expired. It answers 415 unless the caller sends the body as JSON,
-which `requestRevalidate` does. It answers 400 for a target it does not know.
+which the `revalidate` from `defineRevalidateTargets` does. It answers 400 for a target it does not know.
 
 ```ts
 // src/app/api/revalidate/route.ts
@@ -392,10 +375,7 @@ export default defineAppConfig({
 | `expireTime` | `number` | Seconds a cache may serve a stale page. Defaults to 300. Next's default is a year. |
 | `isrFlushToDisk` | `boolean` | Write revalidated pages to disk. Off by default, for a read-only root filesystem. |
 
-The package also exports the pieces: `securityHeaders(options)`, `contentSecurityPolicy(options)`,
-`contentImagesRewrite(apiUrl, { source?, upstreamPath? })`, `apiOrigin(apiUrl)`, and
-`apiBaseUrl(apiUrl)`. Scripts allow `'unsafe-inline'`, since a nonce would make every statically
-rendered page dynamic.
+Scripts allow `'unsafe-inline'`, since a nonce would make every statically rendered page dynamic.
 
 ### `@sjolystinnovation/app-kit/markdown`
 
@@ -424,8 +404,7 @@ import { Markdown } from "@sjolystinnovation/app-kit/markdown";
 | `className` | `string` | | Wraps the output in a `div` with these classes. Without it the elements render bare, so a parent's `space-y-*` spaces them. |
 
 The text takes its color and size from the parent. A level one heading becomes a level two, since
-the page has its own `h1`. `markdownComponents` holds the default elements, for an app that builds
-on them.
+the page has its own `h1`.
 
 ### `@sjolystinnovation/app-kit/seo`
 
@@ -500,8 +479,8 @@ export default async () => [
 `isIndexableEnvironment()` reads `SITE_ENV`. `prod`, `production`, and unset or blank count as
 production, so a missing variable never deindexes the live site. `robots.ts` needs
 `dynamic = "force-dynamic"`, so it reads the variable per request. The package also exports
-`JsonLd`, `serializeGraph`, `ref`, `NOINDEX`, `LEGAL_PAGE_KEYS`, `SHARE_IMAGE_SIZE`,
-`normalizePath`, `latest`, and `parseTimestamp`.
+`JsonLd`, `serializeGraph`, `ref`, `NOINDEX`, `LEGAL_PAGE_KEYS`, `SHARE_IMAGE_SIZE`, `latest`, and
+`parseTimestamp`.
 
 ### `@sjolystinnovation/app-kit/seo/og`
 
@@ -552,8 +531,6 @@ above it, and refreshes it after a save.
 | --- | --- | --- |
 | `save` | `(form: FormData) => Promise<unknown>` | Sends `logo` and `icon` files, and `removeLogo` and `removeIcon` set to `true`. Throw to show the error's message. |
 | `strings` | `TextOverrides<BrandingManagerStrings>` | The form's text. |
-
-`toDataUrl(data, contentType)` turns base64 bytes into a `data:` URL.
 
 ### `@sjolystinnovation/app-kit/branding/server`
 
@@ -738,58 +715,9 @@ next-auth callbacks.
 
 The gate reads `session.error`. `SessionExpiryGuard` also reads `session.absoluteExpiresAt` for its
 countdown, `session.user.id` to keep the page with the user who opened it, and `session.user.email`
-to fill in the prompt. `createAuthOptions` sets all of these. An app with its own next-auth options
-sets them in its callbacks:
-
-```ts
-const SESSION_LIFETIME_MS = 7 * 24 * 60 * 60 * 1000;
-
-callbacks: {
-  jwt({ token, user }) {
-    if (user) token.loginAt = Date.now();
-    // A token without a sign-in time counts as expired.
-    if (!token.loginAt || Date.now() - token.loginAt > SESSION_LIFETIME_MS) {
-      token.error = SESSION_ERRORS.absoluteExpiry;
-    }
-    // Also set token.error when a refresh is refused.
-    return token;
-  },
-  session({ session, token }) {
-    session.user.id = token.sub ?? "";
-    session.error = token.error;
-    session.absoluteExpiresAt = token.loginAt ? token.loginAt + SESSION_LIFETIME_MS : undefined;
-    return session;
-  },
-},
-```
-
-For that to compile, these fields have to be on next-auth's `Session` and `JWT` types. With
-`createAuthOptions`, load the shared declarations from `@sjolystinnovation/app-kit/next-auth`, as
-[`createAuthOptions`](#createauthoptionsconfig-settings) shows. Those also make `accessToken` and
-the user's `name`, `email`, and `roles` required. An app with its own options adds only these
-fields to its existing next-auth type declarations, or creates them:
-
-```ts
-// src/types/next-auth.d.ts
-import "next-auth";
-import "next-auth/jwt";
-import type { DefaultSession } from "next-auth";
-
-declare module "next-auth" {
-  interface Session {
-    user: { id: string } & DefaultSession["user"];
-    error?: string | undefined;
-    absoluteExpiresAt?: number | undefined;
-  }
-}
-
-declare module "next-auth/jwt" {
-  interface JWT {
-    error?: string | undefined;
-    loginAt?: number | undefined;
-  }
-}
-```
+to fill in the prompt. `createAuthOptions` sets all of these. Load their types from
+`@sjolystinnovation/app-kit/next-auth`, as [`createAuthOptions`](#createauthoptionsconfig-settings)
+shows.
 
 `SIGN_IN_ERRORS` holds the two codes a failed sign-in reports: `InvalidCredentials` and
 `SignInUnavailable`. Map them to the app's own messages.
@@ -813,35 +741,6 @@ same prompt state format. A release that changes the format says so in its chang
 copy of these functions does not share the flag, so import them from this package in the
 interceptor, the prompt, and every gate.
 
-### `useSessionGate()`
-
-From `@sjolystinnovation/app-kit/session/react`. Tells a protected page whether it may render. It
-reads `useSession`, so it needs a `SessionProvider` above it.
-
-A page that rendered on a healthy session stays rendered, so an open form keeps its values:
-
-- when the session gets a terminal error
-- while the session is re-read
-- while the prompt recovers it
-
-A session that turns signed out with no prompt open blanks the page. A page the user opens on a
-dead session does not render. Use `mayRender` in every gate and layout on the way down, so none of
-them blanks a page that another one kept.
-
-The hook does not navigate. `ProtectedGate` below adds the redirect. Use the hook directly in a
-layout that needs its own decision, such as a role check, so it agrees with the gate.
-
-| Field | Description |
-| --- | --- |
-| `mayRender` | Whether the page may render. |
-| `session`, `status` | As `useSession` returns them. |
-| `usable` | Whether the session is signed in and has no terminal error. |
-| `wasUsable` | Whether this page has rendered on a usable session. |
-| `promptOpen` | Whether the re-sign-in prompt is showing. |
-| `recovering` | Whether the prompt is showing over a page that was usable. |
-
-`SessionGate` is the type of the result.
-
 ### `AppSessionProvider`
 
 From `@sjolystinnovation/app-kit/session/react`. next-auth's `SessionProvider`, reading the session
@@ -859,9 +758,19 @@ reports in this tab up to date. next-auth polls only once a session exists.
 
 ### `ProtectedGate`
 
-From `@sjolystinnovation/app-kit/session/react`. Wraps the protected part of the app. It renders the
-page only when `useSessionGate` allows it, and sends a signed-out visitor or a session dead on
-arrival to `loginHref`. It never redirects while the re-sign-in prompt is open.
+From `@sjolystinnovation/app-kit/session/react`. Wraps the protected part of the app. It reads
+`useSession`, so it needs a `SessionProvider` above it. It sends a signed-out visitor or a session
+dead on arrival to `loginHref`, and never redirects while the re-sign-in prompt is open.
+
+A page that rendered on a healthy session stays rendered, so an open form keeps its values:
+
+- when the session gets a terminal error
+- while the session is re-read
+- while the prompt recovers it
+
+A session that turns signed out with no prompt open blanks the page. A page the user opens on a
+dead session does not render. `RoleGate` and `AdminShell` make the same decision, so none of them
+blanks a page that another one kept.
 
 ```tsx
 <ProtectedGate loginHref="/login" fallback={<p>Loading…</p>}>
@@ -960,7 +869,7 @@ removes that draft when its form next reads it.
 
 ### `CredentialsForm`
 
-From `@sjolystinnovation/app-kit/ui`. Email and password sign-in through next-auth's credentials
+From `@sjolystinnovation/app-kit/session/react`. Email and password sign-in through next-auth's credentials
 provider, with `redirect: false`, so the page stays where it is. Use it on the login page and in
 the prompt.
 
@@ -970,7 +879,7 @@ the prompt.
 
 | Prop | Type | Description |
 | --- | --- | --- |
-| `onSignedIn` | `() => void \| Promise<void>` | Runs after next-auth accepts the credentials. Throw `SignInRejected` with a message to refuse the sign-in. |
+| `onSignedIn` | `() => void \| Promise<void>` | Runs after next-auth accepts the credentials. Throw `SignInRejected`, from the same entry point, with a message to refuse the sign-in. |
 | `initialEmail` | `string` | The email the field starts with. |
 | `children` | `ReactNode` | Extra buttons next to the submit button. |
 | `strings` | `TextOverrides<CredentialsFormStrings>` | The form's text. The defaults are English. |
@@ -982,7 +891,7 @@ or one that throws, shows `somethingWentWrong`.
 
 ### `LoginPage`
 
-From `@sjolystinnovation/app-kit/ui`. The sign-in page: a title, `CredentialsForm`, a link to reset
+From `@sjolystinnovation/app-kit/session/react`. The sign-in page: a title, `CredentialsForm`, a link to reset
 the password, and a sign-up link when the app has sign-up. A sign-in goes to `redirectTo` and
 refreshes the page's server data. It uses the same `auth` theme variables as `ResetPasswordFlow`.
 
@@ -1160,7 +1069,7 @@ the page's heading, and a link home. It works in a server component.
 | Prop | Type | Description |
 | --- | --- | --- |
 | `homeHref` | `string` | Where the home link goes. |
-| `strings` | `TextOverrides<NotFoundStrings>` | `code`, `body`, and `home`. |
+| `strings` | `TextOverrides<NotFoundStateStrings>` | `code`, `body`, and `home`. |
 | `className` | `string` | Classes for placing it, on the outer element. |
 
 ### `PasswordInput`
@@ -1359,14 +1268,13 @@ with it and has to set the ones it uses itself.
 ## Requirements
 
 - Next.js 16 and React 19, as peer dependencies the app installs itself.
-- For the root entry, `auth`, `api`, `server`, `session/react`, `ui`, and `admin`: next-auth 4.24
-  or later and axios 1.20 or later, as optional peer dependencies. A site without sign-in, which
-  uses only entries such as `seo`, `next-config`, `markdown`, `toast`, or `validation`, leaves them
-  out.
+- For `auth`, `api`, `server`, `session/react`, and `admin`: next-auth 4.24 or later and axios 1.20
+  or later, as optional peer dependencies. A site without sign-in, which uses only entries such as
+  the root entry, `ui`, `seo`, `next-config`, `markdown`, `toast`, or `validation`, leaves them out.
 - For `@sjolystinnovation/app-kit/validation`: zod 4, as an optional peer dependency.
 - For `@sjolystinnovation/app-kit/testing`: vitest 5, as an optional peer dependency.
-- For `@sjolystinnovation/app-kit/toast`: sonner 2, as an optional peer dependency. Install a single
-  copy, because two copies keep two separate toast stores.
+- For `@sjolystinnovation/app-kit/toast`, `admin`, and `branding`: sonner 2, as an optional peer
+  dependency. Install a single copy, because two copies keep two separate toast stores.
 - `jsonwebtoken` comes with the package. `@sjolystinnovation/app-kit/auth` uses it on the server.
 - For the components in `ui`, `admin`, `legal`, `markdown`, `branding`, `payments`, and
   `session/react`: Tailwind CSS 4. `ui`, `admin`, `branding`, `payments`, and `session/react` also
