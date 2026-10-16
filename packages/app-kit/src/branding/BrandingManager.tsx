@@ -23,12 +23,14 @@ export interface BrandingManagerStrings {
   saveFailed: string;
 }
 
+const IMAGE_TYPES = "image/png,image/jpeg,image/webp,image/gif,image/x-icon,.ico";
+
 export const defaultBrandingManagerStrings: BrandingManagerStrings = {
   title: "Branding",
   logo: "Logo",
-  logoHint: "Shown in the navbar and footer. PNG/SVG, max 2 MB.",
+  logoHint: "Shown in the navbar and footer. PNG, JPEG, WebP, or GIF, max 2 MB.",
   icon: "Icon (favicon)",
-  iconHint: "Browser tab icon. Square PNG/ICO, max 2 MB.",
+  iconHint: "Browser tab icon. Square PNG or ICO, max 2 MB.",
   none: "none",
   choose: "Choose",
   remove: "Remove",
@@ -95,7 +97,8 @@ function Slot({ label, hint, currentUrl, file, onPick, onClear, text }: SlotProp
         <input
           ref={inputRef}
           type="file"
-          accept="image/*"
+          // The types the API accepts, so the picker does not offer an SVG it would refuse.
+          accept={IMAGE_TYPES}
           aria-label={label}
           className="hidden"
           onChange={e => onPick(e.target.files?.[0] ?? null)}

@@ -112,17 +112,29 @@ describe("BrandingManager", () => {
   it("previews a chosen file and sends it", async () => {
     const save = vi.fn<(form: FormData) => Promise<void>>(async () => {});
     const load = setup(save);
-    await userEvent.upload(screen.getByLabelText("Logo"), new File(["x"], "logo.svg", { type: "image/svg+xml" }));
+    await userEvent.upload(screen.getByLabelText("Logo"), new File(["x"], "logo.webp", { type: "image/webp" }));
     await userEvent.upload(screen.getByLabelText("Icon (favicon)"), new File(["y"], "icon.ico", { type: "image/x-icon" }));
     expect(screen.getByAltText("Logo")).toHaveAttribute("src", "blob:preview");
     expect(screen.getByAltText("Icon (favicon)")).toHaveAttribute("src", "blob:preview");
 
     await userEvent.click(screen.getByRole("button", { name: "Save branding" }));
 
-    expect(sent(save.mock.calls[0][0])).toEqual({ logo: "logo.svg", icon: "icon.ico" });
+    expect(sent(save.mock.calls[0][0])).toEqual({ logo: "logo.webp", icon: "icon.ico" });
     expect(toast.success).toHaveBeenCalledWith("Branding saved");
     expect(load).toHaveBeenCalledOnce();
     expect(screen.getByRole("button", { name: "Save branding" })).toBeDisabled();
+  });
+
+  it("offers only the types the API accepts, and says which", async () => {
+    setup(vi.fn());
+    const logo = screen.getByLabelText("Logo");
+
+    expect(logo).toHaveAttribute("accept", "image/png,image/jpeg,image/webp,image/gif,image/x-icon,.ico");
+    await userEvent.upload(logo, new File(["<svg/>"], "logo.svg", { type: "image/svg+xml" }));
+    expect(screen.getByRole("button", { name: "Save branding" })).toBeDisabled();
+    expect(screen.getByText(/PNG, JPEG, WebP, or GIF, max 2 MB/)).toBeInTheDocument();
+    expect(screen.getByText(/Square PNG or ICO, max 2 MB/)).toBeInTheDocument();
+    expect(screen.queryByText(/SVG/)).not.toBeInTheDocument();
   });
 
   it("sends a removal and shows no image until saved", async () => {
