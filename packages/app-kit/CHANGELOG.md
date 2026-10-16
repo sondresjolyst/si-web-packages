@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.18.0](https://github.com/sondresjolyst/si-web-packages/compare/app-kit-v0.17.0...app-kit-v0.18.0) (2026-10-16)
+
+
+### Features
+
+* **app-kit:** add zodFieldErrors and apiFieldErrors for showing errors beside form fields ([#39](https://github.com/sondresjolyst/si-web-packages/issues/39)) ([23480fd](https://github.com/sondresjolyst/si-web-packages/commit/23480fd85956d8ad695e965cb8283912477d1cb9))
+
 ## [0.17.0](https://github.com/sondresjolyst/si-web-packages/compare/app-kit-v0.16.0...app-kit-v0.17.0) (2026-10-16)
 
 
