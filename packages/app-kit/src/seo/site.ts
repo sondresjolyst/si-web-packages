@@ -205,16 +205,19 @@ export function defineSite<L extends string = string>(config: SiteConfig<L>) {
   /** The business, under a stable `@id` that page-scoped nodes point at. */
   const organizationNode = (company: OrganizationInfo, options: OrganizationOptions = {}): SchemaNode => {
     const country = options.country ?? "NO";
+    const type = typeof options.type === "string" ? options.type || undefined : options.type?.length ? [...options.type] : undefined;
+    const phone = company.phone?.trim();
+    const email = company.email?.trim();
     return {
-      "@type": typeof options.type === "string" ? options.type : options.type ? [...options.type] : "Organization",
+      "@type": type ?? "Organization",
       "@id": ids.organization,
       name: company.name,
       ...(company.legalName && company.legalName !== company.name ? { legalName: company.legalName } : {}),
       url: absoluteUrl(),
       image: absoluteUrl(options.image ?? "/icon.png"),
       logo: absoluteUrl(options.logo ?? "/logo.png"),
-      ...(company.phone ? { telephone: company.phone } : {}),
-      ...(company.email ? { email: company.email } : {}),
+      ...(phone ? { telephone: phone } : {}),
+      ...(email ? { email } : {}),
       address: {
         "@type": "PostalAddress",
         streetAddress: company.streetAddress || company.address,

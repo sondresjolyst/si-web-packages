@@ -1210,9 +1210,10 @@ with it and has to set the ones it uses itself.
 ## Requirements
 
 - Next.js 16 and React 19, as peer dependencies the app installs itself.
-- For sign-in and the API clients (`auth`, `api`, `session` and the components that use them):
-  next-auth 4.24 or later and axios 1.20 or later, as optional peer dependencies. A site without
-  sign-in, which uses only `seo` or `next-config`, leaves them out.
+- For the root entry, `auth`, `api`, `server`, `session/react`, `ui` and `admin`: next-auth 4.24
+  or later and axios 1.20 or later, as optional peer dependencies. A site without sign-in, which
+  uses only entries such as `seo`, `next-config`, `markdown`, `toast` or `validation`, leaves them
+  out.
 - For `@sjolystinnovation/app-kit/validation`: zod 4, as an optional peer dependency.
 - For `@sjolystinnovation/app-kit/toast`: sonner 2, as an optional peer dependency. Install a single
   copy, because two copies keep two separate toast stores.

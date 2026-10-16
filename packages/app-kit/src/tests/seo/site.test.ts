@@ -296,12 +296,15 @@ describe("structured data", () => {
     expect(node["@type"]).not.toBe(types);
     expect(site.organizationNode(company, { sameAs: [] })).not.toHaveProperty("sameAs");
     expect(site.organizationNode(company)).not.toHaveProperty("sameAs");
+    expect(site.organizationNode(company, { type: [] })["@type"]).toBe("Organization");
+    expect(site.organizationNode(company, { type: "" })["@type"]).toBe("Organization");
   });
 
   it("leaves out a phone number and email nobody filled in", () => {
-    const node = site.organizationNode({ ...company, phone: "", email: undefined });
+    const node = site.organizationNode({ ...company, phone: "  ", email: undefined });
     expect(node).not.toHaveProperty("telephone");
     expect(node).not.toHaveProperty("email");
+    expect(site.organizationNode({ ...company, phone: " +47 1 ", email: " a@b.no " })).toMatchObject({ telephone: "+47 1", email: "a@b.no" });
   });
 
   it("has a legal name only when it differs from the name", () => {
