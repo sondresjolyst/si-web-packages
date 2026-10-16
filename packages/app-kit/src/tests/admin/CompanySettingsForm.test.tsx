@@ -91,12 +91,19 @@ describe("CompanySettingsForm", () => {
     expect(org).toHaveValue("1");
   });
 
-  it("says the settings could not load and shows an empty form", async () => {
+  it("says the settings could not load and offers no form to save blanks over them", async () => {
     service.get.mockRejectedValue(new Error("down"));
-    render(<CompanySettingsForm service={service} />);
+    render(
+      <CompanySettingsForm service={service}>
+        <p>branding</p>
+      </CompanySettingsForm>,
+    );
 
-    expect(await screen.findByLabelText(/^Company name/)).toHaveValue("");
+    expect(await screen.findByText("Failed to load settings")).toBeInTheDocument();
     expect(toast.error).toHaveBeenCalledWith("Failed to load settings");
+    expect(screen.queryByLabelText(/^Company name/)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Save" })).not.toBeInTheDocument();
+    expect(screen.queryByText("branding")).not.toBeInTheDocument();
   });
 
   it("does not load again when the service is inline", async () => {

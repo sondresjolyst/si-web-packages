@@ -39,6 +39,7 @@ export function CompanySettingsForm({ service, strings, children }: CompanySetti
   const [settings, setSettings] = useState<SiteSettings>(EMPTY);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [failed, setFailed] = useState(false);
   // The latest service, so an inline one does not load the settings again on every render.
   const serviceRef = useRef(service);
   useEffect(() => {
@@ -49,7 +50,11 @@ export function CompanySettingsForm({ service, strings, children }: CompanySetti
     serviceRef.current
       .get()
       .then(setSettings)
-      .catch(() => toast.error(text.loadFailed))
+      .catch(() => {
+        // No form without the saved settings, since saving a blank one would erase them.
+        setFailed(true);
+        toast.error(text.loadFailed);
+      })
       .finally(() => setLoading(false));
   }, [text.loadFailed]);
 
@@ -69,6 +74,7 @@ export function CompanySettingsForm({ service, strings, children }: CompanySetti
   };
 
   if (loading) return <p className="text-gray-500">{text.loading}</p>;
+  if (failed) return <p className="text-gray-500">{text.loadFailed}</p>;
 
   return (
     <div className="space-y-8">
