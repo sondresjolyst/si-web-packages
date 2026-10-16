@@ -264,6 +264,10 @@ export const getRecipe = (id: number) =>
 `target`, so an edit shows at once. It posts to `/api/revalidate` unless `endpoint` says otherwise.
 It never throws. On failure the pages' own revalidate window is the fallback.
 
+`apiFieldErrors(error)` reads the per-field messages of an ASP.NET validation problem from a failed
+call or its body, keyed in camelCase to match the form: `{ errors: { OrgNumber: ["..."] } }` becomes
+`{ orgNumber: ["..."] }`. It answers null when there are none, so the form falls back to one message.
+
 `createPublicClient(baseURL)` is the same without the session, for the API's anonymous endpoints. An
 empty `baseURL` throws, and requests only go to `baseURL`.
 
@@ -1015,6 +1019,20 @@ const gargeRule = passwordSchema().max(128, "Be at most 128 characters long.");
 ```
 
 `PASSWORD_MIN_LENGTH` holds the minimum, for hint text.
+
+### `zodFieldErrors(error, options?)`
+
+From `@sjolystinnovation/app-kit/validation`. A failed parse's issues by the top-level field they
+belong to, for showing beside each input. Each field gets its first issue's message, or every message
+in order with `all: true`. `message` replaces zod's text, such as with the app's own translations.
+Issues that belong to no field are left out.
+
+```ts
+import { zodFieldErrors } from "@sjolystinnovation/app-kit/validation";
+
+const parsed = contactSchema.safeParse(form);
+if (!parsed.success) setErrors(zodFieldErrors(parsed.error, { message: (issue) => issueMessage(issue, dict) }));
+```
 
 ## Theming
 
