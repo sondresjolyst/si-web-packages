@@ -300,6 +300,24 @@ describe("structured data", () => {
     expect(node.address).toMatchObject({ addressCountry: "SE" });
   });
 
+  it("takes several types and the business's pages elsewhere", () => {
+    const types = ["Organization", "LocalBusiness"] as const;
+    const node = site.organizationNode(company, { type: types, sameAs: ["https://virksomhet.brreg.no/x"] });
+    expect(node).toMatchObject({ "@type": ["Organization", "LocalBusiness"], sameAs: ["https://virksomhet.brreg.no/x"] });
+    expect(node["@type"]).not.toBe(types);
+    expect(site.organizationNode(company, { sameAs: [] })).not.toHaveProperty("sameAs");
+    expect(site.organizationNode(company)).not.toHaveProperty("sameAs");
+    expect(site.organizationNode(company, { type: [] })["@type"]).toBe("Organization");
+    expect(site.organizationNode(company, { type: "" })["@type"]).toBe("Organization");
+  });
+
+  it("leaves out a phone number and email nobody filled in", () => {
+    const node = site.organizationNode({ ...company, phone: "  ", email: undefined });
+    expect(node).not.toHaveProperty("telephone");
+    expect(node).not.toHaveProperty("email");
+    expect(site.organizationNode({ ...company, phone: " +47 1 ", email: " a@b.no " })).toMatchObject({ telephone: "+47 1", email: "a@b.no" });
+  });
+
   it("has a legal name only when it differs from the name", () => {
     expect(site.organizationNode({ ...company, legalName: "Altinnendata AS" })).toHaveProperty("legalName", "Altinnendata AS");
   });

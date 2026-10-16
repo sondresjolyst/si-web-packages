@@ -63,6 +63,12 @@
     "zod": "^4"
   },
   "peerDependenciesMeta": {
+    "axios": {
+      "optional": true
+    },
+    "next-auth": {
+      "optional": true
+    },
     "sonner": {
       "optional": true
     },

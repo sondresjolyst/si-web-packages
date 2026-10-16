@@ -438,7 +438,7 @@ The site gives:
   `/cookies` unless `keys` says otherwise, each dated by the timestamp `updatedAt` returns for it.
 - `robots({ privatePaths, privateRootPaths, indexable })` for `robots.ts`. The private paths are
   disallowed under every locale segment. A deployment that is not production disallows everything.
-- `organizationNode(company, { type, country, image, logo })`, `webSiteNode(locale)`,
+- `organizationNode(company, { type, sameAs, country, image, logo })`, `webSiteNode(locale)`,
   `breadcrumbNode(crumbs, pageUrl)`, `itemListNode(paths, pageUrl)`, `siteId(fragment)` and `ids`
   for structured data.
 
@@ -1222,8 +1222,11 @@ with it and has to set the ones it uses itself.
 
 ## Requirements
 
-- Next.js 16, React 19, next-auth 4.24 or later and axios 1.20 or later, as peer dependencies the
-  app installs itself.
+- Next.js 16 and React 19, as peer dependencies the app installs itself.
+- For the root entry, `auth`, `api`, `server`, `session/react`, `ui` and `admin`: next-auth 4.24
+  or later and axios 1.20 or later, as optional peer dependencies. A site without sign-in, which
+  uses only entries such as `seo`, `next-config`, `markdown`, `toast` or `validation`, leaves them
+  out.
 - For `@sjolystinnovation/app-kit/validation`: zod 4, as an optional peer dependency.
 - For `@sjolystinnovation/app-kit/toast`: sonner 2, as an optional peer dependency. Install a single
   copy, because two copies keep two separate toast stores.
