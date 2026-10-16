@@ -602,6 +602,23 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 }
 ```
 
+`StatHistoryChart` draws the admin stats over time: a line per series, a scale from zero to the
+highest value shown, and legend buttons that hide and show each line. `data` is one row per day,
+oldest first, with `date` as `YYYY-MM-DD`. A missing value counts as zero. Each series names the
+field it plots and its label, and takes the next colour in `STAT_SERIES_COLORS` unless it has its
+own. `strings` holds `empty`, shown when there are no days, and `chart`, the accessible name.
+
+```tsx
+<StatHistoryChart
+  data={history}
+  series={[
+    { key: "totalUsers", label: dict.stats.users },
+    { key: "contentImages", label: dict.stats.images },
+  ]}
+  strings={{ empty: dict.admin.noHistory, chart: dict.admin.overTime }}
+/>
+```
+
 `AdminUsersPanel` is the users page. It lists every user with their roles, shows deleted users
 behind a toggle, gives and takes roles, deletes an account after a confirm, and invites a user by
 email. It calls the API through `createAdminUsersService`. `getRoles` returns the roles an admin
@@ -620,23 +637,6 @@ import { AdminUsersPanel } from "@sjolystinnovation/app-kit/admin";
 | `getRoles` | `() => Promise<string[]>` | The roles an admin may give. |
 | `defaultInviteRole` | `string` | The role a new invite starts with. Defaults to `Admin`. |
 | `strings` | `TextOverrides<AdminUsersPanelStrings>` | The text, English by default. `{name}` and `{role}` are filled in where a text names them. |
-
-`StatHistoryChart` draws the admin stats over time: a line per series, a scale from zero to the
-highest value shown, and legend buttons that hide and show each line. `data` is one row per day,
-oldest first, with `date` as `YYYY-MM-DD`. A missing value counts as zero. Each series names the
-field it plots and its label, and takes the next colour in `STAT_SERIES_COLORS` unless it has its
-own. `strings` holds `empty`, shown when there are no days, and `chart`, the accessible name.
-
-```tsx
-<StatHistoryChart
-  data={history}
-  series={[
-    { key: "totalUsers", label: dict.stats.users },
-    { key: "contentImages", label: dict.stats.images },
-  ]}
-  strings={{ empty: dict.admin.noHistory, chart: dict.admin.overTime }}
-/>
-```
 
 ### `@sjolystinnovation/app-kit/session`
 
