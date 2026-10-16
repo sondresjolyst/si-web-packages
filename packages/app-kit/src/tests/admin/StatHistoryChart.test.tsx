@@ -54,7 +54,7 @@ describe("StatHistoryChart", () => {
   });
 
   it("puts a single day in the middle with a scale of at least one", () => {
-    const { container } = render(<StatHistoryChart data={[{ date: "2026-10-01", users: 0 }]} series={[series[0]!]} />);
+    const { container } = render(<StatHistoryChart data={[{ date: "2026-10-01", users: 0 }]} series={[{ key: "users", label: "Users" }]} />);
 
     expect(paths(container)[0]?.getAttribute("d")).toBe("M 368.0 212.0");
     expect(tickLabels(container)).toEqual(["0", "1"]);
