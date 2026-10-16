@@ -289,6 +289,21 @@ describe("structured data", () => {
     expect(node.address).toMatchObject({ addressCountry: "SE" });
   });
 
+  it("takes several types and the business's pages elsewhere", () => {
+    const types = ["Organization", "LocalBusiness"] as const;
+    const node = site.organizationNode(company, { type: types, sameAs: ["https://virksomhet.brreg.no/x"] });
+    expect(node).toMatchObject({ "@type": ["Organization", "LocalBusiness"], sameAs: ["https://virksomhet.brreg.no/x"] });
+    expect(node["@type"]).not.toBe(types);
+    expect(site.organizationNode(company, { sameAs: [] })).not.toHaveProperty("sameAs");
+    expect(site.organizationNode(company)).not.toHaveProperty("sameAs");
+  });
+
+  it("leaves out a phone number and email nobody filled in", () => {
+    const node = site.organizationNode({ ...company, phone: "", email: undefined });
+    expect(node).not.toHaveProperty("telephone");
+    expect(node).not.toHaveProperty("email");
+  });
+
   it("has a legal name only when it differs from the name", () => {
     expect(site.organizationNode({ ...company, legalName: "Altinnendata AS" })).toHaveProperty("legalName", "Altinnendata AS");
   });

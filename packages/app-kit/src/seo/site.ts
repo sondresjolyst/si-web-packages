@@ -68,8 +68,10 @@ export interface RobotsInput {
 }
 
 export interface OrganizationOptions {
-  /** The schema.org type, such as `Organization` or `ComputerStore`. Defaults to `Organization`. */
-  type?: string | undefined;
+  /** The schema.org type, such as `ComputerStore`, or several, such as `["Organization", "LocalBusiness"]`. Defaults to `Organization`. */
+  type?: string | readonly string[] | undefined;
+  /** Pages about the same business elsewhere, such as its entry in Brønnøysundregistrene. */
+  sameAs?: readonly string[] | undefined;
   /** The ISO country code for the address and the area served. Defaults to `NO`. */
   country?: string | undefined;
   /** Site-relative paths of the square image and the logo. Default to `/icon.png` and `/logo.png`. */
@@ -204,15 +206,15 @@ export function defineSite<L extends string = string>(config: SiteConfig<L>) {
   const organizationNode = (company: OrganizationInfo, options: OrganizationOptions = {}): SchemaNode => {
     const country = options.country ?? "NO";
     return {
-      "@type": options.type ?? "Organization",
+      "@type": typeof options.type === "string" ? options.type : options.type ? [...options.type] : "Organization",
       "@id": ids.organization,
       name: company.name,
       ...(company.legalName && company.legalName !== company.name ? { legalName: company.legalName } : {}),
       url: absoluteUrl(),
       image: absoluteUrl(options.image ?? "/icon.png"),
       logo: absoluteUrl(options.logo ?? "/logo.png"),
-      telephone: company.phone,
-      email: company.email,
+      ...(company.phone ? { telephone: company.phone } : {}),
+      ...(company.email ? { email: company.email } : {}),
       address: {
         "@type": "PostalAddress",
         streetAddress: company.streetAddress || company.address,
@@ -224,6 +226,7 @@ export function defineSite<L extends string = string>(config: SiteConfig<L>) {
       areaServed: country,
       ...(company.vatRegistered && company.orgNumber ? { vatID: `NO${company.orgNumber.replace(/\s/g, "")}MVA` } : {}),
       ...(company.orgNumber ? { taxID: company.orgNumber } : {}),
+      ...(options.sameAs?.length ? { sameAs: [...options.sameAs] } : {}),
     };
   };
 
