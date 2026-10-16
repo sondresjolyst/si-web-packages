@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.21.0](https://github.com/sondresjolyst/si-web-packages/compare/app-kit-v0.20.0...app-kit-v0.21.0) (2026-10-16)
+
+
+### Features
+
+* **app-kit:** add CompanySettingsForm, mergeCompanyInfo and formatOrgNumber ([#51](https://github.com/sondresjolyst/si-web-packages/issues/51)) ([685a5ce](https://github.com/sondresjolyst/si-web-packages/commit/685a5ce5a614e4651e8007919217aae5c66507b9))
+* **app-kit:** add defineRevalidateTargets ([#49](https://github.com/sondresjolyst/si-web-packages/issues/49)) ([8607315](https://github.com/sondresjolyst/si-web-packages/commit/86073152ac0815dff1b0cbfd9c0c8415ea0bfa48))
+* **app-kit:** add LegalPageView, LegalPagesEditor and LocaleTabs ([#52](https://github.com/sondresjolyst/si-web-packages/issues/52)) ([1a56d7b](https://github.com/sondresjolyst/si-web-packages/commit/1a56d7ba238d5ee0664f4d0c0d3929e39cde2806))
+* **app-kit:** add organizationNode options and make next-auth and axios optional peers ([#48](https://github.com/sondresjolyst/si-web-packages/issues/48)) ([2315681](https://github.com/sondresjolyst/si-web-packages/commit/23156810656dcb4d2910048ad1f62193b98a5d9a))
+* **app-kit:** add sitemap helpers for legal pages and sites without locales ([#47](https://github.com/sondresjolyst/si-web-packages/issues/47)) ([12da482](https://github.com/sondresjolyst/si-web-packages/commit/12da482a8d1131ea56d50ace0cb49ff09ef14a60))
+* **app-kit:** add StatHistoryChart ([#50](https://github.com/sondresjolyst/si-web-packages/issues/50)) ([02b37b5](https://github.com/sondresjolyst/si-web-packages/commit/02b37b5f7dc6105a0cb9aba6e43f0875e135a7ad))
+
 ## [0.20.0](https://github.com/sondresjolyst/si-web-packages/compare/app-kit-v0.19.0...app-kit-v0.20.0) (2026-10-16)
 
 
