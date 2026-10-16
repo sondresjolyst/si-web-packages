@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { defineSite, isIndexableEnvironment, LEGAL_PAGE_KEYS, latest, NOINDEX, normalizePath, parseTimestamp, ref, serializeGraph, SHARE_IMAGE_SIZE, type OrganizationInfo } from "../../seo";
+import { defineSite, isIndexableEnvironment, LEGAL_PAGE_KEYS, latest, NOINDEX, parseTimestamp, ref, serializeGraph, SHARE_IMAGE_SIZE, type OrganizationInfo } from "../../seo";
+import { normalizePath } from "../../seo/site";
 
 const URL_ = "https://www.altinnendata.no";
 const site = defineSite({

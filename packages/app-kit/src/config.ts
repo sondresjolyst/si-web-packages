@@ -57,8 +57,8 @@ export function requireEnv(name: string, value: string | undefined): string {
  * Reads the API JWT secret named by the config. Throws when it is missing, with a message that names
  * the variable.
  *
- * The caller passes the environment, usually `process.env`, so this entry point needs no Node
- * types and stays safe to import in browser code.
+ * The caller passes the environment, usually `process.env`, so this module needs no Node types and
+ * stays safe to import in browser code. `createAuthOptions` uses it. It is not part of the public API.
  */
 export function resolveJwtSecret(
   config: SessionConfig,

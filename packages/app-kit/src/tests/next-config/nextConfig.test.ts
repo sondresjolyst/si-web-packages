@@ -1,15 +1,15 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { defineAppConfig } from "../../next-config";
 import {
   apiBaseUrl,
   apiOrigin,
   contentImagesRewrite,
   contentSecurityPolicy,
-  defineAppConfig,
   securityHeaders,
   type Header,
-} from "../../next-config";
+} from "../../next-config/headers";
 
 const API = "https://pyttogpanne-api.prod.tumogroup.com/api";
 const ORIGIN = "https://pyttogpanne-api.prod.tumogroup.com";
@@ -199,9 +199,16 @@ describe("defineAppConfig", () => {
 
 describe("the entry point", () => {
   it("imports nothing but Next's types, so next.config.ts can load it", () => {
-    const source = readFileSync(join(__dirname, "../../next-config/index.ts"), "utf8");
-    const imports = [...source.matchAll(/^import .*$/gm)].map(m => m[0]);
-    expect(imports).toEqual(['import type { NextConfig } from "next";']);
-    expect(source).not.toContain('"use client"');
+    const read = (file: string) => readFileSync(join(__dirname, "../../next-config", file), "utf8");
+    const importsOf = (source: string) => [...source.matchAll(/^import .*$/gm)].map(m => m[0]);
+    const entry = read("index.ts");
+    const headers = read("headers.ts");
+    expect(importsOf(entry)).toEqual([
+      'import type { NextConfig } from "next";',
+      'import { contentImagesRewrite, securityHeaders, type CspOptions, type Header } from "./headers";',
+    ]);
+    expect(importsOf(headers)).toEqual([]);
+    expect(entry).not.toContain('"use client"');
+    expect(headers).not.toContain('"use client"');
   });
 });

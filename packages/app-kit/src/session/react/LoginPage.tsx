@@ -2,11 +2,11 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { authLinkClassName, authPageClassName, authTitleClassName } from "./authClasses";
+import { authLinkClassName, authPageClassName, authTitleClassName } from "../../ui/authClasses";
 import { CredentialsForm } from "./CredentialsForm";
 import type { CredentialsFormStrings } from "./credentialsFormStrings";
 import { defaultLoginPageStrings, type LoginPageStrings } from "./loginPageStrings";
-import { withDefaults, type TextOverrides } from "./withDefaults";
+import { withDefaults, type TextOverrides } from "../../ui/withDefaults";
 
 /** Props for `LoginPage`. */
 export interface LoginPageProps {

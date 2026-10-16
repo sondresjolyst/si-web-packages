@@ -3,8 +3,8 @@
 import { getSession, signOut, useSession } from "next-auth/react";
 import { useEffect, useId, useRef, useState, useSyncExternalStore } from "react";
 import { Alert } from "../../ui/Alert";
-import { CredentialsForm } from "../../ui/CredentialsForm";
-import { SignInRejected, type CredentialsFormStrings } from "../../ui/credentialsFormStrings";
+import { CredentialsForm } from "./CredentialsForm";
+import { SignInRejected, type CredentialsFormStrings } from "./credentialsFormStrings";
 import { withDefaults, type TextOverrides } from "../../ui/withDefaults";
 import {
   closeSessionPrompt,

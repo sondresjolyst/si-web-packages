@@ -4,7 +4,7 @@ import userEvent from "@testing-library/user-event";
 import type { Session } from "next-auth";
 import { closeSessionPrompt, getSessionPromptOpen, openSessionPrompt } from "../../session";
 import { SessionExpiryGuard, defaultSessionExpiryGuardStrings as text } from "../../session/react";
-import { defaultCredentialsFormStrings as formText } from "../../ui";
+import { defaultCredentialsFormStrings as formText } from "../../session/react";
 
 const signIn = vi.fn();
 const signOut = vi.fn();

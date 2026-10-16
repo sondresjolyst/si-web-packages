@@ -1,6 +1,6 @@
 import { AxiosError, AxiosHeaders, CanceledError } from "axios";
 import { describe, expect, it } from "vitest";
-import { formatApiError } from "../errors";
+import { formatApiError } from "../../api";
 
 function axiosError(data: unknown, status = 400, contentType = "application/json"): AxiosError {
   const config = { headers: new AxiosHeaders() };

@@ -83,7 +83,7 @@ describe("LegalPagesEditor", () => {
     await userEvent.type(screen.getByLabelText("Content (Markdown)"), "Be nice.");
     await userEvent.click(screen.getByRole("button", { name: "Save" }));
 
-    expect(service.save).toHaveBeenCalledWith("terms", "en", "Terms", "Be nice.");
+    expect(service.save).toHaveBeenCalledWith({ key: "terms", locale: "en", title: "Terms", bodyMarkdown: "Be nice." });
     await waitFor(() => expect(toast.success).toHaveBeenCalledWith("Page saved"));
     expect(screen.getByRole("button", { name: /English/ }).querySelector("[title]")).toBeNull();
   });
@@ -145,7 +145,7 @@ describe("LegalPagesEditor", () => {
     await userEvent.click(screen.getByRole("button", { name: "Save" }));
 
     expect(service.listAll).toHaveBeenCalledTimes(1);
-    expect(next.save).toHaveBeenCalledWith("terms", "no", "Vilkår", "# Vilkår");
+    expect(next.save).toHaveBeenCalledWith({ key: "terms", locale: "no", title: "Vilkår", bodyMarkdown: "# Vilkår" });
   });
 
   it("uses the app's text and the primary button tokens", async () => {

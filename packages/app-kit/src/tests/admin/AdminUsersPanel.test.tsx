@@ -305,7 +305,7 @@ describe("AdminUsersPanel", () => {
     await userEvent.selectOptions(screen.getByLabelText("Role"), "Editor");
     await userEvent.click(screen.getByRole("button", { name: "Send invitation" }));
 
-    expect(service.invite).toHaveBeenCalledWith("per@example.no", "Per", "Hansen", "Editor");
+    expect(service.invite).toHaveBeenCalledWith({ email: "per@example.no", firstName: "Per", lastName: "Hansen", role: "Editor" });
     await waitFor(() => expect(toast.success).toHaveBeenCalledWith("Invitation sent. The user gets a code to set a password."));
     expect(screen.getByLabelText(/^First name/)).toHaveValue("");
     expect(screen.getByLabelText(/^Last name/)).toHaveValue("");

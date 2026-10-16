@@ -1,5 +1,5 @@
 import axios from "axios";
-import { formatApiError, type StatusMessages } from "../errors";
+import { formatApiError, type StatusMessages } from "./formatApiError";
 
 /**
  * Runs an API call and returns its data. A failure throws an `Error` with a message for the user,
