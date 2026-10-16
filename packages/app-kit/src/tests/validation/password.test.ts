@@ -51,3 +51,29 @@ describe("passwordSchema", () => {
     expect(messagesFor("password", schema)).toEqual(["Ta med en stor bokstav.", defaultPasswordStrings.digit]);
   });
 });
+
+describe("passwordProblems", () => {
+  it("lists every broken rule in the schema's order, and nothing for a good password", async () => {
+    const { passwordProblems, passwordSchema } = await import("../../validation");
+    for (const password of ["", "short", "PASSWORD1", "password1", "Password", "Pass1", "Password1", "Ådlerberg9"]) {
+      const result = passwordSchema().safeParse(password);
+      const fromSchema = result.success ? [] : result.error.issues.map((i) => i.message);
+      expect(passwordProblems(password)).toEqual(fromSchema);
+    }
+    expect(passwordProblems("Password1")).toEqual([]);
+  });
+
+  it("uses the app's own messages", async () => {
+    const { passwordProblems } = await import("../../validation");
+    expect(passwordProblems("Passwordx", { digit: "Ta med et siffer." })).toEqual(["Ta med et siffer."]);
+  });
+
+  it("does not load zod", async () => {
+    const { readFileSync } = await import("node:fs");
+    const { join } = await import("node:path");
+    const source = readFileSync(join(__dirname, "../../validation/passwordRules.ts"), "utf8");
+    const flow = readFileSync(join(__dirname, "../../ui/ResetPasswordFlow.tsx"), "utf8");
+    expect(source).not.toMatch(/from "zod"/);
+    expect(flow).not.toMatch(/validation\/password"|from "zod"/);
+  });
+});

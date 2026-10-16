@@ -839,6 +839,37 @@ A failed sign-in shows `signInUnavailable` for `SIGN_IN_ERRORS.unavailable` and
 `invalidCredentials` for any other error code. A request next-auth refuses without an error code,
 or one that throws, shows `somethingWentWrong`.
 
+### `ResetPasswordFlow`
+
+From `@sjolystinnovation/app-kit/ui`. The password reset page in two steps: the email asks for a code,
+then the code and a new password set it. The password is checked against the same rules as `passwordSchema` before it
+is sent, without loading zod. An emailed link with the email and code, such as an invite, opens it on the second step. It
+uses the app's `bg-primary` and `text-primary-foreground` colours for its buttons.
+
+```tsx
+const params = useSearchParams();
+
+<ResetPasswordFlow
+  requestReset={UserService.requestPasswordReset}
+  reset={UserService.resetPassword}
+  loginHref="/login"
+  initialEmail={params.get("email") ?? ""}
+  initialCode={params.get("code") ?? ""}
+  strings={{ title: "Tilbakestill passord", signInPrompt: null }}
+/>
+```
+
+| Prop | Type | Description |
+| --- | --- | --- |
+| `requestReset` | `(data: { email }) => Promise<unknown>` | Asks the API to email a code. |
+| `reset` | `(data: { email, code, newPassword }) => Promise<unknown>` | Sets the password. A `message` in its answer is shown when it succeeds. |
+| `loginHref` | `string` | Where the sign-in links go. |
+| `initialEmail`, `initialCode` | `string` | From the emailed link. A code opens the second step. |
+| `strings` | `TextOverrides<ResetPasswordFlowStrings>` | The page's text. `signInPrompt`, `intro`, `codeSent` and `passwordHint` set to null are left out. `done` set to null shows the API's message, or only the sign-in link when it sends none. `passwordInvalid` set to null lists every broken rule. |
+| `passwordStrings` | `TextOverrides<PasswordStrings>` | The rule messages, in the app's language. |
+
+A failure shows the error's message, or `somethingWentWrong` when it has none.
+
 `TextOverrides<T>`, from `@sjolystinnovation/app-kit/ui`, is the type of every `strings` prop. Each
 key is optional and may be `undefined`, and a missing or undefined key shows the English default.
 
@@ -1018,7 +1049,8 @@ const result = passwordSchema({ uppercase: "Ta med en stor bokstav fra A til Z."
 const gargeRule = passwordSchema().max(128, "Be at most 128 characters long.");
 ```
 
-`PASSWORD_MIN_LENGTH` holds the minimum, for hint text.
+`PASSWORD_MIN_LENGTH` holds the minimum, for hint text. `passwordProblems(password, strings?)` gives the
+message of every rule a password breaks, in the same order, without zod.
 
 ### `zodFieldErrors(error, options?)`
 
