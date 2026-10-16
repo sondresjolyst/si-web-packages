@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.20.0](https://github.com/sondresjolyst/si-web-packages/compare/app-kit-v0.19.0...app-kit-v0.20.0) (2026-10-16)
+
+
+### Features
+
+* **app-kit:** add AdminShell and AdminUsersPanel ([#45](https://github.com/sondresjolyst/si-web-packages/issues/45)) ([340696b](https://github.com/sondresjolyst/si-web-packages/commit/340696b4d4d7251e4f8e8e46edde4b562abb362c))
+* **app-kit:** add LoginPage ([#44](https://github.com/sondresjolyst/si-web-packages/issues/44)) ([6278050](https://github.com/sondresjolyst/si-web-packages/commit/6278050f2b349d2fda74c7547ebd2846c2b5e141))
+* **app-kit:** ship the next-auth session and token declarations ([#43](https://github.com/sondresjolyst/si-web-packages/issues/43)) ([8043781](https://github.com/sondresjolyst/si-web-packages/commit/804378148cdb10ce6ca259f1fe654b5299575a39))
+
 ## [0.19.0](https://github.com/sondresjolyst/si-web-packages/compare/app-kit-v0.18.0...app-kit-v0.19.0) (2026-10-16)
 
 
