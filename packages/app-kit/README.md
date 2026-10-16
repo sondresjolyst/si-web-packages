@@ -594,6 +594,49 @@ if (loading) return <Spinner />;
 
 `formatNok(ore)` formats øre as kroner, such as `NOK 373,75`.
 
+### `@sjolystinnovation/app-kit/admin`
+
+The admin area. `AdminShell` is the frame: a title and a tab bar above the page, behind a
+`RoleGate`. It takes `RoleGate`'s `role`, `fallback`, and `denied` or `deniedHref`. The tab whose
+`href` is the current path is active, with `aria-current="page"`.
+
+```tsx
+// src/app/[locale]/(protected)/admin/layout.tsx
+"use client";
+import { AdminShell } from "@sjolystinnovation/app-kit/admin";
+
+export default function AdminLayout({ children }: { children: React.ReactNode }) {
+  const { dict, locale } = useDictionary();
+  const tabs = [
+    { href: `/${locale}/admin/users`, label: dict.admin.users },
+    { href: `/${locale}/admin/legal`, label: dict.admin.legal },
+  ];
+  return (
+    <AdminShell role="Admin" title={dict.admin.title} tabs={tabs} deniedHref={`/${locale}`}>
+      {children}
+    </AdminShell>
+  );
+}
+```
+
+`AdminUsersPanel` is the users page. It lists every user with their roles, shows deleted users
+behind a toggle, gives and takes roles, deletes an account after a confirm, and invites a user by
+email. It calls the API through `createAdminUsersService`. `getRoles` returns the roles an admin
+may give. Inline functions are fine. The panel does not fetch again when they change.
+
+```tsx
+import { AdminUsersPanel } from "@sjolystinnovation/app-kit/admin";
+
+<AdminUsersPanel service={adminUsers} getRoles={AdminService.getRoles} strings={dict.adminUsers} />
+```
+
+| Prop | Type | Description |
+| --- | --- | --- |
+| `service` | `ReturnType<typeof createAdminUsersService>` | The user admin calls. |
+| `getRoles` | `() => Promise<string[]>` | The roles an admin may give. |
+| `defaultInviteRole` | `string` | The role a new invite starts with. Defaults to `Admin`. |
+| `strings` | `TextOverrides<AdminUsersPanelStrings>` | The text, English by default. `{name}` and `{role}` are filled in where a text names them. |
+
 ### `@sjolystinnovation/app-kit/session`
 
 Decides when a user has to sign in again. Safe to import from server code, such as the next-auth
@@ -1122,6 +1165,11 @@ selector such as `.dark` for a scoped theme:
 | `--color-auth-hint` | gray 500, the hint under the password |
 | `--color-auth-link`, `-hover` | gray 900, the sign-in links |
 | `--font-weight-auth-link` | semibold |
+| `--color-admin-title` | gray 900, the title of `AdminShell` |
+| `--color-admin-border` | gray 200, the line under the tabs |
+| `--color-admin-tab`, `-hover` | gray 500 and gray 900 |
+| `--color-admin-tab-active` | gray 900 |
+| `--color-admin-tab-indicator` | `var(--color-primary)`, the line under the active tab |
 | `--radius-button` | `var(--radius-lg)` |
 | `--color-button-primary-bg` | `var(--color-primary)` |
 | `--color-button-primary-text` | `var(--color-primary-foreground)` |
@@ -1164,9 +1212,9 @@ with it and has to set the ones it uses itself.
 - For `@sjolystinnovation/app-kit/toast`: sonner 2, as an optional peer dependency. Install a single
   copy, because two copies keep two separate toast stores.
 - `jsonwebtoken` comes with the package. `@sjolystinnovation/app-kit/auth` uses it on the server.
-- For `@sjolystinnovation/app-kit/ui` and the components in `session/react`: Tailwind CSS 4 and
-  `@heroicons/react` 2. The focus ring and the primary button use the theme's `primary` and
-  `primary-foreground` colours, unless their own variables are set.
+- For `@sjolystinnovation/app-kit/ui`, `@sjolystinnovation/app-kit/admin` and the components in
+  `session/react`: Tailwind CSS 4 and `@heroicons/react` 2. The focus ring and the primary button
+  use the theme's `primary` and `primary-foreground` colours, unless their own variables are set.
 - TypeScript with `"moduleResolution": "bundler"`. Relative imports here are extensionless, which
   `node16` and `nodenext` reject.
 
