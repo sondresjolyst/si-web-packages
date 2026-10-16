@@ -590,6 +590,16 @@ if (loading) return <Spinner />;
 
 ### `@sjolystinnovation/app-kit/admin`
 
+`CompanySettingsForm` is the admin form for the business details the public pages show, saved
+through `createSettingsService`. Its children show below the form once the settings have loaded,
+such as the `BrandingManager`. `strings` holds every label, hint and message, English by default.
+
+```tsx
+<CompanySettingsForm service={SettingsService} strings={dict.companySettings}>
+  <BrandingManager save={BrandingService.update} />
+</CompanySettingsForm>
+```
+
 The admin area. `AdminShell` is the frame: a title and a tab bar above the page, behind a
 `RoleGate`. It takes `RoleGate`'s `role`, `fallback`, and `denied` or `deniedHref`. The tab whose
 `href` is the current path is active, with `aria-current="page"`.
@@ -631,16 +641,6 @@ import { AdminUsersPanel } from "@sjolystinnovation/app-kit/admin";
 | `getRoles` | `() => Promise<string[]>` | The roles an admin may give. |
 | `defaultInviteRole` | `string` | The role a new invite starts with. Defaults to `Admin`. |
 | `strings` | `TextOverrides<AdminUsersPanelStrings>` | The text, English by default. `{name}` and `{role}` are filled in where a text names them. |
-
-`CompanySettingsForm` is the admin form for the business details the public pages show, saved
-through `createSettingsService`. Its children show below the form once the settings have loaded,
-such as the `BrandingManager`. `strings` holds every label, hint and message, English by default.
-
-```tsx
-<CompanySettingsForm service={SettingsService} strings={dict.companySettings}>
-  <BrandingManager save={BrandingService.update} />
-</CompanySettingsForm>
-```
 
 ### `@sjolystinnovation/app-kit/session`
 
