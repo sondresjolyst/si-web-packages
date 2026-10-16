@@ -24,6 +24,13 @@ describe("LegalPageView", () => {
     expect(screen.getByRole("link", { name: "← Back to the front page" })).toHaveAttribute("href", "/");
   });
 
+  it("leaves out a date it cannot read, and still shows the page", () => {
+    render(<LegalPageView page={{ ...page, updatedAt: "not a date" }} title="x" homeHref="/" dateLocale="en-GB" />);
+
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Vilkår for bruk");
+    expect(screen.queryByText(/Last updated/)).not.toBeInTheDocument();
+  });
+
   it("writes the date in English for an English page", () => {
     render(<LegalPageView page={page} title="x" homeHref="/en" dateLocale="en-GB" />);
 

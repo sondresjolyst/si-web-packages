@@ -37,6 +37,7 @@ export function LegalPagesEditor<K extends string, L extends string>({ service, 
   const [activeLocale, setActiveLocale] = useState<L | undefined>(locales[0]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [failed, setFailed] = useState(false);
   // The latest service, so an inline one does not load the pages again on every render.
   const serviceRef = useRef(service);
   useEffect(() => {
@@ -47,7 +48,11 @@ export function LegalPagesEditor<K extends string, L extends string>({ service, 
     serviceRef.current
       .listAll()
       .then(pages => setDrafts(Object.fromEntries(pages.map(p => [`${p.key}:${p.locale}`, { title: p.title, bodyMarkdown: p.bodyMarkdown }]))))
-      .catch((err: unknown) => toast.error(err instanceof Error && err.message ? err.message : text.loadFailed))
+      .catch((err: unknown) => {
+        // No editor without the saved pages, since saving a blank one would erase it.
+        setFailed(true);
+        toast.error(err instanceof Error && err.message ? err.message : text.loadFailed);
+      })
       .finally(() => setLoading(false));
   }, [text.loadFailed]);
 
@@ -75,6 +80,7 @@ export function LegalPagesEditor<K extends string, L extends string>({ service, 
   };
 
   if (loading) return <p className="text-gray-500">{text.loading}</p>;
+  if (failed) return <p className="text-gray-500">{text.loadFailed}</p>;
 
   const filled = Object.fromEntries(locales.map(l => [l, (drafts[`${activeKey}:${l}`]?.bodyMarkdown ?? "") !== ""])) as Record<L, boolean>;
 

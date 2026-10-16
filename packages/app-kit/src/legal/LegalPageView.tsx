@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { LegalPage } from "../api/services";
 import { Markdown } from "../markdown";
+import { parseTimestamp } from "../seo/sitemap";
 import { withDefaults, type TextOverrides } from "../ui/withDefaults";
 
 /** The legal page's text around the content. Pass the app's own language. The defaults are English. */
@@ -34,13 +35,15 @@ export interface LegalPageViewProps {
 /** A terms, privacy or cookies page as an admin wrote it: the title, when it last changed and the Markdown body. */
 export function LegalPageView({ page, title, homeHref, dateLocale, strings }: LegalPageViewProps) {
   const text = withDefaults(defaultLegalPageViewStrings, strings);
+  // A malformed timestamp leaves the date out rather than failing the page.
+  const updatedAt = parseTimestamp(page?.updatedAt);
 
   return (
     <div className="max-w-2xl mx-auto px-4 sm:px-6 py-12 space-y-6">
       <h1 className="text-3xl font-black text-gray-900">{page?.title ?? title}</h1>
-      {page && (
+      {updatedAt && (
         <p className="text-xs text-gray-500">
-          {text.updated}: {new Intl.DateTimeFormat(dateLocale, { dateStyle: "long" }).format(new Date(page.updatedAt))}
+          {text.updated}: {new Intl.DateTimeFormat(dateLocale, { dateStyle: "long" }).format(updatedAt)}
         </p>
       )}
 

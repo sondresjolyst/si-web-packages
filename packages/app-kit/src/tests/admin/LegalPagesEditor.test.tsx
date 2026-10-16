@@ -124,7 +124,9 @@ describe("LegalPagesEditor", () => {
     service.listAll.mockRejectedValueOnce(new Error("Forbidden"));
     const first = editor();
     await waitFor(() => expect(toast.error).toHaveBeenCalledWith("Forbidden"));
-    expect(await screen.findByLabelText(/^Title/)).toHaveValue("");
+    expect(await screen.findByText("Failed to load the legal pages")).toBeInTheDocument();
+    expect(screen.queryByLabelText(/^Title/)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Save" })).not.toBeInTheDocument();
     first.unmount();
 
     service.listAll.mockRejectedValueOnce("nope");
