@@ -1,13 +1,13 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { apiFieldErrors } from "../api/apiFieldErrors";
+import { fieldErrorTexts } from "../api/fieldErrorText";
 import type { LegalPage } from "../api/services";
 import { toast } from "../toast";
 import { FieldError } from "../ui/field";
 import { TextInput } from "../ui/TextInput";
 import { withDefaults, type TextOverrides } from "../ui/withDefaults";
-import { defaultLegalPagesEditorStrings, type LegalPagesEditorStrings } from "./legalPagesEditorStrings";
+import { defaultLegalPagesEditorStrings, type LegalPagesEditorStrings, type LegalPagesValidationStrings } from "./legalPagesEditorStrings";
 import { LocaleTabs } from "./LocaleTabs";
 
 /** Props for `LegalPagesEditor`. */
@@ -25,7 +25,12 @@ export interface LegalPagesEditorProps<K extends string, L extends string> {
   locales: readonly L[];
   /** Each locale's tab label, such as `Norsk`. */
   localeLabels: Record<L, string>;
-  strings?: TextOverrides<LegalPagesEditorStrings> | undefined;
+  /** The editor's text. `validation` may name only some codes, the rest keep their defaults. */
+  strings?:
+    | (TextOverrides<Omit<LegalPagesEditorStrings, "validation">> & {
+        validation?: TextOverrides<LegalPagesValidationStrings> | undefined;
+      })
+    | undefined;
 }
 
 type Draft = { title: string; bodyMarkdown: string };
@@ -34,14 +39,16 @@ const emptyDraft: Draft = { title: "", bodyMarkdown: "" };
 
 /** The admin editor for the legal pages: one page and one locale at a time, with the title and the Markdown body. */
 export function LegalPagesEditor<K extends string, L extends string>({ service, keys, keyLabels, locales, localeLabels, strings }: LegalPagesEditorProps<K, L>) {
-  const text = withDefaults(defaultLegalPagesEditorStrings, strings);
+  const { validation: validationOverrides, ...textOverrides } = strings ?? {};
+  const text = withDefaults(defaultLegalPagesEditorStrings, textOverrides);
+  const validation = withDefaults(defaultLegalPagesEditorStrings.validation, validationOverrides);
   const [drafts, setDrafts] = useState<Record<string, Draft>>({});
   const [activeKey, setActiveKey] = useState<K | undefined>(keys[0]);
   const [activeLocale, setActiveLocale] = useState<L | undefined>(locales[0]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [failed, setFailed] = useState(false);
-  // The API's per-field messages from the last failed save, with the page and locale they belong to.
+  // The per-field texts from the last failed save, with the page and locale they belong to.
   const [fieldErrors, setFieldErrors] = useState<{ slot: string; fields: Record<string, string[]> } | null>(null);
   // The latest service, so an inline one does not load the pages again on every render.
   const serviceRef = useRef(service);
@@ -71,7 +78,9 @@ export function LegalPagesEditor<K extends string, L extends string>({ service, 
   const patch = (changes: Partial<Draft>) => setDrafts(prev => ({ ...prev, [slot]: { ...(prev[slot] ?? emptyDraft), ...changes } }));
 
   const save = async () => {
-    if (draft.title.trim() === "" || draft.bodyMarkdown.trim() === "") {
+    const blank = (Object.keys(emptyDraft) as (keyof Draft)[]).filter(field => draft[field].trim() === "");
+    if (blank.length > 0) {
+      setFieldErrors({ slot, fields: Object.fromEntries(blank.map(field => [field, [validation.required]])) });
       toast.error(text.required);
       return;
     }
@@ -81,9 +90,10 @@ export function LegalPagesEditor<K extends string, L extends string>({ service, 
       setFieldErrors(null);
       toast.success(text.saved);
     } catch (err) {
-      const fields = apiFieldErrors(err);
-      setFieldErrors(fields ? { slot, fields } : null);
-      toast.error(err instanceof Error && err.message ? err.message : text.saveFailed);
+      const fields = fieldErrorTexts(err, validation);
+      setFieldErrors({ slot, fields });
+      const first = Object.values(fields)[0]?.[0];
+      toast.error(first ?? (err instanceof Error && err.message ? err.message : text.saveFailed));
     } finally {
       setSaving(false);
     }

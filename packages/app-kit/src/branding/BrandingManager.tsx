@@ -1,11 +1,24 @@
 "use client";
 
 import { ArrowUpTrayIcon, TrashIcon } from "@heroicons/react/24/outline";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
+import { fieldErrorTexts } from "../api/fieldErrorText";
 import { toast } from "../toast";
+import { FieldError } from "../ui/field";
 import { withDefaults, type TextOverrides } from "../ui/withDefaults";
 import { useBranding } from "./BrandingProvider";
 import { toDataUrl } from "./types";
+
+/**
+ * The branding form's text for each refusal code of SjolystInnovation.AppKit.SiteSettings that a
+ * chosen file can get. The form shows the API's own message for a code that is not here.
+ */
+export interface BrandingValidationStrings {
+  /** The file is not a PNG, JPEG, WebP, GIF, or ICO image. */
+  invalidImage: string;
+  /** The file is larger than 2 MB. */
+  imageTooLarge: string;
+}
 
 /** The branding form's text. Pass the app's own language. The defaults are English. */
 export interface BrandingManagerStrings {
@@ -21,6 +34,8 @@ export interface BrandingManagerStrings {
   saving: string;
   saved: string;
   saveFailed: string;
+  /** The refusal texts, by code. Any code left out keeps its default. */
+  validation: BrandingValidationStrings;
 }
 
 const IMAGE_TYPES = "image/png,image/jpeg,image/webp,image/gif,image/x-icon,.ico";
@@ -38,6 +53,10 @@ export const defaultBrandingManagerStrings: BrandingManagerStrings = {
   saving: "Saving…",
   saved: "Branding saved",
   saveFailed: "Failed to save branding",
+  validation: {
+    invalidImage: "The image must be a PNG, JPEG, WebP, GIF or ICO file of at most 2 MB.",
+    imageTooLarge: "The image must be a PNG, JPEG, WebP, GIF or ICO file of at most 2 MB.",
+  },
 };
 
 /** Props for `BrandingManager`. */
@@ -47,7 +66,12 @@ export interface BrandingManagerProps {
    * to `true`. Throw from it to show the error's message, such as one from `formatApiError`.
    */
   save: (form: FormData) => Promise<unknown>;
-  strings?: TextOverrides<BrandingManagerStrings> | undefined;
+  /** The form's text. `validation` may name only some codes, the rest keep their defaults. */
+  strings?:
+    | (TextOverrides<Omit<BrandingManagerStrings, "validation">> & {
+        validation?: TextOverrides<BrandingValidationStrings> | undefined;
+      })
+    | undefined;
 }
 
 /** A preview is an object URL for the chosen file or a data URL of a raster image. Anything else shows none. */
@@ -61,11 +85,15 @@ interface SlotProps {
   file: File | null;
   onPick: (file: File | null) => void;
   onClear: () => void;
+  /** Why the API refused this slot's file in the last save, if it did. */
+  error: string | undefined;
   text: BrandingManagerStrings;
 }
 
-function Slot({ label, hint, currentUrl, file, onPick, onClear, text }: SlotProps) {
+function Slot({ label, hint, currentUrl, file, onPick, onClear, error, text }: SlotProps) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const errorId = `${useId()}-error`;
+  const describedBy = error ? errorId : undefined;
   const [objectUrl, setObjectUrl] = useState<string | null>(null);
 
   // An object URL is an outside resource with a lifetime, which is what an effect is for. Creating
@@ -100,12 +128,15 @@ function Slot({ label, hint, currentUrl, file, onPick, onClear, text }: SlotProp
           // The types the API accepts, so the picker does not offer an SVG it would refuse.
           accept={IMAGE_TYPES}
           aria-label={label}
+          aria-invalid={error ? true : undefined}
+          aria-describedby={describedBy}
           className="hidden"
           onChange={e => onPick(e.target.files?.[0] ?? null)}
         />
         <button
           type="button"
           onClick={() => inputRef.current?.click()}
+          aria-describedby={describedBy}
           className="inline-flex items-center gap-1.5 rounded-lg bg-gray-100 text-gray-700 font-medium px-3 py-2 text-sm hover:bg-gray-200"
         >
           <ArrowUpTrayIcon className="h-4 w-4" /> {text.choose}
@@ -117,19 +148,24 @@ function Slot({ label, hint, currentUrl, file, onPick, onClear, text }: SlotProp
         )}
       </div>
       <p className="mt-1 text-xs text-gray-500">{hint}</p>
+      <FieldError id={errorId} error={error} />
     </div>
   );
 }
 
 /** The admin form for uploading or removing the logo and the favicon. Needs a `BrandingProvider` above it. */
 export function BrandingManager({ save, strings }: BrandingManagerProps) {
-  const text = withDefaults(defaultBrandingManagerStrings, strings);
+  const { validation: validationOverrides, ...textOverrides } = strings ?? {};
+  const text = withDefaults(defaultBrandingManagerStrings, textOverrides);
+  const validation = withDefaults(defaultBrandingManagerStrings.validation, validationOverrides);
   const { branding, refresh } = useBranding();
   const [logo, setLogo] = useState<File | null>(null);
   const [icon, setIcon] = useState<File | null>(null);
   const [removeLogo, setRemoveLogo] = useState(false);
   const [removeIcon, setRemoveIcon] = useState(false);
   const [saving, setSaving] = useState(false);
+  // The texts for the files the API refused in the last save, keyed by `logo` and `icon`.
+  const [refusals, setRefusals] = useState<Record<string, string[]>>({});
 
   const currentLogo = removeLogo ? null : toDataUrl(branding.logoData, branding.logoContentType);
   const currentIcon = removeIcon ? null : toDataUrl(branding.iconData, branding.iconContentType);
@@ -147,10 +183,14 @@ export function BrandingManager({ save, strings }: BrandingManagerProps) {
       setIcon(null);
       setRemoveLogo(false);
       setRemoveIcon(false);
+      setRefusals({});
       refresh();
       toast.success(text.saved);
     } catch (err) {
-      toast.error(err instanceof Error && err.message ? err.message : text.saveFailed);
+      const texts = fieldErrorTexts(err, validation);
+      setRefusals(texts);
+      const first = Object.values(texts)[0]?.[0];
+      toast.error(first ?? (err instanceof Error && err.message ? err.message : text.saveFailed));
     } finally {
       setSaving(false);
     }
@@ -166,6 +206,7 @@ export function BrandingManager({ save, strings }: BrandingManagerProps) {
         file={logo}
         onPick={f => { setLogo(f); setRemoveLogo(false); }}
         onClear={() => { setLogo(null); setRemoveLogo(true); }}
+        error={refusals.logo?.join(" ")}
         text={text}
       />
       <Slot
@@ -175,6 +216,7 @@ export function BrandingManager({ save, strings }: BrandingManagerProps) {
         file={icon}
         onPick={f => { setIcon(f); setRemoveIcon(false); }}
         onClear={() => { setIcon(null); setRemoveIcon(true); }}
+        error={refusals.icon?.join(" ")}
         text={text}
       />
       <button

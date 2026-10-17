@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
-import { apiFieldErrorDetails, type ApiFieldError } from "../api/apiFieldErrors";
+import { fieldErrorTexts } from "../api/fieldErrorText";
 import type { SiteSettings } from "../api/services";
 import { toast } from "../toast";
 import { TextInput } from "../ui/TextInput";
@@ -40,17 +40,6 @@ const EMPTY: SiteSettings = {
   publicEmail: "",
   publicPhone: "",
 };
-
-/**
- * The app's text for a field error when it has text for the error's code, with `{max}` filled in from
- * the error's limit. Otherwise the API's message.
- */
-function fieldErrorText(error: ApiFieldError, validation: CompanySettingsValidationStrings): string {
-  const template = error.code !== undefined && Object.hasOwn(validation, error.code) ? validation[error.code as keyof CompanySettingsValidationStrings] : undefined;
-  if (template === undefined) return error.message;
-  if (!template.includes("{max}")) return template;
-  return error.limit === undefined ? error.message : template.replaceAll("{max}", String(error.limit));
-}
 
 /**
  * The admin form for the business details the public pages show: the contact recipient, names, org
@@ -95,8 +84,7 @@ export function CompanySettingsForm({ service, strings, children }: CompanySetti
       setFieldErrors({});
       toast.success(text.saved);
     } catch (err) {
-      const details = apiFieldErrorDetails(err) ?? {};
-      const texts = Object.fromEntries(Object.entries(details).map(([field, list]) => [field, list.map(e => fieldErrorText(e, validation))]));
+      const texts = fieldErrorTexts(err, validation);
       setFieldErrors(texts);
       const first = Object.values(texts)[0]?.[0];
       toast.error(first ?? (err instanceof Error && err.message ? err.message : text.saveFailed));
