@@ -1221,7 +1221,7 @@ image and toasts it. A successful save clears it. See
 ```tsx
 <BrandingManager
   save={form => BrandingService.update(form)}
-  strings={{ validation: { invalidImage: "Bruk PNG, JPEG, WebP, GIF eller ICO.", imageTooLarge: "Bildet er for stort." } }}
+  strings={{ validation: { invalidImage: "Ugyldig filformat. Last opp en bildefil.", imageTooLarge: "Filen er for stor. Last opp en fil på 2 MB eller mindre." } }}
 />
 ```
 
