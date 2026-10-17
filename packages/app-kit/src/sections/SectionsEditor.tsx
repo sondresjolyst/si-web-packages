@@ -25,7 +25,7 @@ export type SectionEditors<S extends BaseSection> = {
 };
 
 /** The editors for the shared types. The stats editor offers only the manual number until the app registers its sources. */
-export const defaultSectionEditors = {
+const defaultSectionEditors = {
   hero: HeroSectionEditor,
   feature: FeatureSectionEditor,
   text: TextSectionEditor,
@@ -44,7 +44,7 @@ export interface SectionsEditorProps<S extends BaseSection> {
   createSection: (type: S["type"]) => S;
   /** Copies a section with a new id. Defaults to `cloneSection`. */
   cloneSection?: ((section: S) => S) | undefined;
-  /** The types the add list offers, in order. Defaults to every shared type. */
+  /** The types the add list offers, in order. Defaults to `SHARED_SECTION_TYPES`. */
   types?: readonly S["type"][] | undefined;
   /** The type the add list starts on. Defaults to the first of `types`. */
   initialAddType?: S["type"] | undefined;

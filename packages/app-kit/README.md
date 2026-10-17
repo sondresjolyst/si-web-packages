@@ -799,6 +799,8 @@ remove, the type's fields, and an add list. It takes `createSection`, `images` w
 `images`. Build an app editor from the exported ones: `HeroSectionEditor` takes `media` between the
 subheading and the buttons, `FeedSectionEditor` takes `children` and the grid `className`, and
 `StatsSectionEditor` takes the live `sources`. `ImagePicker` and `SectionField` work on their own.
+`types` sets the add list and its order, `SHARED_SECTION_TYPES` by default, so an app with a type of
+its own passes `[...SHARED_SECTION_TYPES, "gallery"]` with an editor for it in `editors`.
 `initialAddType` picks the add list's first choice. `unwrapped` leaves out the wrapping element.
 
 ```tsx

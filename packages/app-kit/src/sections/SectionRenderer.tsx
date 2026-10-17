@@ -233,7 +233,7 @@ export function createImageRenderer({ intrinsicSize = true }: ImageRendererOptio
  * items and its live numbers. `contact` renders no form until the app registers one through
  * `createContactRenderer`.
  */
-export const defaultSectionRenderers = {
+const defaultSectionRenderers = {
   hero: heroRenderer,
   feature: featureRenderer,
   text: createTextRenderer(),

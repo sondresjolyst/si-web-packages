@@ -3,7 +3,7 @@ import type { BaseSection, SectionOf } from "./types";
 let counter = 0;
 
 /** A new section id, unique within the page. */
-export function newSectionId(): string {
+function newSectionId(): string {
   return `s-${Date.now()}-${counter++}`;
 }
 
