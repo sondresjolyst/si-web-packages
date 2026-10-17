@@ -3,6 +3,7 @@ export {
   defaultBrandingManagerStrings,
   type BrandingManagerProps,
   type BrandingManagerStrings,
+  type BrandingValidationStrings,
 } from "./BrandingManager";
 export {
   BrandingProvider,

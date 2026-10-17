@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { request } from "../../api";
 import { BrandingManager, BrandingProvider, useBranding, type Branding } from "../../branding";
 import { BRANDING_REFRESH_MS } from "../../branding/BrandingProvider";
 import { toDataUrl } from "../../branding/types";
@@ -88,6 +89,22 @@ describe("BrandingProvider", () => {
     expect(calls).toEqual(["b"]);
   });
 });
+
+// The API's English rule for a refused image.
+const RULE = "The image must be a PNG, JPEG, WebP, GIF or ICO file of at most 2 MB.";
+
+// The Error that `request` throws when the API refuses a file, with the codes extension.
+const refusal = (errors: Record<string, string[]>, codes: Record<string, string[]>) =>
+  request(
+    () =>
+      Promise.reject(
+        Object.assign(new Error("Request failed with status code 400"), {
+          isAxiosError: true,
+          response: { status: 400, data: { title: "One or more validation errors occurred.", errors, codes, limits: {} } },
+        }),
+      ),
+    "Failed",
+  ).catch((e: unknown) => e);
 
 describe("BrandingManager", () => {
   beforeEach(() => {
@@ -201,6 +218,58 @@ describe("BrandingManager", () => {
     await userEvent.upload(screen.getByLabelText("Logo"), new File(["x"], "a.png", { type: "image/png" }));
     await userEvent.upload(screen.getByLabelText("Logo"), new File(["y"], "b.png", { type: "image/png" }));
     expect(URL.revokeObjectURL).toHaveBeenCalledWith("blob:preview");
+  });
+
+  it("shows the app's text for a refused file under its slot and in the toast", async () => {
+    const save = vi.fn().mockRejectedValueOnce(await refusal({ Icon: [RULE] }, { Icon: ["invalidImage"] })).mockResolvedValueOnce(undefined);
+    render(
+      <BrandingProvider load={vi.fn(async () => ({}))} initial={{ ...LOGO, ...ICON }}>
+        <BrandingManager save={save} strings={{ validation: { invalidImage: "Ugyldig filformat. Last opp en bildefil." } }} />
+      </BrandingProvider>,
+    );
+    await userEvent.upload(screen.getByLabelText("Logo"), new File(["x"], "logo.png", { type: "image/png" }));
+    await userEvent.upload(screen.getByLabelText("Icon (favicon)"), new File(["y"], "icon.txt", { type: "image/x-icon" }));
+
+    await userEvent.click(screen.getByRole("button", { name: "Save branding" }));
+
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith("Ugyldig filformat. Last opp en bildefil."));
+    const icon = screen.getByLabelText("Icon (favicon)");
+    expect(icon).toHaveAccessibleDescription("Ugyldig filformat. Last opp en bildefil.");
+    expect(icon).toHaveAttribute("aria-invalid", "true");
+    const [logoChoose, iconChoose] = screen.getAllByRole("button", { name: "Choose" });
+    expect(iconChoose).toHaveAccessibleDescription("Ugyldig filformat. Last opp en bildefil.");
+    expect(logoChoose).not.toHaveAttribute("aria-describedby");
+    expect(screen.getByLabelText("Logo")).not.toHaveAttribute("aria-invalid");
+    expect(screen.getByLabelText("Logo")).not.toHaveAttribute("aria-describedby");
+
+    await userEvent.upload(screen.getByLabelText("Icon (favicon)"), new File(["z"], "icon.ico", { type: "image/x-icon" }));
+    await userEvent.click(screen.getByRole("button", { name: "Save branding" }));
+
+    await waitFor(() => expect(toast.success).toHaveBeenCalledWith("Branding saved"));
+    expect(screen.queryByText("Ugyldig filformat. Last opp en bildefil.")).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Icon (favicon)")).not.toHaveAttribute("aria-invalid");
+  });
+
+  it("shows the English default for a known code and the API's message for an unknown one", async () => {
+    const save = vi
+      .fn()
+      .mockRejectedValueOnce(await refusal({ Logo: ["Too big."] }, { Logo: ["imageTooLarge"] }))
+      .mockRejectedValueOnce(await refusal({ Logo: ["Not an image."] }, { Logo: ["invalidImage"] }))
+      .mockRejectedValueOnce(await refusal({ Logo: ["Send the images as a form."] }, { Logo: ["notAForm"] }));
+    setup(save);
+    await userEvent.upload(screen.getByLabelText("Logo"), new File(["x"], "big.png", { type: "image/png" }));
+
+    await userEvent.click(screen.getByRole("button", { name: "Save branding" }));
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith(RULE));
+    expect(screen.getByLabelText("Logo")).toHaveAccessibleDescription(RULE);
+
+    toast.error.mockReset();
+    await userEvent.click(screen.getByRole("button", { name: "Save branding" }));
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith(RULE));
+
+    await userEvent.click(screen.getByRole("button", { name: "Save branding" }));
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith("Send the images as a form."));
+    expect(screen.getByLabelText("Logo")).toHaveAccessibleDescription("Send the images as a form.");
   });
 
   it("takes the app's own words", () => {

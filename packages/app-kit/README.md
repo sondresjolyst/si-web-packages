@@ -536,7 +536,11 @@ const { logoUrl } = useBranding();
 ```
 
 `BrandingManager` is the admin form for uploading or removing them. It needs a `BrandingProvider`
-above it, and refreshes it after a save.
+above it, and refreshes it after a save. If the API refuses a file, the form shows the reason under
+that image and toasts it. A successful save clears it. `strings.validation` holds the text for each
+refusal code that SjolystInnovation.AppKit.SiteSettings sends for a file: `invalidImage` and
+`imageTooLarge`. A code the app leaves out keeps its English default. For an unknown code, or an API
+that sends no codes, the form shows the API's message.
 
 ```tsx
 <BrandingManager save={form => BrandingService.update(form)} />
@@ -545,7 +549,7 @@ above it, and refreshes it after a save.
 | Prop | Type | Description |
 | --- | --- | --- |
 | `save` | `(form: FormData) => Promise<unknown>` | Sends `logo` and `icon` files, and `removeLogo` and `removeIcon` set to `true`. Throw to show the error's message. |
-| `strings` | `TextOverrides<BrandingManagerStrings>` | The form's text. |
+| `strings` | `TextOverrides<BrandingManagerStrings>`, with `validation` as `TextOverrides<BrandingValidationStrings>` | The form's text. `validation` may name only some codes. |
 
 ### `@sjolystinnovation/app-kit/branding/server`
 
@@ -700,8 +704,13 @@ import { AdminUsersPanel } from "@sjolystinnovation/app-kit/admin";
 
 `LegalPagesEditor` edits the legal pages one page and one locale at a time, through
 `createLegalService`. A locale tab whose page has no content yet gets a dot. `LocaleTabs` is the
-same tab bar on its own, for other translated forms. If the API refuses a save with a validation
-problem, the editor shows each message under its field while that page and locale are open.
+same tab bar on its own, for other translated forms. A blank title or content is marked under its
+field with `strings.validation.required` and toasts `strings.required`, without calling the API. If
+the API refuses a save with a validation problem, the editor shows each error under its field while
+that page and locale are open, and toasts the first one. `strings.validation` holds the text for the
+codes the API sends for a legal page: `required` and `tooLong`. `{max}` in `tooLong` becomes the
+title's limit. A code the app leaves out keeps its English default. For an unknown code, or an API
+that sends no codes, the editor shows the API's message.
 
 ```tsx
 <LegalPagesEditor
