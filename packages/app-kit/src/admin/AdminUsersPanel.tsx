@@ -17,12 +17,13 @@ import {
   type AdminUsersValidationStrings,
 } from "./adminUsersPanelStrings";
 
-/** Props for `AdminUsersPanel`. */
-export interface AdminUsersPanelProps {
-  /** The user admin calls, such as `createAdminUsersService(api)`. */
-  service: ReturnType<typeof createAdminUsersService>;
-  /** The roles an admin may give, from the app's own endpoint. */
-  getRoles: () => Promise<string[]>;
+type AdminUsersService = ReturnType<typeof createAdminUsersService>;
+
+/**
+ * Props for `AdminUsersPanel`. The roles come from the service's `roles`, or from `getRoles` when the
+ * app passes it, so a service without `roles` needs `getRoles`.
+ */
+export type AdminUsersPanelProps = {
   /** The role a new invite starts with. Defaults to `Admin`. */
   defaultInviteRole?: string | undefined;
   /** The panel's text. `validation`, `errors` and `deleteErrors` may name only some codes, the rest keep their defaults. */
@@ -33,7 +34,18 @@ export interface AdminUsersPanelProps {
         deleteErrors?: TextOverrides<AdminUsersDeleteErrorStrings> | undefined;
       })
     | undefined;
-}
+} & (
+  | {
+      /** The user admin calls, such as `createAdminUsersService(api)`. */
+      service: AdminUsersService;
+      /** The roles an admin may give. Defaults to the service's `roles`. */
+      getRoles?: (() => Promise<string[]>) | undefined;
+    }
+  | {
+      service: Omit<AdminUsersService, "roles">;
+      getRoles: () => Promise<string[]>;
+    }
+);
 
 // The invite fields the form shows, so a field error for any other field goes in the toast.
 const INVITE_FIELDS = ["firstName", "lastName", "email", "role"];
@@ -98,8 +110,9 @@ export function AdminUsersPanel({ service, getRoles, defaultInviteRole = "Admin"
   }, [includeDeleted, reloads, text.usersLoadFailed]);
 
   useEffect(() => {
-    getRolesRef
-      .current()
+    // Without getRoles the props carry a service with roles.
+    const roles = getRolesRef.current ?? (() => (serviceRef.current as AdminUsersService).roles());
+    roles()
       .then(setAllRoles)
       .catch(() => toast.error(text.rolesLoadFailed));
   }, [text.rolesLoadFailed]);

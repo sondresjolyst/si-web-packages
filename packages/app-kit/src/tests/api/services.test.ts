@@ -251,6 +251,7 @@ describe("createAdminUsersService", () => {
     await users.removeRole("u/1", "Sensor Admin");
     await users.deleteUser("u/1");
     await users.invite({ email: "kari@example.no", firstName: "Kari", lastName: "N", role: "Default" });
+    await users.roles();
 
     expect(sent.map((s) => `${s.method} ${s.url}`)).toEqual([
       "get /users",
@@ -259,11 +260,25 @@ describe("createAdminUsersService", () => {
       "delete /users/u%2F1/roles/Sensor%20Admin",
       "delete /users/u%2F1/account",
       "post /users/invite",
+      "get /users/roles",
     ]);
     expect(sent[0].params).toEqual({ includeDeleted: false });
     expect(sent[1].params).toEqual({ includeDeleted: true });
     expect(sent[2].data).toEqual({ role: "Editor" });
     expect(sent[5].data).toEqual({ email: "kari@example.no", firstName: "Kari", lastName: "N", role: "Default" });
+  });
+
+  it("returns the roles an admin may give, in the API's order", async () => {
+    const users = createAdminUsersService(fakeClient("api", sent, () => ["Default", "Admin"]));
+
+    await expect(users.roles()).resolves.toEqual(["Default", "Admin"]);
+    expect(sent[0].client).toBe("api");
+  });
+
+  it("falls back to its own text when the roles cannot load", async () => {
+    const users = createAdminUsersService(fakeClient("api", sent, () => "", 500));
+
+    await expect(users.roles()).rejects.toThrow("Failed to load roles");
   });
 
   it("shows why the API refused a role change", async () => {

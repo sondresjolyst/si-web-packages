@@ -286,7 +286,8 @@ keep the field errors for `apiFieldErrors` and the code for `apiErrorCode`.
 the app's revalidate route and never throws. On failure, the pages' own revalidate window is the
 fallback.
 
-`invite` takes `{ email, firstName, lastName, role }`. `save` takes
+`invite` takes `{ email, firstName, lastName, role }`. `roles` gives the roles an admin may give,
+from `GET /users/roles` in the order the API configures them. `save` takes
 `{ key, locale, title, bodyMarkdown }`.
 
 The legal pages follow the API's model. `MapAppKitLegalPages` has a `Keys` option that defaults to
@@ -302,7 +303,7 @@ export default createLegalService(api, publicApi, { keys: ["terms", "privacy", "
 | Factory | Methods | .NET package |
 | --- | --- | --- |
 | `createUserService(api, publicApi)` | `requestPasswordReset`, `resetPassword`, and for the signed-in user `getProfile`, `updateProfile`, `changePassword`, `exportData`, and `deleteAccount` | Auth |
-| `createAdminUsersService(api)` | `getUsers(includeDeleted?)`, `addRole`, `removeRole`, `deleteUser`, and `invite` | Auth |
+| `createAdminUsersService(api)` | `getUsers(includeDeleted?)`, `roles`, `addRole`, `removeRole`, `deleteUser`, and `invite` | Auth |
 | `createSettingsService(api, { onSaved? })` | `get`, `update` | SiteSettings |
 | `createBrandingService(api, publicApi, { onSaved? })` | `get`, which answers `{}` when the API cannot be read, and `update(form)` | SiteSettings |
 | `createLegalService(api, publicApi, { keys?, onSaved? })` | `keys`, `get(key, locale)`, which answers `null` for a missing page, `listAll`, and `save` | SiteSettings |
@@ -711,8 +712,9 @@ its own. `strings` holds `empty`, shown when there are no days, and `chart`, the
 
 `AdminUsersPanel` is the users page. It lists every user with their roles, shows deleted users
 behind a toggle, gives and takes roles, deletes an account after a confirm, and invites a user by
-email. It calls the API through `createAdminUsersService`. `getRoles` returns the roles an admin
-may give. You can pass inline functions, because the panel does not fetch again when they change.
+email. It calls the API through `createAdminUsersService`. The roles an admin may give come from
+the service's `roles`, or from `getRoles` when the app passes it. A service without `roles` needs
+`getRoles`. You can pass inline functions, because the panel does not fetch again when they change.
 It reports with `toast`, so the app needs sonner and a `Toaster`. If the API refuses an invite with a
 validation problem, the panel shows each error under its field and toasts one of them. An error for
 a field the form does not show goes in the toast first. The API's codes show in the app's language:
@@ -730,13 +732,13 @@ unknown code, the panel shows the API's message.
 ```tsx
 import { AdminUsersPanel } from "@sjolystinnovation/app-kit/admin";
 
-<AdminUsersPanel service={adminUsers} getRoles={AdminService.getRoles} strings={dict.adminUsers} />
+<AdminUsersPanel service={adminUsers} strings={dict.adminUsers} />
 ```
 
 | Prop | Type | Description |
 | --- | --- | --- |
 | `service` | `ReturnType<typeof createAdminUsersService>` | The user admin calls. |
-| `getRoles` | `() => Promise<string[]>` | The roles an admin may give. |
+| `getRoles` | `() => Promise<string[]>` | The roles an admin may give. Defaults to the service's `roles`. |
 | `defaultInviteRole` | `string` | The role a new invite starts with. Defaults to `Admin`. |
 | `strings` | `TextOverrides<AdminUsersPanelStrings>` | The text, English by default. The panel fills in `{name}` and `{role}` where a text names them. `validation`, `errors`, and `deleteErrors` may name only some codes. |
 

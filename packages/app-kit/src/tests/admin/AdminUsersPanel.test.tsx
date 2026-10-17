@@ -1,7 +1,7 @@
 import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { AdminUsersPanel, defaultAdminUsersPanelStrings as en } from "../../admin";
+import { AdminUsersPanel, defaultAdminUsersPanelStrings as en, type AdminUsersPanelProps } from "../../admin";
 import { request } from "../../api";
 import type { AdminUser } from "../../api/services";
 
@@ -18,6 +18,7 @@ const service = {
   removeRole: vi.fn(),
   deleteUser: vi.fn(),
   invite: vi.fn(),
+  roles: vi.fn(),
 };
 const getRoles = vi.fn();
 
@@ -57,7 +58,7 @@ const fillInvite = async () => {
   await userEvent.type(screen.getByLabelText(/^Email/), "per@example.no");
 };
 
-const panel = (props: Partial<Parameters<typeof AdminUsersPanel>[0]> = {}) =>
+const panel = (props: Pick<AdminUsersPanelProps, "defaultInviteRole" | "strings"> = {}) =>
   render(<AdminUsersPanel service={service} getRoles={getRoles} {...props} />);
 
 // A row by the user's email, which is unique on the page.
@@ -70,6 +71,7 @@ beforeEach(() => {
   service.deleteUser.mockReset().mockResolvedValue(undefined);
   service.invite.mockReset().mockResolvedValue(undefined);
   getRoles.mockReset().mockResolvedValue(["Admin", "Editor"]);
+  service.roles.mockReset().mockResolvedValue(["Default", "Admin"]);
   toast.success.mockReset();
   toast.error.mockReset();
 });
@@ -163,6 +165,46 @@ describe("AdminUsersPanel", () => {
     panel();
 
     await waitFor(() => expect(toast.error).toHaveBeenCalledWith("Failed to load roles"));
+  });
+
+  it("loads the roles from the service when the app passes no getRoles", async () => {
+    render(<AdminUsersPanel service={service} />);
+    await screen.findByText("ola@example.no");
+
+    await waitFor(() => expect(screen.getByLabelText("Role")).toHaveTextContent("DefaultAdmin"));
+    expect(service.roles).toHaveBeenCalledTimes(1);
+    expect(getRoles).not.toHaveBeenCalled();
+    await userEvent.click(within(row("ola@example.no")).getByRole("button", { name: /Add role/ }));
+    expect(within(within(row("ola@example.no")).getByRole("combobox", { name: "Add role" })).getAllByRole("option").map((o) => o.textContent)).toEqual([
+      "Default",
+      "Admin",
+    ]);
+  });
+
+  it("prefers getRoles over the service's roles, and needs no roles on the service with it", async () => {
+    const withoutRoles: Omit<typeof service, "roles"> = { getUsers: service.getUsers, addRole: service.addRole, removeRole: service.removeRole, deleteUser: service.deleteUser, invite: service.invite };
+    // @ts-expect-error A service without roles needs getRoles.
+    expect(<AdminUsersPanel service={withoutRoles} />).toBeTruthy();
+    render(<AdminUsersPanel service={withoutRoles} getRoles={getRoles} />);
+
+    await waitFor(() => expect(screen.getByLabelText("Role")).toHaveTextContent("AdminEditor"));
+    expect(service.roles).not.toHaveBeenCalled();
+  });
+
+  it("says when the service's roles could not load", async () => {
+    service.roles.mockRejectedValue(new Error("x"));
+    render(<AdminUsersPanel service={service} />);
+
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith("Failed to load roles"));
+  });
+
+  it("loads the service's roles once, even when the service is inline", async () => {
+    const view = render(<AdminUsersPanel service={{ ...service }} />);
+    await screen.findByText("kari@example.no");
+    view.rerender(<AdminUsersPanel service={{ ...service }} />);
+    await screen.findByText("kari@example.no");
+
+    expect(service.roles).toHaveBeenCalledTimes(1);
   });
 
   it("does not fetch again when the service and getRoles are inline", async () => {
