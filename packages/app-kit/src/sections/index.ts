@@ -16,7 +16,7 @@ export type {
   StatsSection,
   TextSection,
 } from "./types";
-export { cloneSection, createSectionFactory, newSectionId } from "./factory";
+export { cloneSection, createSectionFactory } from "./factory";
 export type { SectionTemplates } from "./factory";
 export {
   SectionRenderer,
@@ -24,7 +24,6 @@ export {
   createImageRenderer,
   createTextRenderer,
   ctaRenderer,
-  defaultSectionRenderers,
   featureRenderer,
   heroRenderer,
 } from "./SectionRenderer";
@@ -42,7 +41,7 @@ export type {
 } from "./SectionRenderer";
 export { SmartLink } from "./SmartLink";
 export type { SmartLinkProps } from "./SmartLink";
-export { SectionsEditor, defaultSectionEditors } from "./SectionsEditor";
+export { SectionsEditor } from "./SectionsEditor";
 export type { SectionEditors, SectionsEditorProps } from "./SectionsEditor";
 export {
   ContactSectionEditor,
