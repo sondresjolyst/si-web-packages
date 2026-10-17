@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { apiFieldErrors } from "../api/apiFieldErrors";
 import type { LegalPage } from "../api/services";
 import { toast } from "../toast";
+import { FieldError } from "../ui/field";
 import { TextInput } from "../ui/TextInput";
 import { withDefaults, type TextOverrides } from "../ui/withDefaults";
 import { defaultLegalPagesEditorStrings, type LegalPagesEditorStrings } from "./legalPagesEditorStrings";
@@ -39,6 +41,8 @@ export function LegalPagesEditor<K extends string, L extends string>({ service, 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [failed, setFailed] = useState(false);
+  // The API's per-field messages from the last failed save, with the page and locale they belong to.
+  const [fieldErrors, setFieldErrors] = useState<{ slot: string; fields: Record<string, string[]> } | null>(null);
   // The latest service, so an inline one does not load the pages again on every render.
   const serviceRef = useRef(service);
   useEffect(() => {
@@ -61,6 +65,8 @@ export function LegalPagesEditor<K extends string, L extends string>({ service, 
 
   const slot = `${activeKey}:${activeLocale}`;
   const draft = drafts[slot] ?? emptyDraft;
+  const errorFor = (field: keyof Draft) => (fieldErrors?.slot === slot ? fieldErrors.fields[field]?.join(" ") : undefined);
+  const bodyError = errorFor("bodyMarkdown");
 
   const patch = (changes: Partial<Draft>) => setDrafts(prev => ({ ...prev, [slot]: { ...(prev[slot] ?? emptyDraft), ...changes } }));
 
@@ -72,8 +78,11 @@ export function LegalPagesEditor<K extends string, L extends string>({ service, 
     setSaving(true);
     try {
       await serviceRef.current.save({ key: activeKey, locale: activeLocale, title: draft.title.trim(), bodyMarkdown: draft.bodyMarkdown });
+      setFieldErrors(null);
       toast.success(text.saved);
     } catch (err) {
+      const fields = apiFieldErrors(err);
+      setFieldErrors(fields ? { slot, fields } : null);
       toast.error(err instanceof Error && err.message ? err.message : text.saveFailed);
     } finally {
       setSaving(false);
@@ -113,7 +122,7 @@ export function LegalPagesEditor<K extends string, L extends string>({ service, 
 
       <LocaleTabs locales={locales} labels={localeLabels} active={activeLocale} onChange={setActiveLocale} filled={filled} notFilled={text.notFilled} />
 
-      <TextInput label={text.title} value={draft.title} onChange={e => patch({ title: e.target.value })} />
+      <TextInput label={text.title} error={errorFor("title")} value={draft.title} onChange={e => patch({ title: e.target.value })} />
 
       <div>
         <label htmlFor="legal-body" className="block text-sm font-medium text-gray-700 mb-1">
@@ -124,8 +133,11 @@ export function LegalPagesEditor<K extends string, L extends string>({ service, 
           rows={24}
           value={draft.bodyMarkdown}
           onChange={e => patch({ bodyMarkdown: e.target.value })}
-          className="w-full rounded-lg border border-gray-300 px-3 py-2 font-mono text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary"
+          aria-invalid={bodyError ? true : undefined}
+          aria-describedby={bodyError ? "legal-body-error" : undefined}
+          className={`w-full rounded-lg border ${bodyError ? "border-input-border-error" : "border-gray-300"} px-3 py-2 font-mono text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary`}
         />
+        <FieldError id="legal-body-error" error={bodyError} />
       </div>
     </div>
   );

@@ -1,6 +1,6 @@
 import axios from "axios";
 import { describe, expect, it } from "vitest";
-import { request } from "../../api";
+import { apiFieldErrors, request } from "../../api";
 
 const axiosError = (status: number, data?: unknown) =>
   Object.assign(new Error(`Request failed with status code ${status}`), {
@@ -17,6 +17,30 @@ describe("request", () => {
     const call = () => Promise.reject(axiosError(400, "That name is taken."));
 
     await expect(request(call, "Could not save.")).rejects.toThrow("That name is taken.");
+  });
+
+  it("keeps a validation problem's field errors for apiFieldErrors, and the message as before", async () => {
+    const problem = { title: "One or more validation errors occurred.", errors: { OrgNumber: ["Not valid."], PostalCode: ["Four digits."] } };
+
+    const error = await request(() => Promise.reject(axiosError(400, problem)), "Could not save.").catch((e: unknown) => e);
+
+    expect(error).toBeInstanceOf(Error);
+    expect((error as Error).message).toBe("Not valid.");
+    expect(apiFieldErrors(error)).toEqual({ orgNumber: ["Not valid."], postalCode: ["Four digits."] });
+  });
+
+  it("carries only the field messages, not the response or a cause", async () => {
+    const error = await request(() => Promise.reject(axiosError(400, { errors: { Title: ["Required."] } })), "Could not save.").catch((e: unknown) => e);
+
+    expect(Object.keys(error as object)).toEqual(["fieldErrors"]);
+    expect((error as Error).cause).toBeUndefined();
+  });
+
+  it("adds no field errors to a failure without them", async () => {
+    const error = await request(() => Promise.reject(axiosError(409, "That name is taken.")), "Could not save.").catch((e: unknown) => e);
+
+    expect(Object.keys(error as object)).toEqual([]);
+    expect(apiFieldErrors(error)).toBeNull();
   });
 
   it("rethrows a cancelled call unchanged, so the caller can tell it from a failure", async () => {

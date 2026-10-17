@@ -213,7 +213,9 @@ session is gone or has a terminal error, a 401 opens the re-sign-in prompt. It d
 user out, so the page keeps its state. The error still rejects as usual.
 
 `request(call, fallback, statusMessages?)` runs a call and returns its `data`. A failure becomes an
-`Error` with the message `formatApiError` gives it. A canceled call rethrows the cancel unchanged:
+`Error` with the message `formatApiError` gives it. When the API answers with a validation problem,
+the error also keeps its per-field messages for `apiFieldErrors`. It keeps nothing else from the
+response. A canceled call rethrows the cancel unchanged:
 
 ```ts
 import { requireEnv } from "@sjolystinnovation/app-kit";
@@ -237,9 +239,18 @@ export const getCompanyInfo = async () => mergeCompanyInfo(await publicGetOption
 ```
 
 `apiFieldErrors(error)` reads the per-field messages of an ASP.NET validation problem from a failed
-call or its body, keyed in camelCase to match the form: `{ errors: { OrgNumber: ["..."] } }` becomes
-`{ orgNumber: ["..."] }`. It returns `null` when there are none, so the form falls back to one
-message.
+call, its body, or the `Error` that `request` and the services throw, keyed in camelCase to match
+the form: `{ errors: { OrgNumber: ["..."] } }` becomes `{ orgNumber: ["..."] }`. It returns `null`
+when there are none, so the form falls back to one message.
+
+```ts
+try {
+  await SettingsService.update(settings);
+} catch (err) {
+  setFieldErrors(apiFieldErrors(err) ?? {});
+  toast.error(err instanceof Error ? err.message : "Could not save.");
+}
+```
 
 `createPublicClient(baseURL)` is the same without the session, for the API's anonymous endpoints. An
 empty `baseURL` throws, and requests only go to `baseURL`.
@@ -609,6 +620,8 @@ if (loading) return <Spinner />;
 `CompanySettingsForm` is the admin form for the business details the public pages show, saved
 through `createSettingsService`. Its children show below the form once the settings have loaded,
 such as the `BrandingManager`. `strings` holds every label, hint, and message, English by default.
+If the API refuses a save with a validation problem, the form shows each field's message under that
+field and toasts the first one. A successful save clears them.
 
 ```tsx
 <CompanySettingsForm service={SettingsService} strings={dict.companySettings}>
@@ -660,7 +673,8 @@ own. `strings` holds `empty`, shown when there are no days, and `chart`, the acc
 behind a toggle, gives and takes roles, deletes an account after a confirm, and invites a user by
 email. It calls the API through `createAdminUsersService`. `getRoles` returns the roles an admin
 may give. You can pass inline functions, because the panel does not fetch again when they change.
-It reports with `toast`, so the app needs sonner and a `Toaster`.
+It reports with `toast`, so the app needs sonner and a `Toaster`. If the API refuses an invite with a
+validation problem, the panel also shows each message under its field.
 
 ```tsx
 import { AdminUsersPanel } from "@sjolystinnovation/app-kit/admin";
@@ -677,7 +691,8 @@ import { AdminUsersPanel } from "@sjolystinnovation/app-kit/admin";
 
 `LegalPagesEditor` edits the legal pages one page and one locale at a time, through
 `createLegalService`. A locale tab whose page has no content yet gets a dot. `LocaleTabs` is the
-same tab bar on its own, for other translated forms.
+same tab bar on its own, for other translated forms. If the API refuses a save with a validation
+problem, the editor shows each message under its field while that page and locale are open.
 
 ```tsx
 <LegalPagesEditor

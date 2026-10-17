@@ -2,7 +2,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { CompanySettingsForm } from "../../admin";
-import type { SiteSettings } from "../../api";
+import { request, type SiteSettings } from "../../api";
 
 const toast = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn() }));
 vi.mock("../../toast", () => ({ toast }));
@@ -22,6 +22,19 @@ const saved: SiteSettings = {
 };
 
 const service = { get: vi.fn(), update: vi.fn() };
+
+// The Error that `request` throws for an ASP.NET validation problem.
+const validationError = (errors: Record<string, string[]>) =>
+  request(
+    () =>
+      Promise.reject(
+        Object.assign(new Error("Request failed with status code 400"), {
+          isAxiosError: true,
+          response: { status: 400, data: { title: "One or more validation errors occurred.", errors } },
+        }),
+      ),
+    "Failed",
+  ).catch((e: unknown) => e);
 
 beforeEach(() => {
   service.get.mockReset().mockResolvedValue(saved);
@@ -89,6 +102,42 @@ describe("CompanySettingsForm", () => {
     await userEvent.click(screen.getByRole("button", { name: "Save" }));
     await waitFor(() => expect(toast.error).toHaveBeenCalledWith("Failed to save"));
     expect(org).toHaveValue("1");
+  });
+
+  it("shows the API's message for each field under it, toasts the first, and clears them once a save works", async () => {
+    service.update.mockRejectedValueOnce(
+      await validationError({ OrgNumber: ["Not a valid organisation number."], PostalCode: ["Four digits.", "Needs a place."] }),
+    );
+    render(<CompanySettingsForm service={service} />);
+    const org = await screen.findByLabelText(/^Organisation number/);
+
+    await userEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith("Not a valid organisation number."));
+    expect(org).toHaveAccessibleDescription("Not a valid organisation number.");
+    expect(org).toHaveAttribute("aria-invalid", "true");
+    expect(screen.getByLabelText(/^Postal code/)).toHaveAccessibleDescription("Four digits. Needs a place.");
+    expect(screen.getByLabelText(/^Company name/)).not.toHaveAttribute("aria-invalid");
+
+    await userEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(() => expect(toast.success).toHaveBeenCalledWith("Settings saved"));
+    expect(screen.queryByText("Not a valid organisation number.")).not.toBeInTheDocument();
+    expect(screen.queryByText("Four digits. Needs a place.")).not.toBeInTheDocument();
+    expect(screen.getByLabelText(/^Organisation number/)).not.toHaveAttribute("aria-invalid");
+  });
+
+  it("drops the field errors when a later save fails without them", async () => {
+    service.update.mockRejectedValueOnce(await validationError({ PublicPhone: ["Required."] })).mockRejectedValueOnce(new Error("Server down"));
+    render(<CompanySettingsForm service={service} />);
+    await screen.findByLabelText(/^Public phone/);
+
+    await userEvent.click(screen.getByRole("button", { name: "Save" }));
+    await waitFor(() => expect(screen.getByLabelText(/^Public phone/)).toHaveAccessibleDescription("Required."));
+    await userEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith("Server down"));
+    expect(screen.getByLabelText(/^Public phone/)).not.toHaveAttribute("aria-invalid");
   });
 
   it("says the settings could not load and offers no form to save blanks over them", async () => {

@@ -3,12 +3,18 @@ import axios from "axios";
 /**
  * Gets the per-field messages of an ASP.NET validation problem, keyed by the field's name in
  * camelCase so they match the form's own names: `{ errors: { OrgNumber: ["..."] } }` becomes
- * `{ orgNumber: ["..."] }`. Takes the failed axios call or the response body. Returns null when
- * there are no field errors, so the caller falls back to one message for the whole form.
+ * `{ orgNumber: ["..."] }`. Takes the failed axios call, the response body, or the `Error` that
+ * `request` throws. Returns null when there are no field errors, so the caller falls back to one
+ * message for the whole form.
  */
 export function apiFieldErrors(error: unknown): Record<string, string[]> | null {
   const data = axios.isAxiosError(error) ? error.response?.data : error;
-  const errors = data && typeof data === "object" ? (data as { errors?: unknown }).errors : undefined;
+  const errors =
+    data instanceof Error
+      ? (data as { fieldErrors?: unknown }).fieldErrors
+      : data && typeof data === "object"
+        ? (data as { errors?: unknown }).errors
+        : undefined;
   if (!errors || typeof errors !== "object" || Array.isArray(errors)) return null;
 
   // A Map, so a field named like an Object property such as "constructor" is still just a field.

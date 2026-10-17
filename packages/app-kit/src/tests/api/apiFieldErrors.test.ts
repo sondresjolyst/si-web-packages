@@ -49,6 +49,16 @@ describe("apiFieldErrors", () => {
     expect(apiFieldErrors(data)).toBeNull();
   });
 
+  it("reads the field errors that request keeps on its Error", () => {
+    const error = Object.assign(new Error("Not valid."), { fieldErrors: { orgNumber: ["Not valid."] } });
+
+    expect(apiFieldErrors(error)).toEqual({ orgNumber: ["Not valid."] });
+  });
+
+  it("ignores an errors property on an Error", () => {
+    expect(apiFieldErrors(Object.assign(new Error("boom"), { errors: { Title: ["Required."] } }))).toBeNull();
+  });
+
   it("answers null for an error that did not come from the API", () => {
     expect(apiFieldErrors(new Error("boom"))).toBeNull();
   });
