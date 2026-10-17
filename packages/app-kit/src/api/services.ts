@@ -171,6 +171,27 @@ export function createLegalService<const Key extends string = DefaultLegalPageKe
   };
 }
 
+/** The transactional email of the last days, as SjolystInnovation.AppKit.Email's stats endpoint returns it. */
+export interface EmailStats {
+  days: number;
+  requests: number;
+  delivered: number;
+  hardBounces: number;
+  softBounces: number;
+  spamReports: number;
+  blocked: number;
+  invalid: number;
+}
+
+/** Creates the admin call for the email stats on SjolystInnovation.AppKit.Email's `MapAppKitEmailStats`. */
+export function createEmailStatsService(api: AxiosInstance) {
+  return {
+    /** The stats for the last `days` days, 30 by default. */
+    get: (days = 30) =>
+      request(() => api.get<EmailStats>("/admin/email-stats", { params: { days } }), "Failed to load email stats"),
+  };
+}
+
 /** A user in the admin list, as SjolystInnovation.AppKit.Auth's user admin endpoints return it. */
 export interface AdminUser {
   id: string;

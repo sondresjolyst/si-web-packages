@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, expectTypeOf, it, vi } from "vitest";
 import {
   createAdminUsersService,
   createBrandingService,
+  createEmailStatsService,
   createLegalService,
   createPublicClient,
   createSettingsService,
@@ -238,6 +239,28 @@ describe("createLegalService", () => {
     expectTypeOf(service.keys).toEqualTypeOf<readonly ("terms" | "refunds")[]>();
     await service.get("refunds", "no");
     expect(sent[0]?.url).toBe("/content/legal/refunds");
+  });
+});
+
+describe("createEmailStatsService", () => {
+  it("asks for the last 30 days by default, or the days it is given, with the session", async () => {
+    const reply = { days: 30, requests: 120, delivered: 110, hardBounces: 2, softBounces: 3, spamReports: 1, blocked: 4, invalid: 5 };
+    const emailStats = createEmailStatsService(fakeClient("api", sent, () => reply));
+
+    await expect(emailStats.get()).resolves.toEqual(reply);
+    await emailStats.get(7);
+
+    expect(sent.map((s) => `${s.client} ${s.method} ${s.url}`)).toEqual(["api get /admin/email-stats", "api get /admin/email-stats"]);
+    expect(sent[0].params).toEqual({ days: 30 });
+    expect(sent[1].params).toEqual({ days: 7 });
+  });
+
+  it("shows the API's reason, or its own text when there is none", async () => {
+    const refused = createEmailStatsService(fakeClient("api", sent, () => ({ errors: { days: ["Must be at least 1."] } }), 400));
+    await expect(refused.get(0)).rejects.toThrow("Must be at least 1.");
+
+    const down = createEmailStatsService(fakeClient("api", sent, () => "", 502));
+    await expect(down.get()).rejects.toThrow("Failed to load email stats");
   });
 });
 

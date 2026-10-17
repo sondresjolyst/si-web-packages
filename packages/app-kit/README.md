@@ -285,6 +285,7 @@ export default createLegalService(api, publicApi, { keys: ["terms", "privacy", "
 | `createSettingsService(api, { onSaved? })` | `get`, `update` | SiteSettings |
 | `createBrandingService(api, publicApi, { onSaved? })` | `get`, which answers `{}` when the API cannot be read, and `update(form)` | SiteSettings |
 | `createLegalService(api, publicApi, { keys?, onSaved? })` | `keys`, `get(key, locale)`, which answers `null` for a missing page, `listAll`, and `save` | SiteSettings |
+| `createEmailStatsService(api)` | `get(days?)`, the email stats for the last `days` days, 30 by default | Email |
 
 ```ts
 import { createApiClient, createPublicClient, createUserService } from "@sjolystinnovation/app-kit/api";
@@ -293,8 +294,8 @@ const apiUrl = requireEnv("NEXT_PUBLIC_API_URL", process.env.NEXT_PUBLIC_API_URL
 export default createUserService(createApiClient(apiUrl), createPublicClient(apiUrl));
 ```
 
-The package also exports the response types: `UserProfile`, `AdminUser`, `SiteSettings`, and
-`LegalPage`.
+The package also exports the response types: `UserProfile`, `AdminUser`, `SiteSettings`,
+`LegalPage`, and `EmailStats`.
 
 ### `@sjolystinnovation/app-kit/server`
 
@@ -686,6 +687,20 @@ its own. `strings` holds `empty`, shown when there are no days, and `chart`, the
   ]}
   strings={{ empty: dict.admin.noHistory, chart: dict.admin.overTime }}
 />
+```
+
+`EmailStatsPanel` is the stats page card for the transactional email, from the `MapAppKitEmailStats`
+endpoint through `createEmailStatsService`. It shows the emails sent, delivered, bounced (hard and
+soft together), and blocked or reported as spam, for the last `days` days, 30 by default. The title
+names the days the API answered for. While the stats load it shows `loading`, and when they cannot
+load, such as when Brevo does not answer, it shows `unavailable` without a toast. `strings` holds
+`title`, where `{days}` becomes the days, and `sent`, `delivered`, `bounces`, `blocked`, `loading`,
+and `unavailable`, English by default. `className` replaces the card's border and spacing,
+`rounded-2xl border border-admin-border p-5`. The panel loads again when `days` changes, not when an
+inline `service` does.
+
+```tsx
+<EmailStatsPanel service={createEmailStatsService(api)} strings={dict.emailStats} />
 ```
 
 `AdminUsersPanel` is the users page. It lists every user with their roles, shows deleted users
@@ -1352,6 +1367,8 @@ selector such as `.dark` for a scoped theme:
 | `--color-admin-tab-indicator` | `var(--color-primary)`, the line under the active tab |
 | `--color-chart-grid` | gray 200, the scale lines of `StatHistoryChart` |
 | `--color-chart-label` | gray 400, the chart's numbers and dates |
+| `--color-admin-stat-label` | gray 500, the labels and the waiting text of `EmailStatsPanel` |
+| `--color-admin-stat-value` | gray 700, the numbers of `EmailStatsPanel` |
 | `--radius-button` | `var(--radius-lg)` |
 | `--color-button-primary-bg` | `var(--color-primary)` |
 | `--color-button-primary-text` | `var(--color-primary-foreground)` |

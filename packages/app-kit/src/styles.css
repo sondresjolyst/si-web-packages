@@ -90,6 +90,8 @@
   --color-admin-tab-indicator: var(--color-primary);
   --color-chart-grid: var(--color-gray-200);
   --color-chart-label: var(--color-gray-400);
+  --color-admin-stat-label: var(--color-gray-500);
+  --color-admin-stat-value: var(--color-gray-700);
 
   --radius-button: var(--radius-lg);
   --color-button-primary-bg: var(--color-primary);
