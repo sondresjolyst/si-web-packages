@@ -7,7 +7,6 @@
       "release-type": "node",
       "component": "app-kit",
       "initial-version": "0.1.0",
-      "release-as": "1.0.0",
       "changelog-sections": [
         {
           "type": "feat",
