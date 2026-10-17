@@ -2,7 +2,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { LegalPagesEditor, LocaleTabs } from "../../admin";
-import type { LegalPage } from "../../api";
+import { request, type LegalPage } from "../../api";
 
 const toast = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn() }));
 vi.mock("../../toast", () => ({ toast }));
@@ -16,6 +16,19 @@ const pages: LegalPage<Key>[] = [
 ];
 
 const service = { listAll: vi.fn(), save: vi.fn() };
+
+// The Error that `request` throws for an ASP.NET validation problem.
+const validationError = (errors: Record<string, string[]>) =>
+  request(
+    () =>
+      Promise.reject(
+        Object.assign(new Error("Request failed with status code 400"), {
+          isAxiosError: true,
+          response: { status: 400, data: { title: "One or more validation errors occurred.", errors } },
+        }),
+      ),
+    "Failed",
+  ).catch((e: unknown) => e);
 
 const editor = (props: Partial<Parameters<typeof LegalPagesEditor<Key, Locale>>[0]> = {}) =>
   render(
@@ -118,6 +131,33 @@ describe("LegalPagesEditor", () => {
 
     await userEvent.click(screen.getByRole("button", { name: "Save" }));
     await waitFor(() => expect(toast.error).toHaveBeenCalledWith("Failed to save the page"));
+  });
+
+  it("shows the API's errors under their fields for the page they belong to, and clears them once a save works", async () => {
+    service.save.mockRejectedValueOnce(await validationError({ Title: ["At most 200 characters."], BodyMarkdown: ["Required."] }));
+    editor();
+    await screen.findByLabelText(/^Title/);
+
+    await userEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith("At most 200 characters."));
+    expect(screen.getByLabelText(/^Title/)).toHaveAccessibleDescription("At most 200 characters.");
+    expect(screen.getByLabelText("Content (Markdown)")).toHaveAccessibleDescription("Required.");
+    expect(screen.getByLabelText("Content (Markdown)")).toHaveAttribute("aria-invalid", "true");
+    expect(screen.getByLabelText("Content (Markdown)")).toHaveClass("border-input-border-error");
+
+    await userEvent.click(screen.getByRole("button", { name: "Privacy" }));
+    expect(screen.queryByText("At most 200 characters.")).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Content (Markdown)")).not.toHaveAttribute("aria-invalid");
+    await userEvent.click(screen.getByRole("button", { name: "Terms" }));
+    expect(screen.getByText("At most 200 characters.")).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(() => expect(toast.success).toHaveBeenCalledWith("Page saved"));
+    expect(screen.queryByText("At most 200 characters.")).not.toBeInTheDocument();
+    expect(screen.queryByText("Required.")).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Content (Markdown)")).toHaveClass("border-gray-300");
   });
 
   it("says why the pages could not load, or the fallback text", async () => {

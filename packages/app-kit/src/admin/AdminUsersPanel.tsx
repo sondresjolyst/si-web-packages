@@ -2,6 +2,7 @@
 
 import { PlusIcon, TrashIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import { useEffect, useRef, useState } from "react";
+import { apiFieldErrors } from "../api/apiFieldErrors";
 import type { AdminUser, createAdminUsersService } from "../api/services";
 import { toast } from "../toast";
 import { TextInput } from "../ui/TextInput";
@@ -40,6 +41,8 @@ export function AdminUsersPanel({ service, getRoles, defaultInviteRole = "Admin"
   const [roleLoading, setRoleLoading] = useState(false);
   const [invite, setInvite] = useState({ email: "", firstName: "", lastName: "", role: defaultInviteRole });
   const [inviting, setInviting] = useState(false);
+  // The API's per-field messages from the last failed invite, keyed by field name.
+  const [inviteErrors, setInviteErrors] = useState<Record<string, string[]>>({});
   // Bumping it fetches the list again after a change, through the same effect as every other load.
   const [reloads, setReloads] = useState(0);
   // The latest service, so an inline one does not fetch the list again on every render. The roles
@@ -141,10 +144,12 @@ export function AdminUsersPanel({ service, getRoles, defaultInviteRole = "Admin"
         lastName: invite.lastName.trim(),
         role: invite.role,
       });
+      setInviteErrors({});
       toast.success(text.inviteSent);
       setInvite({ email: "", firstName: "", lastName: "", role: invite.role });
       reload();
     } catch (err) {
+      setInviteErrors(apiFieldErrors(err) ?? {});
       toast.error(reason(err, text.inviteFailed));
     } finally {
       setInviting(false);
@@ -162,13 +167,13 @@ export function AdminUsersPanel({ service, getRoles, defaultInviteRole = "Admin"
         <h3 className="text-sm font-semibold text-gray-900">{text.inviteUser}</h3>
         <div className="flex flex-wrap items-end gap-2">
           <div className="w-40">
-            <TextInput label={text.firstName} value={invite.firstName} onChange={(e) => setInvite({ ...invite, firstName: e.target.value })} />
+            <TextInput label={text.firstName} error={inviteErrors.firstName?.join(" ")} value={invite.firstName} onChange={(e) => setInvite({ ...invite, firstName: e.target.value })} />
           </div>
           <div className="w-40">
-            <TextInput label={text.lastName} value={invite.lastName} onChange={(e) => setInvite({ ...invite, lastName: e.target.value })} />
+            <TextInput label={text.lastName} error={inviteErrors.lastName?.join(" ")} value={invite.lastName} onChange={(e) => setInvite({ ...invite, lastName: e.target.value })} />
           </div>
           <div className="flex-1 min-w-[14rem]">
-            <TextInput label={text.email} type="email" value={invite.email} onChange={(e) => setInvite({ ...invite, email: e.target.value })} />
+            <TextInput label={text.email} error={inviteErrors.email?.join(" ")} type="email" value={invite.email} onChange={(e) => setInvite({ ...invite, email: e.target.value })} />
           </div>
           <label className="text-xs text-gray-600">
             {text.role}

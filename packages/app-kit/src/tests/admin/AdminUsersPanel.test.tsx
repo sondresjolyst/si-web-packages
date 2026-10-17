@@ -2,6 +2,7 @@ import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AdminUsersPanel } from "../../admin";
+import { request } from "../../api";
 import type { AdminUser } from "../../api/services";
 
 const toast = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn() }));
@@ -19,6 +20,19 @@ const service = {
   invite: vi.fn(),
 };
 const getRoles = vi.fn();
+
+// The Error that `request` throws for an ASP.NET validation problem.
+const validationError = (errors: Record<string, string[]>) =>
+  request(
+    () =>
+      Promise.reject(
+        Object.assign(new Error("Request failed with status code 400"), {
+          isAxiosError: true,
+          response: { status: 400, data: { title: "One or more validation errors occurred.", errors } },
+        }),
+      ),
+    "Failed",
+  ).catch((e: unknown) => e);
 
 const panel = (props: Partial<Parameters<typeof AdminUsersPanel>[0]> = {}) =>
   render(<AdminUsersPanel service={service} getRoles={getRoles} {...props} />);
@@ -344,6 +358,28 @@ describe("AdminUsersPanel", () => {
     await waitFor(() => expect(toast.error).toHaveBeenCalledWith("Failed to send the invitation"));
     expect(screen.getByLabelText(/^First name/)).toHaveValue("Per");
     expect(service.getUsers).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows the API's invite errors under their fields and clears them once an invite works", async () => {
+    service.invite.mockRejectedValueOnce(await validationError({ Email: ["Not a valid email address."], LastName: ["Required, at most 50 characters."] }));
+    panel();
+    await screen.findByText("kari@example.no");
+
+    await userEvent.type(screen.getByLabelText(/^First name/), "Per");
+    await userEvent.type(screen.getByLabelText(/^Last name/), "Hansen");
+    await userEvent.type(screen.getByLabelText(/^Email/), "per@example");
+    await userEvent.click(screen.getByRole("button", { name: "Send invitation" }));
+
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith("Not a valid email address."));
+    expect(screen.getByLabelText(/^Email/)).toHaveAccessibleDescription("Not a valid email address.");
+    expect(screen.getByLabelText(/^Last name/)).toHaveAccessibleDescription("Required, at most 50 characters.");
+    expect(screen.getByLabelText(/^First name/)).not.toHaveAttribute("aria-invalid");
+
+    await userEvent.click(screen.getByRole("button", { name: "Send invitation" }));
+
+    await waitFor(() => expect(toast.success).toHaveBeenCalled());
+    expect(screen.queryByText("Not a valid email address.")).not.toBeInTheDocument();
+    expect(screen.getByLabelText(/^Last name/)).not.toHaveAttribute("aria-invalid");
   });
 
   it("uses the app's strings, with the placeholders filled", async () => {
