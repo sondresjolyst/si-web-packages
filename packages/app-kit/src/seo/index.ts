@@ -4,6 +4,7 @@ export { ref, serializeGraph, type OrganizationInfo, type SchemaNode, type Schem
 export {
   defineSite,
   LEGAL_PAGE_KEYS,
+  type DefaultLegalPageKey,
   NOINDEX,
   SHARE_IMAGE_SIZE,
   type Crumb,

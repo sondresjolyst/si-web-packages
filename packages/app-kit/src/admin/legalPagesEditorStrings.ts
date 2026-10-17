@@ -1,4 +1,5 @@
 // Plain values, with no "use client", so a server component can import them.
+import type { DefaultLegalPageKey } from "../legal/keys";
 
 /**
  * The editor's text for each field error code of SjolystInnovation.AppKit.SiteSettings that saving a
@@ -10,6 +11,13 @@ export interface LegalPagesValidationStrings {
   required: string;
   tooLong: string;
 }
+
+/** The tab labels of the default legal pages, in English. */
+export const defaultLegalPageKeyLabels: Record<DefaultLegalPageKey, string> = {
+  terms: "Terms",
+  privacy: "Privacy",
+  cookies: "Cookies",
+};
 
 /** The legal pages editor's text. Pass the app's own language. The defaults are English. */
 export interface LegalPagesEditorStrings {

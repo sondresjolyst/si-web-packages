@@ -2,6 +2,9 @@ import type { Metadata, MetadataRoute } from "next";
 import { isIndexableEnvironment } from "./environment";
 import { ref, type OrganizationInfo, type SchemaNode } from "./schema";
 import { parseTimestamp } from "./sitemap";
+import { LEGAL_PAGE_KEYS, type DefaultLegalPageKey } from "../legal/keys";
+
+export { LEGAL_PAGE_KEYS, type DefaultLegalPageKey } from "../legal/keys";
 
 /** The size of the share image. */
 export const SHARE_IMAGE_SIZE = { width: 1200, height: 630 } as const;
@@ -64,12 +67,9 @@ export interface LocaleEntryOptions<L extends string> {
   lastModified?: ((locale: L) => Date | undefined) | undefined;
 }
 
-/** The legal pages every site has, as `createLegalService` names them. */
-export const LEGAL_PAGE_KEYS = ["terms", "privacy", "cookies"] as const;
-
 /** Options for `legalEntries`. */
 export interface LegalEntriesInput<K extends string, L extends string> {
-  /** The legal pages, each at `/<key>` below the locale. Defaults to `LEGAL_PAGE_KEYS`. */
+  /** The legal pages, each at `/<key>` below the locale, such as the legal service's `keys`. Defaults to `LEGAL_PAGE_KEYS`. */
   keys?: readonly K[] | undefined;
   /** A function that returns when a page last changed, as the API's timestamp. A site without locales passes no locale. */
   updatedAt: (key: K, locale: L | undefined) => Promise<string | null | undefined>;
@@ -221,7 +221,7 @@ export function defineSite<L extends string = string>(config: SiteConfig<L>) {
    * timestamps are fetched in parallel. An error from `updatedAt` fails the sitemap, so a stale one
    * is served rather than one without dates.
    */
-  const legalEntries = async <K extends string = (typeof LEGAL_PAGE_KEYS)[number]>({
+  const legalEntries = async <K extends string = DefaultLegalPageKey>({
     keys,
     updatedAt,
   }: LegalEntriesInput<K, L>): Promise<MetadataRoute.Sitemap> => {

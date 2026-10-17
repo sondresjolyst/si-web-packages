@@ -14,7 +14,7 @@ export { defaultAdminUsersPanelStrings } from "./adminUsersPanelStrings";
 export type { AdminUsersPanelStrings } from "./adminUsersPanelStrings";
 export { LegalPagesEditor } from "./LegalPagesEditor";
 export type { LegalPagesEditorProps } from "./LegalPagesEditor";
-export { defaultLegalPagesEditorStrings } from "./legalPagesEditorStrings";
+export { defaultLegalPageKeyLabels, defaultLegalPagesEditorStrings } from "./legalPagesEditorStrings";
 export type { LegalPagesEditorStrings, LegalPagesValidationStrings } from "./legalPagesEditorStrings";
 export { LocaleTabs } from "./LocaleTabs";
 export type { LocaleTabsProps } from "./LocaleTabs";
