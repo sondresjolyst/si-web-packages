@@ -1,5 +1,36 @@
 # Changelog
 
+## [1.0.0](https://github.com/sondresjolyst/si-web-packages/compare/app-kit-v0.22.0...app-kit-v1.0.0) (2026-10-17)
+
+
+### ⚠ BREAKING CHANGES
+
+* **sections:** stop exporting the default registries and newSectionId ([#71](https://github.com/sondresjolyst/si-web-packages/issues/71))
+* **app-kit:** stop exporting internal helpers ([#68](https://github.com/sondresjolyst/si-web-packages/issues/68))
+
+### Features
+
+* **app-kit:** add an email stats panel and service for the admin stats page ([#74](https://github.com/sondresjolyst/si-web-packages/issues/74)) ([694ef3e](https://github.com/sondresjolyst/si-web-packages/commit/694ef3eb52f2dc59c9d6edc389e301616206a9bd))
+* **app-kit:** ship Norwegian strings for every component in ./locales/nb ([#75](https://github.com/sondresjolyst/si-web-packages/issues/75)) ([50b60dd](https://github.com/sondresjolyst/si-web-packages/commit/50b60dd29ec297eff6497d4108cd94eba6a15d2b))
+* **app-kit:** show auth and user admin errors in the app's language and load roles from the service ([#73](https://github.com/sondresjolyst/si-web-packages/issues/73)) ([7fd112f](https://github.com/sondresjolyst/si-web-packages/commit/7fd112fcf9b301a419db9838631df0100a29f9f4))
+* **app-kit:** take the app's legal page keys once, as the API's Keys option does ([#72](https://github.com/sondresjolyst/si-web-packages/issues/72)) ([4317a4d](https://github.com/sondresjolyst/si-web-packages/commit/4317a4dbc6a739276e07bb06379248f936ddb765))
+* **sections:** add shared page sections with a renderer and an editor registry ([#66](https://github.com/sondresjolyst/si-web-packages/issues/66)) ([c74d7e8](https://github.com/sondresjolyst/si-web-packages/commit/c74d7e819eb0fc4fb0e7839c00eb0c0521cbf150))
+
+
+### Bug Fixes
+
+* **app-kit:** let the legal entry point typecheck without axios and next-auth ([#69](https://github.com/sondresjolyst/si-web-packages/issues/69)) ([efc32c4](https://github.com/sondresjolyst/si-web-packages/commit/efc32c4215f2c1b745aa11749c79a47e70311300))
+* **app-kit:** let the public phone stay blank in the company settings form ([#65](https://github.com/sondresjolyst/si-web-packages/issues/65)) ([20a3ee1](https://github.com/sondresjolyst/si-web-packages/commit/20a3ee1458a4f5e446b251191f1552a80c9207ac))
+* **app-kit:** make @heroicons/react an optional peer dependency ([#70](https://github.com/sondresjolyst/si-web-packages/issues/70)) ([10dbd83](https://github.com/sondresjolyst/si-web-packages/commit/10dbd8389da426919dce1647b780ba8aae3dd053))
+* **app-kit:** show the legal page and branding errors in the app's language ([#67](https://github.com/sondresjolyst/si-web-packages/issues/67)) ([a67d3b9](https://github.com/sondresjolyst/si-web-packages/commit/a67d3b9608101033dea762f383569a9f8556bee9))
+* **app-kit:** show the settings field errors under their fields in the app's language ([#62](https://github.com/sondresjolyst/si-web-packages/issues/62)) ([739d180](https://github.com/sondresjolyst/si-web-packages/commit/739d1801139c226348ada45520b235d28c4b21f6)), closes [#60](https://github.com/sondresjolyst/si-web-packages/issues/60)
+
+
+### Code Refactoring
+
+* **app-kit:** stop exporting internal helpers ([#68](https://github.com/sondresjolyst/si-web-packages/issues/68)) ([33d4ee0](https://github.com/sondresjolyst/si-web-packages/commit/33d4ee077074cb6506ab653c447f7de526c43b6a))
+* **sections:** stop exporting the default registries and newSectionId ([#71](https://github.com/sondresjolyst/si-web-packages/issues/71)) ([729c3ad](https://github.com/sondresjolyst/si-web-packages/commit/729c3ad0b50247047397d96bec8c18e2cabe24b8))
+
 ## [0.22.0](https://github.com/sondresjolyst/si-web-packages/compare/app-kit-v0.21.0...app-kit-v0.22.0) (2026-10-16)
 
 
