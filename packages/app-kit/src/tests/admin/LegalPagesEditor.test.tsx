@@ -1,7 +1,7 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { LegalPagesEditor, LocaleTabs } from "../../admin";
+import { LegalPagesEditor, LocaleTabs, defaultLegalPageKeyLabels } from "../../admin";
 import { request, type LegalPage } from "../../api";
 
 const toast = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn() }));
@@ -50,6 +50,34 @@ beforeEach(() => {
 });
 
 describe("LegalPagesEditor", () => {
+  it("shows the default pages with English labels when the app passes neither keys nor labels", async () => {
+    render(<LegalPagesEditor service={service} locales={["no"]} localeLabels={{ no: "Norsk" }} />);
+    await screen.findByLabelText(/^Title/);
+
+    expect(screen.getAllByRole("button", { pressed: false }).map(b => b.textContent)).toEqual(["Privacy", "Cookies"]);
+    expect(screen.getByRole("button", { name: "Terms" })).toHaveAttribute("aria-pressed", "true");
+    expect(defaultLegalPageKeyLabels).toEqual({ terms: "Terms", privacy: "Privacy", cookies: "Cookies" });
+  });
+
+  it("takes the pages from the service's keys, and labels a page without its own label by its key", async () => {
+    const own = { ...service, keys: ["refunds", "privacy"] as const };
+    render(<LegalPagesEditor service={own} keyLabels={{ refunds: "Retur" }} locales={["no"]} localeLabels={{ no: "Norsk" }} />);
+    await screen.findByLabelText(/^Title/);
+
+    expect(screen.getByRole("button", { name: "Retur" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "Privacy" })).toHaveAttribute("aria-pressed", "false");
+    expect(screen.queryByRole("button", { name: "Terms" })).toBeNull();
+  });
+
+  it("prefers its own keys over the service's, and a page the default labels do not know shows its key", async () => {
+    const own = { ...service, keys: ["terms"] as const };
+    render(<LegalPagesEditor<string, "no"> service={own} keys={["shipping"]} locales={["no"]} localeLabels={{ no: "Norsk" }} />);
+    await screen.findByLabelText(/^Title/);
+
+    expect(screen.getByRole("button", { name: "shipping" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.queryByRole("button", { name: "Terms" })).toBeNull();
+  });
+
   it("opens on the first page in the first locale, with what was saved", async () => {
     editor();
 

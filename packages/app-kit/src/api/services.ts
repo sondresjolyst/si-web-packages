@@ -2,6 +2,7 @@ import axios, { type AxiosInstance } from "axios";
 import { getSession } from "next-auth/react";
 import type { Branding } from "../branding/types";
 import type { LegalPage } from "./legalPage";
+import { LEGAL_PAGE_KEYS, type DefaultLegalPageKey } from "../legal/keys";
 import { request } from "./request";
 
 /**
@@ -125,17 +126,30 @@ export function createBrandingService(api: AxiosInstance, publicApi: AxiosInstan
   };
 }
 
+/** Options for `createLegalService`. */
+export interface LegalServiceOptions<Key extends string> {
+  /**
+   * The app's legal pages, the same keys as the API's `MapAppKitLegalPages` `Keys` option. Defaults
+   * to `LEGAL_PAGE_KEYS`. The service's key type comes from them.
+   */
+  keys?: readonly Key[] | undefined;
+  onSaved?: OnSaved | undefined;
+}
+
 /**
- * Creates the calls for the terms, privacy, and cookie pages on
- * SjolystInnovation.AppKit.SiteSettings. Reading is anonymous and returns null for a page that is
- * missing or cannot be read, so a page shows its fallback.
+ * Creates the calls for the legal pages on SjolystInnovation.AppKit.SiteSettings, such as terms,
+ * privacy, and cookies. Reading is anonymous and returns null for a page that is missing or cannot be
+ * read, so a page shows its fallback. `keys` on the result holds the app's pages, for the editor and
+ * the sitemap.
  */
-export function createLegalService<Key extends string = "terms" | "privacy" | "cookies">(
+export function createLegalService<const Key extends string = DefaultLegalPageKey>(
   api: AxiosInstance,
   publicApi: AxiosInstance,
-  options: { onSaved?: OnSaved } = {},
+  options: LegalServiceOptions<Key> = {},
 ) {
   return {
+    keys: options.keys ?? (LEGAL_PAGE_KEYS as readonly string[] as readonly Key[]),
+
     async get(key: Key, locale: string): Promise<LegalPage<Key> | null> {
       try {
         return (await publicApi.get<LegalPage<Key>>(`/content/legal/${encodeURIComponent(key)}`, { params: { locale } })).data;

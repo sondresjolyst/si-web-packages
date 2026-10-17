@@ -268,13 +268,23 @@ fallback.
 `invite` takes `{ email, firstName, lastName, role }`. `save` takes
 `{ key, locale, title, bodyMarkdown }`.
 
+The legal pages follow the API's model. `MapAppKitLegalPages` has a `Keys` option that defaults to
+`terms`, `privacy`, and `cookies`, and `createLegalService` takes the same keys as `keys`, with the
+same default, `LEGAL_PAGE_KEYS`. The key type of `get`, `save`, and `LegalPage` comes from them, and
+the service's `keys` feeds `LegalPagesEditor` and `legalEntries`:
+
+```ts
+// The API maps the same keys: app.MapAppKitLegalPages<AppDbContext>(o => o.Keys = ["terms", "privacy", "refunds"]);
+export default createLegalService(api, publicApi, { keys: ["terms", "privacy", "refunds"], onSaved });
+```
+
 | Factory | Methods | .NET package |
 | --- | --- | --- |
 | `createUserService(api, publicApi)` | `requestPasswordReset`, `resetPassword`, and for the signed-in user `getProfile`, `updateProfile`, `changePassword`, `exportData`, and `deleteAccount` | Auth |
 | `createAdminUsersService(api)` | `getUsers(includeDeleted?)`, `addRole`, `removeRole`, `deleteUser`, and `invite` | Auth |
 | `createSettingsService(api, { onSaved? })` | `get`, `update` | SiteSettings |
 | `createBrandingService(api, publicApi, { onSaved? })` | `get`, which answers `{}` when the API cannot be read, and `update(form)` | SiteSettings |
-| `createLegalService<Key>(api, publicApi, { onSaved? })` | `get(key, locale)`, which answers `null` for a missing page, `listAll`, and `save` | SiteSettings |
+| `createLegalService(api, publicApi, { keys?, onSaved? })` | `keys`, `get(key, locale)`, which answers `null` for a missing page, `listAll`, and `save` | SiteSettings |
 
 ```ts
 import { createApiClient, createPublicClient, createUserService } from "@sjolystinnovation/app-kit/api";
@@ -462,7 +472,7 @@ The site provides:
   gets one entry per page.
 - `forEachLocale(load)` runs `load` for every locale at once and keys the results by locale.
 - `legalEntries({ keys, updatedAt })` gives the legal pages' entries, `/terms`, `/privacy` and
-  `/cookies` unless `keys` says otherwise, each dated by the timestamp `updatedAt` returns for it.
+  `/cookies` unless `keys` says otherwise, such as the legal service's `keys`, each dated by the timestamp `updatedAt` returns for it.
 - `robots({ privatePaths, privateRootPaths, indexable })` for `robots.ts`. It disallows the private
   paths under every locale segment. A deployment that is not production disallows everything.
 - `organizationNode(company, { type, sameAs, country, image, logo })`, `webSiteNode(locale)`,
@@ -706,12 +716,13 @@ the API refuses a save with a validation problem, the editor shows each error un
 that page and locale are open, and toasts the first one. `strings.validation` holds the text for the
 codes the API sends for a legal page: `required` and `tooLong`. `{max}` in `tooLong` becomes the
 title's limit. A code the app leaves out keeps its English default. For an unknown code, or an API
-that sends no codes, the editor shows the API's message.
+that sends no codes, the editor shows the API's message. The pages come from `keys`, else the
+service's `keys`, else `LEGAL_PAGE_KEYS`. A page missing from `keyLabels` takes its label from
+`defaultLegalPageKeyLabels`, the English labels of the three default pages, or else shows its key.
 
 ```tsx
 <LegalPagesEditor
   service={LegalService}
-  keys={LEGAL_PAGE_KEYS}
   keyLabels={{ terms: dict.footer.terms, privacy: dict.footer.privacy, cookies: dict.footer.cookies }}
   locales={LOCALES}
   localeLabels={LOCALE_LABELS}
@@ -721,12 +732,14 @@ that sends no codes, the editor shows the API's message.
 
 ### `@sjolystinnovation/app-kit/legal`
 
-`LegalPageView` renders a terms, privacy or cookies page as an admin wrote it: the title, the date
-it last changed in `dateLocale`, and the Markdown body. If there is no page, it shows `title` and
-says the page is missing. It is a server component and needs the same peers as `markdown`, but
-neither axios nor next-auth. It also exports the `LegalPage` type, the same one as
-`@sjolystinnovation/app-kit/api`, so a site without sign-in can type the page without that entry. The
-route file stays in the app, since Next reads `revalidate` and the metadata from it.
+`LegalPageView` renders a legal page, such as terms, privacy or cookies, as an admin wrote it: the
+title, the date it last changed in `dateLocale`, and the Markdown body. If there is no page, it shows
+`title` and says the page is missing. It is a server component and needs the same peers as
+`markdown`, but neither axios nor next-auth. It also exports the `LegalPage` type, the same one as
+`@sjolystinnovation/app-kit/api`, so a site without sign-in can type the page without that entry, and
+`LEGAL_PAGE_KEYS` with its `DefaultLegalPageKey` type, the default pages of the API and of
+`createLegalService`. The route file stays in the app, since Next reads `revalidate` and the metadata
+from it.
 
 ```tsx
 // src/app/[locale]/terms/page.tsx

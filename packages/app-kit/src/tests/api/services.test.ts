@@ -1,5 +1,5 @@
 import axios, { type AxiosRequestConfig, type InternalAxiosRequestConfig } from "axios";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, expectTypeOf, it, vi } from "vitest";
 import {
   createAdminUsersService,
   createBrandingService,
@@ -221,6 +221,23 @@ describe("createLegalService", () => {
 
     await expect(service.save({ key: "terms", locale: "de", title: "x", bodyMarkdown: "y" })).rejects.toThrow("Unsupported locale.");
     expect(onSaved).not.toHaveBeenCalled();
+  });
+
+  it("holds the default pages when the app picks none", () => {
+    const service = createLegalService(fakeClient("api", sent), fakeClient("public", sent));
+
+    expect(service.keys).toEqual(["terms", "privacy", "cookies"]);
+    expectTypeOf(service.get).parameter(0).toEqualTypeOf<"terms" | "privacy" | "cookies">();
+  });
+
+  it("takes the app's own pages, as the API's Keys option names them, and types its calls by them", async () => {
+    const service = createLegalService(fakeClient("api", sent, () => page), fakeClient("public", sent, () => page), { keys: ["terms", "refunds"] });
+
+    expect(service.keys).toEqual(["terms", "refunds"]);
+    expectTypeOf(service.get).parameter(0).toEqualTypeOf<"terms" | "refunds">();
+    expectTypeOf(service.keys).toEqualTypeOf<readonly ("terms" | "refunds")[]>();
+    await service.get("refunds", "no");
+    expect(sent[0]?.url).toBe("/content/legal/refunds");
   });
 });
 
