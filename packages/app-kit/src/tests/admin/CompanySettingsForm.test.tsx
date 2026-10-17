@@ -78,6 +78,14 @@ describe("CompanySettingsForm", () => {
     expect(screen.getByLabelText(/^Company name/)).toHaveValue("NS Tuning AS");
   });
 
+  it("lets the public phone stay blank, while the other contact fields are required", async () => {
+    render(<CompanySettingsForm service={service} />);
+
+    expect(await screen.findByLabelText(/^Public phone/)).not.toBeRequired();
+    expect(screen.getByLabelText(/^Public email/)).toBeRequired();
+    expect(screen.getByLabelText(/^Company name/)).toBeRequired();
+  });
+
   it("disables the button while saving", async () => {
     let finish: (s: SiteSettings) => void = () => {};
     service.update.mockImplementation(() => new Promise(resolve => (finish = resolve)));
