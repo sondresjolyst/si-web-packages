@@ -19,11 +19,13 @@ export const SESSION_ERRORS = {
  * The codes a failed sign-in reports in next-auth's `error`. Wrong credentials and every API answer
  * look the same, so the message never hints that a password was right. Only an API that does not
  * answer, or a gateway error, reports `unavailable`. That depends on the server, never on the
- * password.
+ * password. `lockedOut` is the API's `lockedOut` code after too many failed sign-ins, which the API
+ * gives whether the password was right or wrong.
  */
 export const SIGN_IN_ERRORS = {
   invalidCredentials: "InvalidCredentials",
   unavailable: "SignInUnavailable",
+  lockedOut: "LockedOut",
 } as const;
 
 /** One of the values in `SESSION_ERRORS`. */

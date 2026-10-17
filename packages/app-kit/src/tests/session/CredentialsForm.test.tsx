@@ -40,6 +40,20 @@ describe("CredentialsForm", () => {
 
       expect(await screen.findByText(text.invalidCredentials)).toBeInTheDocument();
     });
+
+    it("says the login is locked when the API locked it, not that the credentials are wrong", async () => {
+      await submitWith("LockedOut");
+
+      expect(await screen.findByRole("alert")).toHaveTextContent(/^Too many failed attempts\. This login is temporarily locked, try again later\.$/);
+    });
+
+    it("shows the app's lockout text", async () => {
+      signIn.mockResolvedValue({ error: "LockedOut" });
+      render(<CredentialsForm initialEmail="a@b.no" onSignedIn={() => {}} strings={{ lockedOut: "Innloggingen er låst. Prøv igjen senere." }} />);
+      await submit();
+
+      expect(await screen.findByRole("alert")).toHaveTextContent(/^Innloggingen er låst\. Prøv igjen senere\.$/);
+    });
   });
 
   it("signs in with the typed credentials and no redirect", async () => {

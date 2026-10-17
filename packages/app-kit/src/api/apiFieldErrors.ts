@@ -1,4 +1,4 @@
-import axios from "axios";
+import { failureBody } from "./failureBody";
 
 /**
  * One field error of an ASP.NET validation problem. `message` is the API's text. `code` is the stable
@@ -49,7 +49,7 @@ type Entries = [string, ApiFieldError[]][];
  * Gives none for anything else.
  */
 function problemEntries(error: unknown): Entries {
-  const data = axios.isAxiosError(error) ? error.response?.data : error;
+  const data = failureBody(error);
   if (data instanceof Error) {
     const kept = data as { fieldErrorDetails?: unknown; fieldErrors?: unknown };
     if (isRecord(kept.fieldErrorDetails)) return keptEntries(kept.fieldErrorDetails);

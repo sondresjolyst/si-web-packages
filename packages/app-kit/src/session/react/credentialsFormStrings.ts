@@ -10,6 +10,8 @@ export interface CredentialsFormStrings {
   signIn: string;
   signingIn: string;
   invalidCredentials: string;
+  /** The text for a login the API has locked after too many failed sign-ins. */
+  lockedOut: string;
   signInUnavailable: string;
   somethingWentWrong: string;
   showPassword: string;
@@ -22,6 +24,7 @@ export const defaultCredentialsFormStrings: CredentialsFormStrings = {
   signIn: "Sign in",
   signingIn: "Signing in…",
   invalidCredentials: "Invalid email or password.",
+  lockedOut: "Too many failed attempts. This login is temporarily locked, try again later.",
   signInUnavailable: "Sign-in is unavailable right now. Try again shortly.",
   somethingWentWrong: "Something went wrong",
   showPassword: "Show password",

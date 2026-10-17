@@ -1,3 +1,4 @@
+import { apiErrorCode } from "./apiErrorCode";
 import { apiFieldErrorDetails, type ApiFieldError } from "./apiFieldErrors";
 
 /**
@@ -19,4 +20,13 @@ export function fieldErrorText(error: ApiFieldError, validation: object): string
 export function fieldErrorTexts(error: unknown, validation: object): Record<string, string[]> {
   const details = apiFieldErrorDetails(error) ?? {};
   return Object.fromEntries(Object.entries(details).map(([field, list]) => [field, list.map(e => fieldErrorText(e, validation))]));
+}
+
+/**
+ * The app's text for a failed call's code that is not about one field, such as `lockedOut`, when
+ * `errors` has text for it. Otherwise the failure's own message, or `fallback` when it has none.
+ */
+export function errorText(error: unknown, errors: object, fallback: string): string {
+  const message = error instanceof Error && error.message ? error.message : fallback;
+  return fieldErrorText({ message, code: apiErrorCode(error) ?? "" }, errors);
 }

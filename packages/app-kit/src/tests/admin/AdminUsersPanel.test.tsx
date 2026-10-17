@@ -1,7 +1,7 @@
 import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { AdminUsersPanel } from "../../admin";
+import { AdminUsersPanel, defaultAdminUsersPanelStrings as en } from "../../admin";
 import { request } from "../../api";
 import type { AdminUser } from "../../api/services";
 
@@ -33,6 +33,29 @@ const validationError = (errors: Record<string, string[]>) =>
       ),
     "Failed",
   ).catch((e: unknown) => e);
+
+// The Error that `request` throws for an API answer with a code for the whole call.
+const codeError = (status: number, message: string, code: string) =>
+  request(
+    () => Promise.reject(Object.assign(new Error(`status ${status}`), { isAxiosError: true, response: { status, data: { message, code } } })),
+    "Failed",
+  ).catch((e: unknown) => e);
+
+// The Error that `request` throws for an ASP.NET validation problem with codes and limits.
+const codedProblem = (errors: Record<string, string[]>, codes: Record<string, string[]>, limits: Record<string, number | null> = {}) =>
+  request(
+    () =>
+      Promise.reject(
+        Object.assign(new Error("status 400"), { isAxiosError: true, response: { status: 400, data: { title: "One or more validation errors occurred.", errors, codes, limits } } }),
+      ),
+    "Failed",
+  ).catch((e: unknown) => e);
+
+const fillInvite = async () => {
+  await userEvent.type(screen.getByLabelText(/^First name/), "Per");
+  await userEvent.type(screen.getByLabelText(/^Last name/), "Hansen");
+  await userEvent.type(screen.getByLabelText(/^Email/), "per@example.no");
+};
 
 const panel = (props: Partial<Parameters<typeof AdminUsersPanel>[0]> = {}) =>
   render(<AdminUsersPanel service={service} getRoles={getRoles} {...props} />);
@@ -380,6 +403,110 @@ describe("AdminUsersPanel", () => {
     await waitFor(() => expect(toast.success).toHaveBeenCalled());
     expect(screen.queryByText("Not a valid email address.")).not.toBeInTheDocument();
     expect(screen.getByLabelText(/^Last name/)).not.toHaveAttribute("aria-invalid");
+  });
+
+  it("uses the English API texts by default", () => {
+    expect(en.validation).toEqual({
+      required: "Required.",
+      tooLong: "At most {max} characters.",
+      invalidEmail: "Not a valid email address.",
+      unknownRole: "Unknown role.",
+      emailTaken: "That email already has an account.",
+    });
+    expect(en.errors).toEqual({
+      unknownRole: "Unknown role.",
+      ownAdminRole: "You cannot remove your own admin role.",
+      lastAdmin: "The last admin keeps the admin role. Give someone else the role first.",
+      roleAssignFailed: "Failed to assign role.",
+      roleRemoveFailed: "Failed to remove role.",
+      emailTaken: "That email already has an account.",
+    });
+    expect(en.deleteErrors).toEqual({
+      lastAdmin: "The last admin account cannot be deleted. Give someone else the admin role first.",
+      accountChangeConflict: "Another change to the accounts happened at the same time. Try again.",
+    });
+  });
+
+  it("shows the app's text for a refused role change, and the API's message for a code it has no text for", async () => {
+    service.addRole.mockRejectedValueOnce(await codeError(400, "Unknown role.", "unknownRole"));
+    service.addRole.mockRejectedValueOnce(await codeError(400, "Something new.", "somethingNew"));
+    service.removeRole.mockRejectedValueOnce(await codeError(400, "You cannot remove your own admin role.", "ownAdminRole"));
+    service.removeRole.mockRejectedValueOnce(await codeError(409, "The last admin keeps the admin role. Give someone else the role first.", "lastAdmin"));
+    panel({ strings: { errors: { unknownRole: "Rollen finnes ikke.", ownAdminRole: "Du kan ikke fjerne din egen administratorrolle." } } });
+    await screen.findByText("ola@example.no");
+
+    await userEvent.click(within(row("ola@example.no")).getByRole("button", { name: /Add role/ }));
+    await userEvent.click(within(row("ola@example.no")).getByRole("button", { name: "Add" }));
+    await waitFor(() => expect(toast.error).toHaveBeenLastCalledWith("Rollen finnes ikke."));
+    await userEvent.click(within(row("ola@example.no")).getByRole("button", { name: "Add" }));
+    await waitFor(() => expect(toast.error).toHaveBeenLastCalledWith("Something new."));
+
+    await userEvent.click(within(row("kari@example.no")).getByTitle("Remove Admin"));
+    await waitFor(() => expect(toast.error).toHaveBeenLastCalledWith("Du kan ikke fjerne din egen administratorrolle."));
+    await userEvent.click(within(row("kari@example.no")).getByTitle("Remove Admin"));
+    await waitFor(() => expect(toast.error).toHaveBeenLastCalledWith("The last admin keeps the admin role. Give someone else the role first."));
+    expect(toast.error).toHaveBeenCalledTimes(4);
+  });
+
+  it("shows the app's delete text for a refused delete, apart from the role text with the same code", async () => {
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+    service.deleteUser.mockRejectedValueOnce(await codeError(409, "The last admin account cannot be deleted. Give someone else the admin role first.", "lastAdmin"));
+    service.deleteUser.mockRejectedValueOnce(await codeError(409, "Another change to the accounts happened at the same time. Try again.", "accountChangeConflict"));
+    panel({ strings: { errors: { lastAdmin: "Role text." }, deleteErrors: { lastAdmin: "Den siste administratoren kan ikke slettes." } } });
+    await screen.findByText("kari@example.no");
+
+    await userEvent.click(within(row("kari@example.no")).getByTitle("Delete"));
+    await waitFor(() => expect(toast.error).toHaveBeenLastCalledWith("Den siste administratoren kan ikke slettes."));
+    await userEvent.click(within(row("kari@example.no")).getByTitle("Delete"));
+    await waitFor(() => expect(toast.error).toHaveBeenLastCalledWith("Another change to the accounts happened at the same time. Try again."));
+  });
+
+  it("shows the app's text for a refused invite", async () => {
+    service.invite.mockRejectedValueOnce(await codeError(409, "That email already has an account.", "emailTaken"));
+    panel({ strings: { errors: { emailTaken: "E-postadressen har allerede en konto." } } });
+    await screen.findByText("kari@example.no");
+
+    await fillInvite();
+    await userEvent.click(screen.getByRole("button", { name: "Send invitation" }));
+
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith("E-postadressen har allerede en konto."));
+  });
+
+  it("shows the invite field errors under their fields in the app's language, with the limit filled in", async () => {
+    service.invite.mockRejectedValueOnce(
+      await codedProblem(
+        { FirstName: ["At most 50 characters."], Email: ["Email 'per@example.no' is already taken."], Role: ["Unknown role."], LastName: ["Something new."] },
+        { FirstName: ["tooLong"], Email: ["emailTaken"], Role: ["unknownRole"], LastName: ["somethingNew"] },
+        { FirstName: 50, Email: null, Role: null, LastName: null },
+      ),
+    );
+    panel({ strings: { validation: { tooLong: "Bruk {max} tegn eller færre.", unknownRole: "Velg en rolle fra listen." } } });
+    await screen.findByText("kari@example.no");
+
+    await fillInvite();
+    await userEvent.click(screen.getByRole("button", { name: "Send invitation" }));
+
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith("Bruk 50 tegn eller færre."));
+    expect(screen.getByLabelText(/^First name/)).toHaveAccessibleDescription("Bruk 50 tegn eller færre.");
+    expect(screen.getByLabelText(/^Email/)).toHaveAccessibleDescription("That email already has an account.");
+    expect(screen.getByLabelText(/^Last name/)).toHaveAccessibleDescription("Something new.");
+    expect(screen.getByLabelText("Role")).toHaveAccessibleDescription("Velg en rolle fra listen.");
+    expect(screen.getByLabelText("Role")).toHaveAttribute("aria-invalid", "true");
+  });
+
+  it("names an invite field error the form cannot show in the toast, and marks no field for it", async () => {
+    service.invite.mockRejectedValueOnce(await codedProblem({ Email: ["Required."], Phone: ["Odd."] }, { Email: ["required"], Phone: ["odd"] }));
+    panel();
+    await screen.findByText("kari@example.no");
+
+    await fillInvite();
+    await userEvent.click(screen.getByRole("button", { name: "Send invitation" }));
+
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith("Odd."));
+    expect(screen.getByLabelText(/^Email/)).toHaveAccessibleDescription("Required.");
+    expect(screen.getByLabelText("Role")).not.toHaveAttribute("aria-invalid");
+    expect(screen.getByLabelText("Role")).not.toHaveAttribute("aria-describedby");
+    expect(screen.queryByText("Odd.")).not.toBeInTheDocument();
   });
 
   it("uses the app's strings, with the placeholders filled", async () => {
