@@ -70,8 +70,16 @@ describe("ResetPasswordFlow", () => {
     expect(screen.getByRole("button", { name: "Reset password" })).toBeInTheDocument();
   });
 
-  it("names every rule a weak password breaks under the field and sends nothing", async () => {
+  it("says a weak password does not meet the rules under the field by default, and sends nothing", async () => {
     flow({ initialEmail: "kari@example.no", initialCode: "AB12CD" });
+    await setPasswordWith("short");
+
+    expect(screen.getByLabelText(/^New password/)).toHaveAccessibleDescription(`The password does not meet the requirements. Use at least 8 characters, with at least one lowercase and one uppercase letter from A to Z and one digit from 0 to 9.`);
+    expect(reset).not.toHaveBeenCalled();
+  });
+
+  it("names every rule a weak password breaks when passwordInvalid is null", async () => {
+    flow({ initialEmail: "kari@example.no", initialCode: "AB12CD", strings: { passwordInvalid: null } });
     await setPasswordWith("short");
 
     expect(screen.getByLabelText(/^New password/)).toHaveAccessibleDescription(
@@ -89,7 +97,7 @@ describe("ResetPasswordFlow", () => {
   });
 
   it("uses the app's own rule messages", async () => {
-    flow({ initialEmail: "kari@example.no", initialCode: "AB12CD", passwordStrings: { digit: "Ta med et siffer." } });
+    flow({ initialEmail: "kari@example.no", initialCode: "AB12CD", strings: { passwordInvalid: null }, passwordStrings: { digit: "Ta med et siffer." } });
     await setPasswordWith("Passwordx");
 
     expect(screen.getByLabelText(/^New password/)).toHaveAccessibleDescription("Ta med et siffer.");
@@ -106,18 +114,25 @@ describe("ResetPasswordFlow", () => {
     expect(reset).toHaveBeenCalledTimes(1);
   });
 
-  it("sets the password and shows the API's message with a link back to sign-in", async () => {
+  it("sets the password and shows the done text with a link back to sign-in", async () => {
     flow({ initialEmail: "kari@example.no", initialCode: "AB12CD" });
     await userEvent.type(screen.getByLabelText(/^New password/), "Password1");
     await userEvent.click(screen.getByRole("button", { name: "Reset password" }));
 
     expect(reset).toHaveBeenCalledWith({ email: "kari@example.no", code: "AB12CD", newPassword: "Password1" });
-    expect(await screen.findByText("Password reset successfully.")).toBeInTheDocument();
+    expect(await screen.findByRole("alert")).toHaveTextContent(/^Your password has been changed\. You can sign in now\.Back to sign in →$/);
     expect(screen.getByRole("link", { name: "Back to sign in →" })).toHaveAttribute("href", "/login");
     expect(screen.queryByLabelText(/^New password/)).not.toBeInTheDocument();
   });
 
-  it("shows the app's own done text when it gives one, and only the link when the API sends no message", async () => {
+  it("shows the API's message when done is null", async () => {
+    flow({ initialEmail: "kari@example.no", initialCode: "AB12CD", strings: { done: null } });
+    await setPasswordWith();
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(/^Password reset successfully\.Back to sign in →$/);
+  });
+
+  it("shows the app's own done text when it gives one, and only the link when done is null and the API sends no message", async () => {
     reset.mockResolvedValue(undefined);
     const { unmount } = flow({ initialEmail: "kari@example.no", initialCode: "AB12CD", strings: { done: "Passordet er endret." } });
     await userEvent.type(screen.getByLabelText(/^New password/), "Password1");
@@ -125,7 +140,7 @@ describe("ResetPasswordFlow", () => {
     expect(await screen.findByText("Passordet er endret.")).toBeInTheDocument();
     unmount();
 
-    flow({ initialEmail: "kari@example.no", initialCode: "AB12CD" });
+    flow({ initialEmail: "kari@example.no", initialCode: "AB12CD", strings: { done: null } });
     await userEvent.type(screen.getByLabelText(/^New password/), "Password1");
     await userEvent.click(screen.getByRole("button", { name: "Reset password" }));
     expect(await screen.findByRole("link", { name: "Back to sign in →" })).toBeInTheDocument();
@@ -261,7 +276,7 @@ describe("ResetPasswordFlow", () => {
     await userEvent.click(screen.getByRole("button", { name: "Reset password" }));
     expect(screen.getByRole("button", { name: "Resetting…" })).toBeDisabled();
     done({ message: "Done." });
-    expect(await screen.findByText("Done.")).toBeInTheDocument();
+    expect(await screen.findByText(en.done!)).toBeInTheDocument();
   });
 
   it("takes the app's text, leaving out the parts it sets to null and adding its intro and hint", async () => {
@@ -294,12 +309,27 @@ describe("ResetPasswordFlow", () => {
     expect(screen.getByRole("button", { name: "Sett passord" })).toBeInTheDocument();
   });
 
-  it("keeps the intro and hint out by default", async () => {
-    flow({ initialCode: "AB12CD" });
+  it("shows the intro and the password rules by default", async () => {
+    flow();
+    expect(screen.getByText("Enter your email address and we will send you a code.")).toHaveClass("text-auth-text");
 
-    expect(en.intro).toBeNull();
-    expect(en.passwordHint).toBeNull();
+    await userEvent.type(screen.getByLabelText(/^Email/), "kari@example.no");
+    await userEvent.click(screen.getByRole("button", { name: "Send reset code" }));
+    expect(await screen.findByText("Use at least 8 characters, with at least one lowercase and one uppercase letter from A to Z and one digit from 0 to 9.")).toHaveClass("text-auth-hint");
+  });
+
+  it("leaves the intro and hint out when they are null", async () => {
+    flow({ initialEmail: "kari@example.no", strings: { intro: null, passwordHint: null } });
+    expect(screen.queryByText(en.intro!)).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Send reset code" }));
+    expect(await screen.findByLabelText(/^Reset code/)).toBeInTheDocument();
     expect(document.querySelectorAll("p.text-xs")).toHaveLength(0);
+  });
+
+  it("gives every English text a value, as the Norwegian set does", () => {
+    expect(Object.entries(en).filter(([, text]) => text === null)).toEqual([]);
+    expect(en.passwordInvalid).toBe(`The password does not meet the requirements. ${en.passwordHint}`);
   });
 });
 

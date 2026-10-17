@@ -1,5 +1,10 @@
 // Plain values, with no "use client", so a server component can import them.
 
+import { PASSWORD_MIN_LENGTH } from "../validation/passwordRules";
+
+// The rules passwordProblems checks, for the hint and the weak password text.
+const passwordRules = `Use at least ${PASSWORD_MIN_LENGTH} characters, with at least one lowercase and one uppercase letter from A to Z and one digit from 0 to 9.`;
+
 /**
  * The flow's text for each field error code of SjolystInnovation.AppKit.Auth's reset endpoints,
  * shown under the email, code or new password field. `{max}` in `passwordTooShort` becomes the
@@ -67,18 +72,18 @@ export const defaultResetPasswordFlowStrings: ResetPasswordFlowStrings = {
   signInPrompt: "Remembered it?",
   signIn: "Sign in",
   backToSignIn: "Back to sign in →",
-  intro: null,
+  intro: "Enter your email address and we will send you a code.",
   codeSent: "Check your email for the reset code.",
   email: "Email",
   code: "Reset code",
   newPassword: "New password",
-  passwordHint: null,
+  passwordHint: passwordRules,
   requestCode: "Send reset code",
   requestingCode: "Sending…",
   setPassword: "Reset password",
   settingPassword: "Resetting…",
-  done: null,
-  passwordInvalid: null,
+  done: "Your password has been changed. You can sign in now.",
+  passwordInvalid: `The password does not meet the requirements. ${passwordRules}`,
   somethingWentWrong: "Something went wrong",
   validation: {
     required: "Required.",
