@@ -28,7 +28,7 @@ const nextConfig: NextConfig = {
 };
 ```
 
-The components in `@sjolystinnovation/app-kit/ui`, `admin`, `legal`, `markdown`, `branding`,
+The components in `@sjolystinnovation/app-kit/ui`, `admin`, `legal`, `markdown`, `sections`, `branding`,
 `payments`, and `session/react` use Tailwind CSS. Import the package's stylesheet after Tailwind:
 
 ```css
@@ -730,6 +730,84 @@ export default async function TermsPage({ params }: { params: Promise<{ locale: 
   const page = await publicGet<LegalPage>(`/content/legal/terms?locale=${locale}`, { tags: [REVALIDATE_TARGETS.legal] });
   return <LegalPageView page={page} title={dict.footer.terms} homeHref={`/${locale}`} dateLocale="nb-NO" strings={dict.legal} />;
 }
+```
+
+### `@sjolystinnovation/app-kit/sections`
+
+A home page built from sections an admin edits: the types, a renderer and the admin editor. The
+shared types are `hero`, `feature`, `text`, `feed`, `contact`, `cta`, `stats` and `image`. An app
+adds its own fields with `Sections<Extensions, LiveStatSources>`, and its own types by adding them
+to the union.
+
+```ts
+// src/types/content.ts
+import { createSectionFactory, type Sections } from "@sjolystinnovation/app-kit/sections";
+
+export type Section = Sections<{ hero: { backgroundImageId: string | null } }, "builds" | "parts">;
+
+export const createSection = createSectionFactory<Section>({
+  hero: { heading: "Heading", subheading: "", primaryLabel: "", primaryHref: "#contact", secondaryLabel: "", secondaryHref: "", backgroundImageId: null },
+  // ...one template per type
+});
+```
+
+`createSectionFactory` gives each new section an id and its own copy of the template.
+`cloneSection` copies a section with a new id.
+
+`SectionRenderer` renders one section through the renderer for its type. It holds no state, so it
+works in a server component, and it needs the same peers as `markdown`. A hidden section, or a type
+with no renderer, renders nothing. `feed` and `stats` have no default, since only the app knows its
+items and its live numbers. `renderers` replaces the defaults per type, and `context` holds the
+app's pieces:
+
+| `context` key | Default | Description |
+| --- | --- | --- |
+| `href` | the path as it is | Maps a button's path, such as `(path) => localeHref(locale, path)`. |
+| `Link` | `SmartLink` | The button link. `SmartLink` scrolls to a `#anchor` and uses next/link for the rest. |
+| `Image` | `ContentImage` | The image in image sections. It gets `imageId`, `alt`, `sizes`, `className`, and `width` and `height` where the layout keeps the ratio. |
+| `imageDimensions` | `{}` | Intrinsic sizes by image id. |
+
+The configurable defaults come from factories: `createTextRenderer({ bodyClassName })`,
+`createContactRenderer({ form, className })` and `createImageRenderer({ intrinsicSize })`.
+`heroRenderer`, `featureRenderer` and `ctaRenderer` take no options. For a different hero, register
+your own.
+
+```tsx
+// src/components/SectionRenderer.tsx
+const renderers: SectionRenderers<Section> = {
+  contact: createContactRenderer({ form: <ContactForm /> }),
+  feed: section => <FeaturedRuns heading={section.heading} limit={section.limit} />,
+  stats: section => <StatsBand section={section} />,
+};
+
+export default function SectionRenderer({ section }: { section: Section }) {
+  return <BaseSectionRenderer section={section} renderers={renderers} context={{ Image }} />;
+}
+```
+
+`SectionsEditor` is the controlled admin editor: a card per section with hide, move, duplicate and
+remove, the type's fields, and an add list. It takes `createSection`, `images` with the app's
+`upload` and an optional preview `src`, `strings` and `typeLabels` in English by default, and
+`editors` to replace or add an editor per type. Each editor gets `section`, `patch`, `strings` and
+`images`. Build an app editor from the exported ones: `HeroSectionEditor` takes `media` between the
+subheading and the buttons, `FeedSectionEditor` takes `children` and the grid `className`, and
+`StatsSectionEditor` takes the live `sources`. `ImagePicker` and `SectionField` work on their own.
+`initialAddType` picks the add list's first choice. `unwrapped` leaves out the wrapping element.
+
+```tsx
+const Stats = (props: SectionEditorProps<SectionOf<Section, "stats">>) => (
+  <StatsSectionEditor {...props} sources={[{ value: "builds", label: "Published builds (live)", defaultItemLabel: "Builds" }]} />
+);
+
+<SectionsEditor
+  sections={sections}
+  onChange={setSections}
+  createSection={createSection}
+  images={{ upload: ImageService.upload }}
+  editors={{ stats: Stats }}
+  strings={dict.sectionsEditor}
+  typeLabels={dict.sectionTypes}
+/>
 ```
 
 ### `@sjolystinnovation/app-kit/session`
