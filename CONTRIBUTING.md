@@ -52,7 +52,8 @@ advertises an import that exports nothing.
 
 1. Create a directory under `packages/app-kit/src`.
 2. Add a line to `exports` in `packages/app-kit/package.json`.
-3. Add a row to `packages/app-kit/README.md`.
+3. In `packages/app-kit/README.md`, add a row to the entry points table and a section with an
+   example. Add the entry to the peer dependency table if it needs an optional peer.
 
 ## Commit messages
 
