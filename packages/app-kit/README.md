@@ -214,8 +214,8 @@ user out, so the page keeps its state. The error still rejects as usual.
 
 `request(call, fallback, statusMessages?)` runs a call and returns its `data`. A failure becomes an
 `Error` with the message `formatApiError` gives it. When the API answers with a validation problem,
-the error also keeps its per-field messages for `apiFieldErrors`. It keeps nothing else from the
-response. A canceled call rethrows the cancel unchanged:
+the error also keeps its per-field messages and their codes for `apiFieldErrors` and
+`apiFieldErrorDetails`. It keeps nothing else from the response. A canceled call rethrows the cancel unchanged:
 
 ```ts
 import { requireEnv } from "@sjolystinnovation/app-kit";
@@ -242,6 +242,10 @@ export const getCompanyInfo = async () => mergeCompanyInfo(await publicGetOption
 call, its body, or the `Error` that `request` and the services throw, keyed in camelCase to match
 the form: `{ errors: { OrgNumber: ["..."] } }` becomes `{ orgNumber: ["..."] }`. It returns `null`
 when there are none, so the form falls back to one message.
+`apiFieldErrorDetails(error)` gives the same fields with each message as `{ message, code?, limit? }`,
+from the problem's `codes` and `limits` extensions when the API sends them, so the form can show its
+own text for a code: `{ errors: { OrgNumber: ["..."] }, codes: { OrgNumber: ["invalidOrgNumber"] } }`
+becomes `{ orgNumber: [{ message: "...", code: "invalidOrgNumber" }] }`.
 
 ```ts
 try {
@@ -620,10 +624,15 @@ if (loading) return <Spinner />;
 `CompanySettingsForm` is the admin form for the business details the public pages show, saved
 through `createSettingsService`. Its children show below the form once the settings have loaded,
 such as the `BrandingManager`. `strings` holds every label, hint, and message, English by default.
-If the API refuses a save with a validation problem, the form shows each field's message under that
-field and toasts the first one. A successful save clears them.
+If the API refuses a save with a validation problem, the form shows each field's error under that
+field and toasts the first one. A successful save clears them. `strings.validation` holds the text for
+each error code that SjolystInnovation.AppKit.SiteSettings sends: `required`, `tooLong`,
+`invalidEmail`, `orgNumberRequiredForVat`, `invalidOrgNumber`, `invalidPostalCode`, and
+`placeRequired`. `{max}` in `tooLong` becomes the field's limit. A code the app leaves out keeps its
+English default. For an unknown code, or an API that sends no codes, the form shows the API's message.
 
 ```tsx
+// dict.companySettings.validation: { invalidOrgNumber: "Ikke et gyldig organisasjonsnummer.", tooLong: "Maks {max} tegn.", ... }
 <CompanySettingsForm service={SettingsService} strings={dict.companySettings}>
   <BrandingManager save={BrandingService.update} />
 </CompanySettingsForm>

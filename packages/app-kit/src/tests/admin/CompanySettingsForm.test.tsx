@@ -23,14 +23,15 @@ const saved: SiteSettings = {
 
 const service = { get: vi.fn(), update: vi.fn() };
 
-// The Error that `request` throws for an ASP.NET validation problem.
-const validationError = (errors: Record<string, string[]>) =>
+// The Error that `request` throws for an ASP.NET validation problem, with the codes and limits
+// that SjolystInnovation.AppKit.SiteSettings adds.
+const validationError = (errors: Record<string, string[]>, extensions: { codes?: Record<string, string[]>; limits?: Record<string, number> } = {}) =>
   request(
     () =>
       Promise.reject(
         Object.assign(new Error("Request failed with status code 400"), {
           isAxiosError: true,
-          response: { status: 400, data: { title: "One or more validation errors occurred.", errors } },
+          response: { status: 400, data: { title: "One or more validation errors occurred.", errors, ...extensions } },
         }),
       ),
     "Failed",
@@ -138,6 +139,75 @@ describe("CompanySettingsForm", () => {
 
     await waitFor(() => expect(toast.error).toHaveBeenCalledWith("Server down"));
     expect(screen.getByLabelText(/^Public phone/)).not.toHaveAttribute("aria-invalid");
+  });
+
+  it("shows the app's text for each known code, with the limit filled in, and toasts the first", async () => {
+    service.update.mockRejectedValueOnce(
+      await validationError(
+        { OrgNumber: ["Not a valid organisation number. It has nine digits and ends in a check digit."], CompanyName: ["At most 100 characters."] },
+        { codes: { OrgNumber: ["invalidOrgNumber"], CompanyName: ["tooLong"] }, limits: { CompanyName: 100 } },
+      ),
+    );
+    const validation = { invalidOrgNumber: "Ikke et gyldig organisasjonsnummer.", tooLong: "Maks {max} tegn, ikke over {max}." };
+    render(<CompanySettingsForm service={service} strings={{ validation }} />);
+    const org = await screen.findByLabelText(/^Organisation number/);
+
+    await userEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith("Ikke et gyldig organisasjonsnummer."));
+    expect(org).toHaveAccessibleDescription("Ikke et gyldig organisasjonsnummer.");
+    expect(screen.getByLabelText(/^Company name/)).toHaveAccessibleDescription("Maks 100 tegn, ikke over 100.");
+    expect(screen.queryByText(/nine digits/)).not.toBeInTheDocument();
+  });
+
+  it.each([
+    ["required", "CompanyName", /^Company name/, "Required."],
+    ["tooLong", "CompanyName", /^Company name/, "At most 100 characters."],
+    ["invalidEmail", "PublicEmail", /^Public email/, "Not a valid email address."],
+    ["orgNumberRequiredForVat", "OrgNumber", /^Organisation number/, "An organisation number is required when the business is VAT registered."],
+    ["invalidOrgNumber", "OrgNumber", /^Organisation number/, "Not a valid organisation number. It has nine digits and ends in a check digit."],
+    ["invalidPostalCode", "PostalCode", /^Postal code/, "A Norwegian postal code is four digits."],
+    ["placeRequired", "AddressLocality", /^Place/, "A postal code needs the place name that goes with it."],
+  ])("has an English default for %s that matches the API's message", async (code, key, label, text) => {
+    service.update.mockRejectedValueOnce(await validationError({ [key]: ["API text."] }, { codes: { [key]: [code] }, limits: { [key]: 100 } }));
+    render(<CompanySettingsForm service={service} />);
+    await screen.findByLabelText(label);
+
+    await userEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(() => expect(screen.getByLabelText(label)).toHaveAccessibleDescription(text));
+  });
+
+  it("keeps the English default for a code the app leaves out", async () => {
+    service.update.mockRejectedValueOnce(
+      await validationError({ PostalCode: ["Postal code bad."], CompanyName: ["Too long."] }, { codes: { PostalCode: ["invalidPostalCode"], CompanyName: ["tooLong"] }, limits: { CompanyName: 100 } }),
+    );
+    render(<CompanySettingsForm service={service} strings={{ validation: { required: "Påkrevd.", tooLong: undefined } }} />);
+    await screen.findByLabelText(/^Postal code/);
+
+    await userEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(() => expect(screen.getByLabelText(/^Postal code/)).toHaveAccessibleDescription("A Norwegian postal code is four digits."));
+    expect(screen.getByLabelText(/^Company name/)).toHaveAccessibleDescription("At most 100 characters.");
+  });
+
+  it("shows the API's message for an unknown code, a missing code, or a limit text without a limit", async () => {
+    service.update.mockRejectedValueOnce(
+      await validationError(
+        { OrgNumber: ["Org number taken."], PostalCode: ["Four digits."], CompanyName: ["Name too long."], StreetAddress: ["Odd street."] },
+        { codes: { OrgNumber: ["orgNumberTaken"], CompanyName: ["tooLong"], StreetAddress: ["toString"] } },
+      ),
+    );
+    render(<CompanySettingsForm service={service} strings={{ validation: { tooLong: "Maks {max} tegn." } }} />);
+    await screen.findByLabelText(/^Organisation number/);
+
+    await userEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith("Org number taken."));
+    expect(screen.getByLabelText(/^Organisation number/)).toHaveAccessibleDescription("Org number taken.");
+    expect(screen.getByLabelText(/^Postal code/)).toHaveAccessibleDescription("Four digits.");
+    expect(screen.getByLabelText(/^Company name/)).toHaveAccessibleDescription("Name too long.");
+    expect(screen.getByLabelText(/^Street address/)).toHaveAccessibleDescription("Odd street.");
   });
 
   it("says the settings could not load and offers no form to save blanks over them", async () => {

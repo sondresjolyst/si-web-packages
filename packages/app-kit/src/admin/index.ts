@@ -1,7 +1,7 @@
 export { CompanySettingsForm } from "./CompanySettingsForm";
 export type { CompanySettingsFormProps } from "./CompanySettingsForm";
 export { defaultCompanySettingsFormStrings } from "./companySettingsFormStrings";
-export type { CompanySettingsFormStrings } from "./companySettingsFormStrings";
+export type { CompanySettingsFormStrings, CompanySettingsValidationStrings } from "./companySettingsFormStrings";
 export { AdminShell } from "./AdminShell";
 export type { AdminShellProps, AdminTab } from "./AdminShell";
 export { StatHistoryChart } from "./StatHistoryChart";

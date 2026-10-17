@@ -1,4 +1,5 @@
-export { apiFieldErrors } from "./apiFieldErrors";
+export { apiFieldErrorDetails, apiFieldErrors } from "./apiFieldErrors";
+export type { ApiFieldError } from "./apiFieldErrors";
 export { formatOrgNumber, mergeCompanyInfo } from "./company";
 export type { CompanyFallback, CompanyInfo } from "./company";
 export { createApiClient } from "./createApiClient";

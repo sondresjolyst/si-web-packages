@@ -1,6 +1,6 @@
 import axios from "axios";
 import { describe, expect, it } from "vitest";
-import { apiFieldErrors, request } from "../../api";
+import { apiFieldErrorDetails, apiFieldErrors, request } from "../../api";
 
 const axiosError = (status: number, data?: unknown) =>
   Object.assign(new Error(`Request failed with status code ${status}`), {
@@ -32,8 +32,23 @@ describe("request", () => {
   it("carries only the field messages, not the response or a cause", async () => {
     const error = await request(() => Promise.reject(axiosError(400, { errors: { Title: ["Required."] } })), "Could not save.").catch((e: unknown) => e);
 
-    expect(Object.keys(error as object)).toEqual(["fieldErrors"]);
+    expect(Object.keys(error as object)).toEqual(["fieldErrors", "fieldErrorDetails"]);
     expect((error as Error).cause).toBeUndefined();
+  });
+
+  it("keeps each field error's code and limit for apiFieldErrorDetails", async () => {
+    const problem = {
+      errors: { OrgNumber: ["Not valid."], CompanyName: ["At most 100 characters."] },
+      codes: { OrgNumber: ["invalidOrgNumber"], CompanyName: ["tooLong"] },
+      limits: { CompanyName: 100 },
+    };
+
+    const error = await request(() => Promise.reject(axiosError(400, problem)), "Could not save.").catch((e: unknown) => e);
+
+    expect(apiFieldErrorDetails(error)).toEqual({
+      orgNumber: [{ message: "Not valid.", code: "invalidOrgNumber" }],
+      companyName: [{ message: "At most 100 characters.", code: "tooLong", limit: 100 }],
+    });
   });
 
   it("adds no field errors to a failure without them", async () => {
