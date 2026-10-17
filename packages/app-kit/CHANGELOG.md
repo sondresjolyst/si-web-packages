@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.1](https://github.com/sondresjolyst/si-web-packages/compare/app-kit-v1.0.0...app-kit-v1.0.1) (2026-10-17)
+
+
+### Bug Fixes
+
+* **app-kit:** give the section delete, reset password and branding refusal texts their own English defaults ([#79](https://github.com/sondresjolyst/si-web-packages/issues/79)) ([d6df37e](https://github.com/sondresjolyst/si-web-packages/commit/d6df37ef7f4fd2d7e56347731cb5787acdd00d8c))
+
 ## [1.0.0](https://github.com/sondresjolyst/si-web-packages/compare/app-kit-v0.22.0...app-kit-v1.0.0) (2026-10-17)
 
 
