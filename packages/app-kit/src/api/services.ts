@@ -1,6 +1,7 @@
 import axios, { type AxiosInstance } from "axios";
 import { getSession } from "next-auth/react";
 import type { Branding } from "../branding/types";
+import type { LegalPage } from "./legalPage";
 import { request } from "./request";
 
 /**
@@ -122,15 +123,6 @@ export function createBrandingService(api: AxiosInstance, publicApi: AxiosInstan
       return saved;
     },
   };
-}
-
-/** A legal page, as SjolystInnovation.AppKit.SiteSettings's legal endpoints return it. */
-export interface LegalPage<Key extends string = string> {
-  key: Key;
-  locale: string;
-  title: string;
-  bodyMarkdown: string;
-  updatedAt: string;
 }
 
 /**

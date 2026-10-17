@@ -16,4 +16,5 @@ export {
   createLegalService,
   createAdminUsersService,
 } from "./services";
-export type { OnSaved, UserProfile, SiteSettings, LegalPage, AdminUser } from "./services";
+export type { OnSaved, UserProfile, SiteSettings, AdminUser } from "./services";
+export type { LegalPage } from "./legalPage";
