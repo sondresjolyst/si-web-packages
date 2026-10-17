@@ -67,6 +67,9 @@
     "zod": "^4"
   },
   "peerDependenciesMeta": {
+    "@heroicons/react": {
+      "optional": true
+    },
     "axios": {
       "optional": true
     },
