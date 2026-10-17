@@ -12,6 +12,7 @@ import {
   type Sections,
   type SectionsEditorProps,
 } from "../../sections";
+import { nbSectionsEditorStrings } from "../../locales/nb";
 
 const toast = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn() }));
 vi.mock("../../toast", () => ({ toast }));
@@ -93,8 +94,17 @@ describe("SectionsEditor", () => {
 
   it("removes a section", async () => {
     render(<Harness />);
-    await userEvent.click(within(card("First")).getByTitle("Remove"));
+    await userEvent.click(within(card("First")).getByTitle("Delete section"));
     expect(headings()).toEqual(["Second"]);
+  });
+
+  it.each([
+    ["English", undefined, "Delete section", "Remove"],
+    ["Norwegian", nbSectionsEditorStrings, "Slett", "Fjern"],
+  ])("names the delete button apart from the image's remove button in %s", (_language, strings, remove, removeImage) => {
+    render(<Harness initial={[{ id: "i", type: "image", visible: true, imageId: "img", alt: "", caption: "", layout: "standard", text: "" }]} strings={strings} />);
+    expect(screen.getAllByRole("button", { name: remove })).toHaveLength(1);
+    expect(screen.getAllByRole("button", { name: removeImage })).toHaveLength(1);
   });
 
   it("moves a section up and down, and disables the moves at the ends", async () => {

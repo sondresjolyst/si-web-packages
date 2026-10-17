@@ -9,7 +9,7 @@ export interface SectionsEditorStrings {
   moveUp: string;
   moveDown: string;
   duplicate: string;
-  /** The title of the button that removes a section. */
+  /** The title of the button that deletes a section. Keep it apart from `removeImage`, since both can show on one section. */
   remove: string;
   addSection: string;
   heading: string;
@@ -56,7 +56,7 @@ export const defaultSectionsEditorStrings: SectionsEditorStrings = {
   moveUp: "Move up",
   moveDown: "Move down",
   duplicate: "Duplicate",
-  remove: "Remove",
+  remove: "Delete section",
   addSection: "Add section",
   heading: "Heading",
   headingOptional: "Heading (optional)",
