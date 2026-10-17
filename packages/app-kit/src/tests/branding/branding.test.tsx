@@ -4,9 +4,10 @@ import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { request } from "../../api";
-import { BrandingManager, BrandingProvider, useBranding, type Branding } from "../../branding";
+import { BrandingManager, BrandingProvider, defaultBrandingManagerStrings, useBranding, type Branding } from "../../branding";
 import { BRANDING_REFRESH_MS } from "../../branding/BrandingProvider";
 import { toDataUrl } from "../../branding/types";
+import { nbBrandingManagerStrings } from "../../locales/nb";
 
 const toast = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn() }));
 vi.mock("../../toast", () => ({ toast }));
@@ -260,16 +261,22 @@ describe("BrandingManager", () => {
     await userEvent.upload(screen.getByLabelText("Logo"), new File(["x"], "big.png", { type: "image/png" }));
 
     await userEvent.click(screen.getByRole("button", { name: "Save branding" }));
-    await waitFor(() => expect(toast.error).toHaveBeenCalledWith(RULE));
-    expect(screen.getByLabelText("Logo")).toHaveAccessibleDescription(RULE);
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith("The file is too large. Upload a file of 2 MB or less."));
+    expect(screen.getByLabelText("Logo")).toHaveAccessibleDescription("The file is too large. Upload a file of 2 MB or less.");
 
     toast.error.mockReset();
     await userEvent.click(screen.getByRole("button", { name: "Save branding" }));
-    await waitFor(() => expect(toast.error).toHaveBeenCalledWith(RULE));
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith("Invalid file format. Upload a PNG, JPEG, WebP, GIF or ICO image."));
+    expect(screen.getByLabelText("Logo")).toHaveAccessibleDescription("Invalid file format. Upload a PNG, JPEG, WebP, GIF or ICO image.");
 
     await userEvent.click(screen.getByRole("button", { name: "Save branding" }));
     await waitFor(() => expect(toast.error).toHaveBeenCalledWith("Send the images as a form."));
     expect(screen.getByLabelText("Logo")).toHaveAccessibleDescription("Send the images as a form.");
+  });
+
+  it("gives each refusal code its own text, in English and Norwegian", () => {
+    for (const set of [defaultBrandingManagerStrings, nbBrandingManagerStrings]) expect(set.validation.invalidImage).not.toBe(set.validation.imageTooLarge);
+    expect(nbBrandingManagerStrings.validation.imageTooLarge).toBe("Filen er for stor. Last opp en fil på 2 MB eller mindre.");
   });
 
   it("takes the app's own words", () => {

@@ -977,11 +977,11 @@ const params = useSearchParams();
 | Prop | Type | Description |
 | --- | --- | --- |
 | `requestReset` | `(data: { email }) => Promise<unknown>` | Asks the API to email a code. |
-| `reset` | `(data: { email, code, newPassword }) => Promise<unknown>` | Sets the password. When it succeeds, the flow shows the `message` in its answer. |
+| `reset` | `(data: { email, code, newPassword }) => Promise<unknown>` | Sets the password. When it succeeds, the flow shows `strings.done`. |
 | `loginHref` | `string` | Where the sign-in links go. |
 | `initialEmail`, `initialCode` | `string` | The values from the emailed link. A code opens the second step. |
 | `className` | `string` | Replaces the outer `max-w-md mx-auto px-4 py-16`, such as to sit in the app's own card. |
-| `strings` | `TextOverrides<ResetPasswordFlowStrings>` | The page's text. Set `signInPrompt`, `intro`, `codeSent`, or `passwordHint` to `null` to leave it out. `done` set to `null` shows the API's message, or only the sign-in link when it sends none. `passwordInvalid` set to `null` lists every broken rule. `validation` and `errors` may name only some codes. |
+| `strings` | `TextOverrides<ResetPasswordFlowStrings>` | The page's text. The English defaults include an intro, the password rules as `passwordHint`, and a `done` text. Set `signInPrompt`, `intro`, `codeSent`, or `passwordHint` to `null` to leave it out. `done` set to `null` shows the API's message, or only the sign-in link when it sends none. `passwordInvalid` set to `null` lists every broken rule. `validation` and `errors` may name only some codes. |
 | `passwordStrings` | `TextOverrides<PasswordStrings>` | The rule messages, in the app's language. |
 
 A password that breaks the rules is marked under the new password field, without a call to the API.
@@ -1221,7 +1221,7 @@ image and toasts it. A successful save clears it. See
 ```tsx
 <BrandingManager
   save={form => BrandingService.update(form)}
-  strings={{ validation: { invalidImage: "Bruk PNG, JPEG, WebP, GIF eller ICO.", imageTooLarge: "Bildet er for stort." } }}
+  strings={{ validation: { invalidImage: "Ugyldig filformat. Last opp en bildefil.", imageTooLarge: "Filen er for stor. Last opp en fil på 2 MB eller mindre." } }}
 />
 ```
 

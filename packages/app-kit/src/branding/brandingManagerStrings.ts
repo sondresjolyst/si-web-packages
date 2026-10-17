@@ -43,7 +43,7 @@ export const defaultBrandingManagerStrings: BrandingManagerStrings = {
   saved: "Branding saved",
   saveFailed: "Failed to save branding",
   validation: {
-    invalidImage: "The image must be a PNG, JPEG, WebP, GIF or ICO file of at most 2 MB.",
-    imageTooLarge: "The image must be a PNG, JPEG, WebP, GIF or ICO file of at most 2 MB.",
+    invalidImage: "Invalid file format. Upload a PNG, JPEG, WebP, GIF or ICO image.",
+    imageTooLarge: "The file is too large. Upload a file of 2 MB or less.",
   },
 };
