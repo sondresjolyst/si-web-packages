@@ -166,6 +166,8 @@ What the options do:
   next-auth's `error` holds one of these:
   - `SIGN_IN_ERRORS.unavailable` when the API does not answer, or a gateway returns 502, 503, or
     504.
+  - `SIGN_IN_ERRORS.lockedOut` when the API answers with the code `lockedOut`, after too many failed
+    sign-ins. The API gives it whether the password was right or wrong.
   - `SIGN_IN_ERRORS.invalidCredentials` for every other failure, including an unreadable token and
     an answer without both tokens.
 - **Refresh** runs ahead of expiry: five minutes before it, or a quarter of the token's lifetime
@@ -215,7 +217,9 @@ user out, so the page keeps its state. The error still rejects as usual.
 `request(call, fallback, statusMessages?)` runs a call and returns its `data`. A failure becomes an
 `Error` with the message `formatApiError` gives it. When the API answers with a validation problem,
 the error also keeps its per-field messages and their codes for `apiFieldErrors` and for the
-field errors of the shared forms. It keeps nothing else from the response. A canceled call rethrows the cancel unchanged:
+field errors of the shared forms. When the API answers with a code for the whole call, such as
+`{ "message": "...", "code": "invalidResetCode" }`, the error keeps the code for `apiErrorCode`. It
+keeps nothing else from the response. A canceled call rethrows the cancel unchanged:
 
 ```ts
 import { requireEnv } from "@sjolystinnovation/app-kit";
@@ -252,20 +256,38 @@ try {
 }
 ```
 
+`apiErrorCode(error)` reads the code of a failure that is not about one field, from a failed call,
+its body, or the `Error` that `request` and the services throw. It answers `undefined` when there is
+none, and never takes axios's own code, such as `ERR_NETWORK`. Use it to show the app's own text
+for a code and the API's message for any other failure. The components in this package do that
+through their `strings`.
+
+```ts
+try {
+  await UserService.deleteAccount();
+} catch (err) {
+  const own = { lastAdmin: "Gi administratorrollen til noen andre først." };
+  const code = apiErrorCode(err);
+  toast.error(code && Object.hasOwn(own, code) ? own[code as keyof typeof own] : formatApiError(err, "Kunne ikke slette kontoen."));
+}
+```
+
 `createPublicClient(baseURL)` is the same without the session, for the API's anonymous endpoints. An
 empty `baseURL` throws, and requests only go to `baseURL`.
 
 The services below call the endpoints that the SjolystInnovation.AppKit .NET packages map, so you
 do not write them in the app. `api` is a `createApiClient` instance, and `publicApi` is a
 `createPublicClient` one.
-Failures throw an `Error` with the API's message, or with the service's own English fallback.
+Failures throw an `Error` with the API's message, or with the service's own English fallback, and
+keep the field errors for `apiFieldErrors` and the code for `apiErrorCode`.
 `onSaved` runs after a save succeeds, such as `() => revalidateTarget("branding")`. Here
 `revalidateTarget` is the `revalidate` that
 [`defineRevalidateTargets`](#sjolystinnovationapp-kitserver) returns. It posts the target to
 the app's revalidate route and never throws. On failure, the pages' own revalidate window is the
 fallback.
 
-`invite` takes `{ email, firstName, lastName, role }`. `save` takes
+`invite` takes `{ email, firstName, lastName, role }`. `roles` gives the roles an admin may give,
+from `GET /users/roles` in the order the API configures them. `save` takes
 `{ key, locale, title, bodyMarkdown }`.
 
 The legal pages follow the API's model. `MapAppKitLegalPages` has a `Keys` option that defaults to
@@ -281,7 +303,7 @@ export default createLegalService(api, publicApi, { keys: ["terms", "privacy", "
 | Factory | Methods | .NET package |
 | --- | --- | --- |
 | `createUserService(api, publicApi)` | `requestPasswordReset`, `resetPassword`, and for the signed-in user `getProfile`, `updateProfile`, `changePassword`, `exportData`, and `deleteAccount` | Auth |
-| `createAdminUsersService(api)` | `getUsers(includeDeleted?)`, `addRole`, `removeRole`, `deleteUser`, and `invite` | Auth |
+| `createAdminUsersService(api)` | `getUsers(includeDeleted?)`, `roles`, `addRole`, `removeRole`, `deleteUser`, and `invite` | Auth |
 | `createSettingsService(api, { onSaved? })` | `get`, `update` | SiteSettings |
 | `createBrandingService(api, publicApi, { onSaved? })` | `get`, which answers `{}` when the API cannot be read, and `update(form)` | SiteSettings |
 | `createLegalService(api, publicApi, { keys?, onSaved? })` | `keys`, `get(key, locale)`, which answers `null` for a missing page, `listAll`, and `save` | SiteSettings |
@@ -705,23 +727,35 @@ inline `service` does.
 
 `AdminUsersPanel` is the users page. It lists every user with their roles, shows deleted users
 behind a toggle, gives and takes roles, deletes an account after a confirm, and invites a user by
-email. It calls the API through `createAdminUsersService`. `getRoles` returns the roles an admin
-may give. You can pass inline functions, because the panel does not fetch again when they change.
+email. It calls the API through `createAdminUsersService`. The roles an admin may give come from
+the service's `roles`, or from `getRoles` when the app passes it. A service without `roles` needs
+`getRoles`. You can pass inline functions, because the panel does not fetch again when they change.
 It reports with `toast`, so the app needs sonner and a `Toaster`. If the API refuses an invite with a
-validation problem, the panel also shows each message under its field.
+validation problem, the panel shows each error under its field and toasts one of them. An error for
+a field the form does not show goes in the toast first. The API's codes show in the app's language:
+
+- `strings.validation` holds the invite field errors: `required`, `tooLong`, `invalidEmail`,
+  `unknownRole`, and `emailTaken`. `{max}` in `tooLong` becomes the field's limit.
+- `strings.errors` holds the role and invite refusals: `unknownRole`, `ownAdminRole`, `lastAdmin`,
+  `roleAssignFailed`, `roleRemoveFailed`, and `emailTaken`.
+- `strings.deleteErrors` holds the delete refusals: `lastAdmin` and `accountChangeConflict`. The API
+  sends `lastAdmin` for both a role and a delete, with a different message, so each has its own text.
+
+A code the app leaves out keeps its English default, which is the API's English message. For an
+unknown code, the panel shows the API's message.
 
 ```tsx
 import { AdminUsersPanel } from "@sjolystinnovation/app-kit/admin";
 
-<AdminUsersPanel service={adminUsers} getRoles={AdminService.getRoles} strings={dict.adminUsers} />
+<AdminUsersPanel service={adminUsers} strings={dict.adminUsers} />
 ```
 
 | Prop | Type | Description |
 | --- | --- | --- |
 | `service` | `ReturnType<typeof createAdminUsersService>` | The user admin calls. |
-| `getRoles` | `() => Promise<string[]>` | The roles an admin may give. |
+| `getRoles` | `() => Promise<string[]>` | The roles an admin may give. Defaults to the service's `roles`. |
 | `defaultInviteRole` | `string` | The role a new invite starts with. Defaults to `Admin`. |
-| `strings` | `TextOverrides<AdminUsersPanelStrings>` | The text, English by default. The panel fills in `{name}` and `{role}` where a text names them. |
+| `strings` | `TextOverrides<AdminUsersPanelStrings>` | The text, English by default. The panel fills in `{name}` and `{role}` where a text names them. `validation`, `errors`, and `deleteErrors` may name only some codes. |
 
 `LegalPagesEditor` edits the legal pages one page and one locale at a time, through
 `createLegalService`. A locale tab whose page has no content yet gets a dot. `LocaleTabs` is the
@@ -858,8 +892,8 @@ to fill in the prompt. `createAuthOptions` sets all of these. Load their types f
 `@sjolystinnovation/app-kit/next-auth`, as [`createAuthOptions`](#createauthoptionsconfig-settings)
 shows.
 
-`SIGN_IN_ERRORS` holds the two codes a failed sign-in reports: `InvalidCredentials` and
-`SignInUnavailable`. Map them to the app's own messages.
+`SIGN_IN_ERRORS` holds the three codes a failed sign-in reports: `InvalidCredentials`,
+`SignInUnavailable`, and `LockedOut`. Map them to the app's own messages.
 
 `SESSION_ERRORS` holds the values the jwt callback puts in `token.error` when the session cannot be
 recovered: `AbsoluteSessionExpired`, `RefreshTokenRejected` and `NoRefreshToken`. `SessionError`
@@ -1023,8 +1057,8 @@ the prompt.
 | `strings` | `TextOverrides<CredentialsFormStrings>` | The form's text. The defaults are English. |
 | `onPendingChange` | `(pending: boolean) => void` | Runs when a sign-in starts and ends, such as to keep a dialog open until it finishes. |
 
-A failed sign-in shows `signInUnavailable` for `SIGN_IN_ERRORS.unavailable` and
-`invalidCredentials` for any other error code. A request next-auth refuses without an error code,
+A failed sign-in shows `signInUnavailable` for `SIGN_IN_ERRORS.unavailable`, `lockedOut` for
+`SIGN_IN_ERRORS.lockedOut`, and `invalidCredentials` for any other error code. A request next-auth refuses without an error code,
 or one that throws, shows `somethingWentWrong`.
 
 ### `LoginPage`
@@ -1074,10 +1108,23 @@ const params = useSearchParams();
 | `loginHref` | `string` | Where the sign-in links go. |
 | `initialEmail`, `initialCode` | `string` | From the emailed link. A code opens the second step. |
 | `className` | `string` | Replaces the outer `max-w-md mx-auto px-4 py-16`, such as to sit in the app's own card. |
-| `strings` | `TextOverrides<ResetPasswordFlowStrings>` | The page's text. Set `signInPrompt`, `intro`, `codeSent`, or `passwordHint` to `null` to leave it out. `done` set to `null` shows the API's message, or only the sign-in link when it sends none. `passwordInvalid` set to `null` lists every broken rule. |
+| `strings` | `TextOverrides<ResetPasswordFlowStrings>` | The page's text. Set `signInPrompt`, `intro`, `codeSent`, or `passwordHint` to `null` to leave it out. `done` set to `null` shows the API's message, or only the sign-in link when it sends none. `passwordInvalid` set to `null` lists every broken rule. `validation` and `errors` may name only some codes. |
 | `passwordStrings` | `TextOverrides<PasswordStrings>` | The rule messages, in the app's language. |
 
-A failure shows the error's message, or `somethingWentWrong` when it has none.
+A password that breaks the rules is marked under the new password field, without calling the API.
+If the API refuses with a validation problem, the flow shows each error under its field. A field
+error for a field the step does not show, and any other failure, goes in the message above the form.
+The API's codes show in the app's language:
+
+- `strings.validation` holds the field errors: `required`, `invalidEmail`, `passwordTooShort`,
+  `passwordRequiresDigit`, `passwordRequiresLower`, `passwordRequiresUpper`, and
+  `passwordRequiresNonAlphanumeric`. `{max}` in `passwordTooShort` becomes the API's least number of
+  characters.
+- `strings.errors` holds the other refusals: `invalidResetCode` and `tooManyResetAttempts`.
+
+A code the app leaves out keeps its English default, which is the API's English message. For an
+unknown code, such as `weakPassword` from a password rule the app adds, the flow shows the API's
+message. A failure without a message shows `somethingWentWrong`.
 
 `TextOverrides<T>`, from `@sjolystinnovation/app-kit/ui`, is the type of every `strings` prop. Each
 key is optional and may be `undefined`, and a missing or undefined key shows the English default.

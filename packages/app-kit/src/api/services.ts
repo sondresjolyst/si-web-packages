@@ -210,6 +210,9 @@ export function createAdminUsersService(api: AxiosInstance) {
     getUsers: (includeDeleted = false) =>
       request(() => api.get<AdminUser[]>("/users", { params: { includeDeleted } }), "Failed to load users"),
 
+    /** The roles an admin may give, in the order the API configures them. */
+    roles: () => request(() => api.get<string[]>("/users/roles"), "Failed to load roles"),
+
     addRole: (userId: string, role: string) =>
       request(() => api.post(`/users/${encodeURIComponent(userId)}/roles`, { role }), "Failed to assign role"),
 

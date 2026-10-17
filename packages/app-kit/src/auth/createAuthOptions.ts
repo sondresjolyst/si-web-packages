@@ -3,6 +3,7 @@ import jwt from "jsonwebtoken";
 import type { NextAuthOptions, Session, User } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import type { JWT } from "next-auth/jwt";
+import { apiErrorCode } from "../api/apiErrorCode";
 import { resolveJwtSecret, type SessionConfig } from "../config";
 import { ABSOLUTE_SESSION_MAX_AGE, CLOCK_TOLERANCE_S, SESSION_ERRORS, SIGN_IN_ERRORS, isTerminalSessionError } from "../session/expiry";
 
@@ -100,6 +101,13 @@ function apiUnavailable(error: unknown): boolean {
   if (!axios.isAxiosError(error)) return false;
   const status = error.response?.status;
   return status === undefined || status === 502 || status === 503 || status === 504;
+}
+
+// The sign-in error for a failed login. Only the API's lockout code is told apart from wrong
+// credentials, because the API gives it whether the password was right or not.
+function signInError(error: unknown): string {
+  if (apiUnavailable(error)) return SIGN_IN_ERRORS.unavailable;
+  return apiErrorCode(error) === "lockedOut" ? SIGN_IN_ERRORS.lockedOut : SIGN_IN_ERRORS.invalidCredentials;
 }
 
 // What a log line may contain. The error itself carries the request, which holds the password or
@@ -242,9 +250,7 @@ export function createAuthOptions(config: SessionConfig, settings: AuthOptionsSe
             console.error("Sign-in failed", failureShape(error));
             // No cause: next-auth logs this error, and the cause carries the password.
             // eslint-disable-next-line preserve-caught-error
-            throw new Error(
-              apiUnavailable(error) ? SIGN_IN_ERRORS.unavailable : SIGN_IN_ERRORS.invalidCredentials,
-            );
+            throw new Error(signInError(error));
           }
         },
       }),

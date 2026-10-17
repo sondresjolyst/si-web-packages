@@ -1,6 +1,33 @@
 // Plain values, with no "use client", so a server component can import them.
 
 /**
+ * The flow's text for each field error code of SjolystInnovation.AppKit.Auth's reset endpoints,
+ * shown under the email, code or new password field. `{max}` in `passwordTooShort` becomes the
+ * API's least number of characters. The flow shows the API's own message for a code that is not
+ * here, such as `weakPassword` from a password rule the app adds.
+ */
+export interface ResetPasswordValidationStrings {
+  required: string;
+  invalidEmail: string;
+  passwordTooShort: string;
+  passwordRequiresDigit: string;
+  passwordRequiresLower: string;
+  passwordRequiresUpper: string;
+  passwordRequiresNonAlphanumeric: string;
+}
+
+/**
+ * The flow's text for each code of SjolystInnovation.AppKit.Auth's reset endpoints that is not
+ * about one field. The flow shows the API's own message for a code that is not here.
+ */
+export interface ResetPasswordErrorStrings {
+  /** The code is wrong or expired, or the email has no active account. */
+  invalidResetCode: string;
+  /** Five wrong codes in a row. The user has to ask for a new code. */
+  tooManyResetAttempts: string;
+}
+
+/**
  * The reset flow's text. Pass the app's own language. The defaults are English. A text that is null
  * is left out of the page.
  */
@@ -29,6 +56,10 @@ export interface ResetPasswordFlowStrings {
   /** The text shown for a password the rules refuse. Null lists each rule it breaks. */
   passwordInvalid: string | null;
   somethingWentWrong: string;
+  /** The field error texts, by code. Any code left out keeps its default. */
+  validation: ResetPasswordValidationStrings;
+  /** The texts for the other refusals, by code. Any code left out keeps its default. */
+  errors: ResetPasswordErrorStrings;
 }
 
 export const defaultResetPasswordFlowStrings: ResetPasswordFlowStrings = {
@@ -49,4 +80,17 @@ export const defaultResetPasswordFlowStrings: ResetPasswordFlowStrings = {
   done: null,
   passwordInvalid: null,
   somethingWentWrong: "Something went wrong",
+  validation: {
+    required: "Required.",
+    invalidEmail: "Not a valid email address.",
+    passwordTooShort: "Passwords must be at least {max} characters.",
+    passwordRequiresDigit: "Passwords must have at least one digit ('0'-'9').",
+    passwordRequiresLower: "Passwords must have at least one lowercase ('a'-'z').",
+    passwordRequiresUpper: "Passwords must have at least one uppercase ('A'-'Z').",
+    passwordRequiresNonAlphanumeric: "Passwords must have at least one non alphanumeric character.",
+  },
+  errors: {
+    invalidResetCode: "Invalid or expired reset code.",
+    tooManyResetAttempts: "Too many attempts. Request a new reset code.",
+  },
 };

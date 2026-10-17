@@ -1,3 +1,4 @@
+export { apiErrorCode } from "./apiErrorCode";
 export { apiFieldErrors } from "./apiFieldErrors";
 export { formatOrgNumber, mergeCompanyInfo } from "./company";
 export type { CompanyFallback, CompanyInfo } from "./company";

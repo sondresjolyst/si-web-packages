@@ -11,7 +11,7 @@ export type { PasswordInputProps } from "./PasswordInput";
 export { ResetPasswordFlow } from "./ResetPasswordFlow";
 export type { ResetPasswordFlowProps } from "./ResetPasswordFlow";
 export { defaultResetPasswordFlowStrings } from "./resetPasswordFlowStrings";
-export type { ResetPasswordFlowStrings } from "./resetPasswordFlowStrings";
+export type { ResetPasswordErrorStrings, ResetPasswordFlowStrings, ResetPasswordValidationStrings } from "./resetPasswordFlowStrings";
 export { TextArea } from "./TextArea";
 export type { TextAreaProps } from "./TextArea";
 export { TextInput } from "./TextInput";

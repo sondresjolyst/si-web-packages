@@ -26,6 +26,12 @@ export interface CredentialsFormProps {
   onPendingChange?: ((pending: boolean) => void) | undefined;
 }
 
+// The form's text for each sign-in error. Any other error reads as wrong credentials.
+function signInErrorText(error: string, text: CredentialsFormStrings): string {
+  if (error === SIGN_IN_ERRORS.unavailable) return text.signInUnavailable;
+  return error === SIGN_IN_ERRORS.lockedOut ? text.lockedOut : text.invalidCredentials;
+}
+
 // next-auth answers a stale CSRF token with its own sign-in page and ?csrf=true.
 function refusedForCsrf(url: string | null | undefined): boolean {
   if (!url) return false;
@@ -58,7 +64,7 @@ export function CredentialsForm({
     try {
       const result = await signIn("credentials", { email, password, redirect: false });
       if (result?.error) {
-        setError(result.error === SIGN_IN_ERRORS.unavailable ? text.signInUnavailable : text.invalidCredentials);
+        setError(signInErrorText(result.error, text));
         return;
       }
       // next-auth reports a stale CSRF token as a success, see refusedForCsrf.

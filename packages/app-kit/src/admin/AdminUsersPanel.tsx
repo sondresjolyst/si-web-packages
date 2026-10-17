@@ -1,25 +1,54 @@
 "use client";
 
 import { PlusIcon, TrashIcon, XMarkIcon } from "@heroicons/react/24/outline";
-import { useEffect, useRef, useState } from "react";
-import { apiFieldErrors } from "../api/apiFieldErrors";
+import { useEffect, useId, useRef, useState } from "react";
+import { errorText, fieldErrorTexts } from "../api/fieldErrorText";
 import type { AdminUser, createAdminUsersService } from "../api/services";
 import { toast } from "../toast";
+import { FieldError } from "../ui/field";
 import { TextInput } from "../ui/TextInput";
 import { Toggle } from "../ui/Toggle";
 import { withDefaults, type TextOverrides } from "../ui/withDefaults";
-import { defaultAdminUsersPanelStrings, type AdminUsersPanelStrings } from "./adminUsersPanelStrings";
+import {
+  defaultAdminUsersPanelStrings,
+  type AdminUsersDeleteErrorStrings,
+  type AdminUsersErrorStrings,
+  type AdminUsersPanelStrings,
+  type AdminUsersValidationStrings,
+} from "./adminUsersPanelStrings";
 
-/** Props for `AdminUsersPanel`. */
-export interface AdminUsersPanelProps {
-  /** The user admin calls, such as `createAdminUsersService(api)`. */
-  service: ReturnType<typeof createAdminUsersService>;
-  /** The roles an admin may give, from the app's own endpoint. */
-  getRoles: () => Promise<string[]>;
+type AdminUsersService = ReturnType<typeof createAdminUsersService>;
+
+/**
+ * Props for `AdminUsersPanel`. The roles come from the service's `roles`, or from `getRoles` when the
+ * app passes it, so a service without `roles` needs `getRoles`.
+ */
+export type AdminUsersPanelProps = {
   /** The role a new invite starts with. Defaults to `Admin`. */
   defaultInviteRole?: string | undefined;
-  strings?: TextOverrides<AdminUsersPanelStrings> | undefined;
-}
+  /** The panel's text. `validation`, `errors` and `deleteErrors` may name only some codes, the rest keep their defaults. */
+  strings?:
+    | (TextOverrides<Omit<AdminUsersPanelStrings, "validation" | "errors" | "deleteErrors">> & {
+        validation?: TextOverrides<AdminUsersValidationStrings> | undefined;
+        errors?: TextOverrides<AdminUsersErrorStrings> | undefined;
+        deleteErrors?: TextOverrides<AdminUsersDeleteErrorStrings> | undefined;
+      })
+    | undefined;
+} & (
+  | {
+      /** The user admin calls, such as `createAdminUsersService(api)`. */
+      service: AdminUsersService;
+      /** The roles an admin may give. Defaults to the service's `roles`. */
+      getRoles?: (() => Promise<string[]>) | undefined;
+    }
+  | {
+      service: Omit<AdminUsersService, "roles">;
+      getRoles: () => Promise<string[]>;
+    }
+);
+
+// The invite fields the form shows, so a field error for any other field goes in the toast.
+const INVITE_FIELDS = ["firstName", "lastName", "email", "role"];
 
 const fill = (text: string, values: Record<string, string>) =>
   text.replace(/\{(\w+)\}/g, (match, key: string) => values[key] ?? match);
@@ -28,10 +57,16 @@ const reason = (err: unknown, fallback: string) => (err instanceof Error && err.
 
 /**
  * The admin users page: every user with their roles, a toggle for deleted users, giving and taking
- * roles, deleting an account after a confirm, and inviting a user by email.
+ * roles, deleting an account after a confirm, and inviting a user by email. The API's refusals show
+ * in the app's language through `validation`, `errors` and `deleteErrors`.
  */
 export function AdminUsersPanel({ service, getRoles, defaultInviteRole = "Admin", strings }: AdminUsersPanelProps) {
-  const text = withDefaults(defaultAdminUsersPanelStrings, strings);
+  const { validation: validationOverrides, errors: errorOverrides, deleteErrors: deleteOverrides, ...textOverrides } = strings ?? {};
+  const text = withDefaults(defaultAdminUsersPanelStrings, textOverrides);
+  const validation = withDefaults(defaultAdminUsersPanelStrings.validation, validationOverrides);
+  const errors = withDefaults(defaultAdminUsersPanelStrings.errors, errorOverrides);
+  const deleteErrors = withDefaults(defaultAdminUsersPanelStrings.deleteErrors, deleteOverrides);
+  const roleErrorId = `${useId()}-role-error`;
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [allRoles, setAllRoles] = useState<string[]>([]);
   const [includeDeleted, setIncludeDeleted] = useState(false);
@@ -41,7 +76,7 @@ export function AdminUsersPanel({ service, getRoles, defaultInviteRole = "Admin"
   const [roleLoading, setRoleLoading] = useState(false);
   const [invite, setInvite] = useState({ email: "", firstName: "", lastName: "", role: defaultInviteRole });
   const [inviting, setInviting] = useState(false);
-  // The API's per-field messages from the last failed invite, keyed by field name.
+  // The per-field texts from the last failed invite, keyed by field name.
   const [inviteErrors, setInviteErrors] = useState<Record<string, string[]>>({});
   // Bumping it fetches the list again after a change, through the same effect as every other load.
   const [reloads, setReloads] = useState(0);
@@ -75,8 +110,9 @@ export function AdminUsersPanel({ service, getRoles, defaultInviteRole = "Admin"
   }, [includeDeleted, reloads, text.usersLoadFailed]);
 
   useEffect(() => {
-    getRolesRef
-      .current()
+    // Without getRoles the props carry a service with roles.
+    const roles = getRolesRef.current ?? (() => (serviceRef.current as AdminUsersService).roles());
+    roles()
       .then(setAllRoles)
       .catch(() => toast.error(text.rolesLoadFailed));
   }, [text.rolesLoadFailed]);
@@ -103,7 +139,7 @@ export function AdminUsersPanel({ service, getRoles, defaultInviteRole = "Admin"
       setAddRoleFor(null);
       setSelectedRole("");
     } catch (err) {
-      toast.error(reason(err, text.roleAssignFailed));
+      toast.error(errorText(err, errors, text.roleAssignFailed));
     } finally {
       setRoleLoading(false);
     }
@@ -115,7 +151,7 @@ export function AdminUsersPanel({ service, getRoles, defaultInviteRole = "Admin"
       setRoles(user.id, user.roles.filter((r) => r !== role));
       toast.success(fill(text.roleRemoved, { name: user.firstName, role }));
     } catch (err) {
-      toast.error(reason(err, text.roleRemoveFailed));
+      toast.error(errorText(err, errors, text.roleRemoveFailed));
     }
   };
 
@@ -127,7 +163,7 @@ export function AdminUsersPanel({ service, getRoles, defaultInviteRole = "Admin"
       toast.success(text.userDeleted);
       reload();
     } catch (err) {
-      toast.error(reason(err, text.userDeleteFailed));
+      toast.error(errorText(err, deleteErrors, text.userDeleteFailed));
     }
   };
 
@@ -149,8 +185,12 @@ export function AdminUsersPanel({ service, getRoles, defaultInviteRole = "Admin"
       setInvite({ email: "", firstName: "", lastName: "", role: invite.role });
       reload();
     } catch (err) {
-      setInviteErrors(apiFieldErrors(err) ?? {});
-      toast.error(reason(err, text.inviteFailed));
+      const texts = Object.entries(fieldErrorTexts(err, validation));
+      // Only the fields the form shows render their errors.
+      setInviteErrors(Object.fromEntries(texts));
+      // The toast names a field error the form cannot show first, then the first one it shows.
+      const first = (texts.find(([field]) => !INVITE_FIELDS.includes(field)) ?? texts[0])?.[1][0];
+      toast.error(first ?? errorText(err, errors, text.inviteFailed));
     } finally {
       setInviting(false);
     }
@@ -175,20 +215,25 @@ export function AdminUsersPanel({ service, getRoles, defaultInviteRole = "Admin"
           <div className="flex-1 min-w-[14rem]">
             <TextInput label={text.email} error={inviteErrors.email?.join(" ")} type="email" value={invite.email} onChange={(e) => setInvite({ ...invite, email: e.target.value })} />
           </div>
-          <label className="text-xs text-gray-600">
-            {text.role}
-            <select
-              value={invite.role}
-              onChange={(e) => setInvite({ ...invite, role: e.target.value })}
-              className="mt-1 block rounded-lg border border-gray-300 px-3 py-2 text-sm"
-            >
-              {allRoles.map((role) => (
-                <option key={role} value={role}>
-                  {role}
-                </option>
-              ))}
-            </select>
-          </label>
+          <div>
+            <label className="text-xs text-gray-600">
+              {text.role}
+              <select
+                value={invite.role}
+                onChange={(e) => setInvite({ ...invite, role: e.target.value })}
+                aria-invalid={inviteErrors.role ? true : undefined}
+                aria-describedby={inviteErrors.role ? roleErrorId : undefined}
+                className="mt-1 block rounded-lg border border-gray-300 px-3 py-2 text-sm"
+              >
+                {allRoles.map((role) => (
+                  <option key={role} value={role}>
+                    {role}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <FieldError id={roleErrorId} error={inviteErrors.role?.join(" ")} />
+          </div>
           <button
             onClick={sendInvite}
             disabled={inviting}

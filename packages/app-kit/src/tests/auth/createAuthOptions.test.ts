@@ -578,6 +578,31 @@ describe("sign-in", () => {
     }
   });
 
+  it("reports a lockout when the API answers with its lockedOut code", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const body = { message: "Too many failed attempts. This login is temporarily locked, try again later.", code: "lockedOut" };
+    apiClient.defaults.adapter = async (config) => {
+      throw Object.assign(new Error("status 401"), { isAxiosError: true, config, response: { status: 401, data: body } });
+    };
+
+    await expect(authorize({ email: "a@b.no", password: "pw" })).rejects.toThrow(SIGN_IN_ERRORS.lockedOut);
+  });
+
+  it("reports wrong credentials for any other code, and the API as unavailable even with a lockout code", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    for (const [status, code, expected] of [
+      [401, "invalidCredentials", SIGN_IN_ERRORS.invalidCredentials],
+      [400, "required", SIGN_IN_ERRORS.invalidCredentials],
+      [503, "lockedOut", SIGN_IN_ERRORS.unavailable],
+    ] as const) {
+      apiClient.defaults.adapter = async (config) => {
+        throw Object.assign(new Error(`status ${status}`), { isAxiosError: true, config, response: { status, data: { message: "x", code } } });
+      };
+
+      await expect(authorize({ email: "a@b.no", password: "pw" })).rejects.toThrow(expected);
+    }
+  });
+
   it("refuses an access token signed with another secret", async () => {
     vi.spyOn(console, "error").mockImplementation(() => {});
     respondWith({ token: apiToken({ secret: "a-different-secret-entirely" }), refreshToken: "RT-1" });

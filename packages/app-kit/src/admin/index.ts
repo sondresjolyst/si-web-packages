@@ -15,7 +15,12 @@ export type { EmailStatsPanelStrings } from "./emailStatsPanelStrings";
 export { AdminUsersPanel } from "./AdminUsersPanel";
 export type { AdminUsersPanelProps } from "./AdminUsersPanel";
 export { defaultAdminUsersPanelStrings } from "./adminUsersPanelStrings";
-export type { AdminUsersPanelStrings } from "./adminUsersPanelStrings";
+export type {
+  AdminUsersDeleteErrorStrings,
+  AdminUsersErrorStrings,
+  AdminUsersPanelStrings,
+  AdminUsersValidationStrings,
+} from "./adminUsersPanelStrings";
 export { LegalPagesEditor } from "./LegalPagesEditor";
 export type { LegalPagesEditorProps } from "./LegalPagesEditor";
 export { defaultLegalPageKeyLabels, defaultLegalPagesEditorStrings } from "./legalPagesEditorStrings";
