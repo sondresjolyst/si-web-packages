@@ -1,19 +1,7 @@
 import Link from "next/link";
 import { cx } from "./cx";
+import { defaultNotFoundStateStrings, type NotFoundStateStrings } from "./notFoundStateStrings";
 import { withDefaults, type TextOverrides } from "./withDefaults";
-
-/** The not-found page's text. Pass the app's own language. The defaults are English. */
-export interface NotFoundStateStrings {
-  code: string;
-  body: string;
-  home: string;
-}
-
-export const defaultNotFoundStateStrings: NotFoundStateStrings = {
-  code: "404",
-  body: "This page does not exist.",
-  home: "Go home",
-};
 
 /** Props for `NotFoundState`. */
 export interface NotFoundStateProps {

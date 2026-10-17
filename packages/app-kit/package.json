@@ -38,6 +38,7 @@
     "./branding": "./src/branding/index.ts",
     "./branding/server": "./src/branding/server.ts",
     "./payments": "./src/payments/index.ts",
+    "./locales/nb": "./src/locales/nb.ts",
     "./testing": "./src/testing/index.ts",
     "./styles.css": "./src/styles.css"
   },
