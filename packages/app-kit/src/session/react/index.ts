@@ -10,7 +10,7 @@ export { RoleGate } from "./RoleGate";
 export type { RoleGateProps } from "./RoleGate";
 export { CredentialsForm } from "./CredentialsForm";
 export type { CredentialsFormProps } from "./CredentialsForm";
-export { SignInRejected, defaultCredentialsFormStrings } from "./credentialsFormStrings";
+export { defaultCredentialsFormStrings } from "./credentialsFormStrings";
 export type { CredentialsFormStrings } from "./credentialsFormStrings";
 export { LoginPage } from "./LoginPage";
 export type { LoginPageProps } from "./LoginPage";

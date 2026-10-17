@@ -5,8 +5,8 @@ import {
   getSessionPromptOpen,
   isTerminalSessionError,
   openSessionPrompt,
-  subscribeSessionPrompt,
 } from "../../session";
+import { subscribeSessionPrompt } from "../../session/expiry";
 
 const unsubscribes: (() => void)[] = [];
 const subscribe = (listener: () => void) => {

@@ -5,7 +5,7 @@ import { toast as sonnerToast } from "sonner";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { RoleGate } from "../../session/react";
 import { toast } from "../../toast";
-import { auth, axiosInstanceMock, axiosSpies, makeSession, navigation, resetTestMocks, setSession, toastSpies } from "../../testing";
+import { auth, makeSession, navigation, resetTestMocks, setSession, toastSpies } from "../../testing";
 
 // The way an app uses them: the factory imports the helpers, so the hoisted mock never runs before them.
 vi.mock("next-auth/react", async () => (await import("../../testing")).nextAuthMock());
@@ -89,14 +89,6 @@ describe("testing helpers", () => {
     expect(toastSpies.dismiss).toHaveBeenCalledWith("id");
   });
 
-  it("stand in for an app's axios instance", async () => {
-    axiosSpies.get.mockResolvedValue({ data: [1] });
-    const api = axiosInstanceMock().default;
-
-    expect(await api.get("/users")).toEqual({ data: [1] });
-    expect(axiosSpies.get).toHaveBeenCalledWith("/users");
-  });
-
   it("start every test signed out at / with no calls or answers left", () => {
     setSession(makeSession());
     navigation.pathname = "/x";
@@ -104,7 +96,6 @@ describe("testing helpers", () => {
     auth.signIn.mockResolvedValue(1);
     navigation.router.push("/y");
     toastSpies.error("e");
-    axiosSpies.post.mockResolvedValue(2);
 
     resetTestMocks();
 
@@ -114,6 +105,5 @@ describe("testing helpers", () => {
     expect(auth.signIn()).toBeUndefined();
     expect(navigation.router.push).not.toHaveBeenCalled();
     expect(toastSpies.error).not.toHaveBeenCalled();
-    expect(axiosSpies.post()).toBeUndefined();
   });
 });

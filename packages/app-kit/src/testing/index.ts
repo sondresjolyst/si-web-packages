@@ -94,20 +94,12 @@ export function toastMock() {
   return { toast, Toaster: () => null };
 }
 
-/** The HTTP calls of an app's axios instance as spies. */
-export const axiosSpies = { get: vi.fn(), post: vi.fn(), put: vi.fn(), patch: vi.fn(), delete: vi.fn() };
-
-/** Builds a module whose default export is an axios instance, such as the app's `services/axiosInstance`. */
-export function axiosInstanceMock() {
-  return { default: axiosSpies };
-}
-
 /** Signs out, goes back to `/`, and clears every spy's calls and answers. */
 export function resetTestMocks(): void {
   setSession(null);
   navigation.pathname = "/";
   navigation.searchParams = new URLSearchParams();
-  for (const spy of [auth.signIn, auth.signOut, auth.getSession, auth.update, ...Object.values(navigation.router), ...Object.values(toastSpies), ...Object.values(axiosSpies)]) {
+  for (const spy of [auth.signIn, auth.signOut, auth.getSession, auth.update, ...Object.values(navigation.router), ...Object.values(toastSpies)]) {
     spy.mockReset();
   }
 }

@@ -214,8 +214,8 @@ user out, so the page keeps its state. The error still rejects as usual.
 
 `request(call, fallback, statusMessages?)` runs a call and returns its `data`. A failure becomes an
 `Error` with the message `formatApiError` gives it. When the API answers with a validation problem,
-the error also keeps its per-field messages and their codes for `apiFieldErrors` and
-`apiFieldErrorDetails`. It keeps nothing else from the response. A canceled call rethrows the cancel unchanged:
+the error also keeps its per-field messages and their codes for `apiFieldErrors` and for the
+field errors of the shared forms. It keeps nothing else from the response. A canceled call rethrows the cancel unchanged:
 
 ```ts
 import { requireEnv } from "@sjolystinnovation/app-kit";
@@ -242,10 +242,6 @@ export const getCompanyInfo = async () => mergeCompanyInfo(await publicGetOption
 call, its body, or the `Error` that `request` and the services throw, keyed in camelCase to match
 the form: `{ errors: { OrgNumber: ["..."] } }` becomes `{ orgNumber: ["..."] }`. It returns `null`
 when there are none, so the form falls back to one message.
-`apiFieldErrorDetails(error)` gives the same fields with each message as `{ message, code?, limit? }`,
-from the problem's `codes` and `limits` extensions when the API sends them, so the form can show its
-own text for a code: `{ errors: { OrgNumber: ["..."] }, codes: { OrgNumber: ["invalidOrgNumber"] } }`
-becomes `{ orgNumber: [{ message: "...", code: "invalidOrgNumber" }] }`.
 
 ```ts
 try {
@@ -668,8 +664,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 `StatHistoryChart` draws the admin stats over time: a line per series, a scale from zero to the
 highest value shown, and legend buttons that hide and show each line. `data` is one row per day,
 oldest first, with `date` as `YYYY-MM-DD`. A missing value counts as zero. Each series names the
-field it plots and its label, and takes the next color in `STAT_SERIES_COLORS` unless it has its
-own. `strings` holds `empty`, shown when there are no days, and `chart`, the accessible name.
+field it plots and its label, and takes the next color of a built-in palette of five unless it has
+its own. `strings` holds `empty`, shown when there are no days, and `chart`, the accessible name.
 
 ```tsx
 <StatHistoryChart
@@ -844,7 +840,6 @@ The re-sign-in prompt is a flag outside React, so an axios interceptor can raise
 | --- | --- |
 | `openSessionPrompt()` | Asks the user to sign in again without leaving the page. |
 | `closeSessionPrompt()` | Hides the prompt. Call it when the component showing the prompt unmounts, or the flag stays open and the gate never redirects. |
-| `subscribeSessionPrompt(listener)` | Calls `listener` when the prompt opens or closes. Returns an unsubscribe function. |
 | `getSessionPromptOpen()` | Whether the prompt is showing. |
 
 Copies of the package installed side by side share the one flag, as long as their releases use the
@@ -990,7 +985,7 @@ the prompt.
 
 | Prop | Type | Description |
 | --- | --- | --- |
-| `onSignedIn` | `() => void \| Promise<void>` | Runs after next-auth accepts the credentials. Throw `SignInRejected`, from the same entry point, with a message to refuse the sign-in. |
+| `onSignedIn` | `() => void \| Promise<void>` | Runs after next-auth accepts the credentials. If it throws, the form shows its generic error. |
 | `initialEmail` | `string` | The email the field starts with. |
 | `children` | `ReactNode` | Extra buttons next to the submit button. |
 | `strings` | `TextOverrides<CredentialsFormStrings>` | The form's text. The defaults are English. |
@@ -1140,7 +1135,7 @@ a server component.
 | `priority` | `boolean` | `false` | For the one image visible without scrolling. It loads eagerly, at high priority. |
 | `width`, `height` | `number` | | Intrinsic size, to reserve space where the layout fixes no ratio. |
 | `base` | `string` | `"/content-images"` | Path the content images rewrite serves. |
-| `widths` | `number[]` | `CONTENT_IMAGE_WIDTHS` | Widths in the `srcset`. |
+| `widths` | `number[]` | `[384, 640, 768, 1024, 1366, 1600]` | Widths in the `srcset`. The default matches the API's default variant widths. |
 | `className` | `string` | | Classes on the `<img>`. |
 
 `contentImagePath(id, base?)` and `contentImageSrcSet(id, widths?, base?)` build the same URLs for
@@ -1251,7 +1246,7 @@ if (!parsed.success) setErrors(zodFieldErrors(parsed.error, { message: (issue) =
 ### `@sjolystinnovation/app-kit/testing`
 
 Test doubles for the modules every app's tests mock: `next-auth/react`, `next/navigation`, `sonner`
-or `@sjolystinnovation/app-kit/toast`, and the app's axios instance. vitest hoists `vi.mock` above
+or `@sjolystinnovation/app-kit/toast`. vitest hoists `vi.mock` above
 the file's imports, so the factory imports the helpers itself. The test imports the same module to
 set the state and read the spies. The state lasts for the whole file, so call `resetTestMocks`
 before each test. It needs vitest 5, as an optional peer dependency.
@@ -1278,8 +1273,6 @@ it("sends a user without the role away", () => {
 - `navigation.pathname`, `navigation.searchParams` and `navigation.router` feed `usePathname`,
   `useSearchParams` and `useRouter`.
 - `toastMock()` records every toast in `toastSpies`.
-- `axiosInstanceMock()` is a module whose default export is `axiosSpies`, for
-  `vi.mock("@/services/axiosInstance", ...)`.
 
 ## Theming
 

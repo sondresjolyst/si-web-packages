@@ -2,7 +2,8 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { CONTENT_IMAGE_WIDTHS, ContentImage, contentImagePath, contentImageSrcSet } from "../../ui";
+import { ContentImage, contentImagePath, contentImageSrcSet } from "../../ui";
+import { CONTENT_IMAGE_WIDTHS } from "../../ui/ContentImage";
 
 describe("contentImagePath and contentImageSrcSet", () => {
   it("point at the content images rewrite", () => {

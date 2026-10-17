@@ -1,6 +1,7 @@
 import axios from "axios";
 import { describe, expect, it } from "vitest";
-import { apiFieldErrorDetails, apiFieldErrors, request } from "../../api";
+import { apiFieldErrors, request } from "../../api";
+import { apiFieldErrorDetails } from "../../api/apiFieldErrors";
 
 const axiosError = (status: number, data?: unknown) =>
   Object.assign(new Error(`Request failed with status code ${status}`), {

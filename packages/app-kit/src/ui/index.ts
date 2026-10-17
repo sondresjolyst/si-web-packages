@@ -1,6 +1,6 @@
 export { Alert } from "./Alert";
 export type { AlertProps } from "./Alert";
-export { ContentImage, CONTENT_IMAGE_WIDTHS, contentImagePath, contentImageSrcSet } from "./ContentImage";
+export { ContentImage, contentImagePath, contentImageSrcSet } from "./ContentImage";
 export type { ContentImageProps } from "./ContentImage";
 export { ErrorState, defaultErrorStateStrings } from "./ErrorState";
 export type { ErrorStateProps, ErrorStateStrings } from "./ErrorState";
