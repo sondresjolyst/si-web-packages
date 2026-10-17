@@ -138,7 +138,7 @@ export function CompanySettingsForm({ service, strings, children }: CompanySetti
         <TextInput label={text.addressRegion} name="addressRegion" error={errorFor("addressRegion")} value={settings.addressRegion} onChange={e => patch({ addressRegion: e.target.value })} />
         <p className="text-xs text-gray-500">{text.addressHint}</p>
         <TextInput label={text.publicEmail} name="publicEmail" error={errorFor("publicEmail")} type="email" value={settings.publicEmail} onChange={e => patch({ publicEmail: e.target.value })} required />
-        <TextInput label={text.publicPhone} name="publicPhone" error={errorFor("publicPhone")} value={settings.publicPhone} onChange={e => patch({ publicPhone: e.target.value })} required />
+        <TextInput label={text.publicPhone} name="publicPhone" error={errorFor("publicPhone")} value={settings.publicPhone} onChange={e => patch({ publicPhone: e.target.value })} />
 
         <button
           type="submit"
