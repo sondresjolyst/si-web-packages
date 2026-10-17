@@ -723,7 +723,9 @@ that sends no codes, the editor shows the API's message.
 
 `LegalPageView` renders a terms, privacy or cookies page as an admin wrote it: the title, the date
 it last changed in `dateLocale`, and the Markdown body. If there is no page, it shows `title` and
-says the page is missing. It is a server component and needs the same peers as `markdown`. The
+says the page is missing. It is a server component and needs the same peers as `markdown`, but
+neither axios nor next-auth. It also exports the `LegalPage` type, the same one as
+`@sjolystinnovation/app-kit/api`, so a site without sign-in can type the page without that entry. The
 route file stays in the app, since Next reads `revalidate` and the metadata from it.
 
 ```tsx
@@ -1374,7 +1376,8 @@ with it and has to set the ones it uses itself.
 - Next.js 16 and React 19, as peer dependencies the app installs itself.
 - For `auth`, `api`, `server`, `session/react`, and `admin`: next-auth 4.24 or later and axios 1.20
   or later, as optional peer dependencies. A site without sign-in, which uses only entries such as
-  the root entry, `ui`, `seo`, `next-config`, `markdown`, `toast`, or `validation`, leaves them out.
+  the root entry, `ui`, `seo`, `next-config`, `markdown`, `legal`, `toast`, or `validation`, leaves
+  them out.
 - For `@sjolystinnovation/app-kit/validation`: zod 4, as an optional peer dependency.
 - For `@sjolystinnovation/app-kit/testing`: vitest 5, as an optional peer dependency.
 - For `@sjolystinnovation/app-kit/toast`, `admin`, and `branding`: sonner 2, as an optional peer

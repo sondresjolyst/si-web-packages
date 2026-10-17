@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { fieldErrorTexts } from "../api/fieldErrorText";
-import type { LegalPage } from "../api/services";
+import type { LegalPage } from "../api/legalPage";
 import { toast } from "../toast";
 import { FieldError } from "../ui/field";
 import { TextInput } from "../ui/TextInput";

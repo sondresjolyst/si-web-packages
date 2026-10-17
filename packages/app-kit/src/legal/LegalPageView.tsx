@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { LegalPage } from "../api/services";
+import type { LegalPage } from "../api/legalPage";
 import { Markdown } from "../markdown";
 import { parseTimestamp } from "../seo/sitemap";
 import { withDefaults, type TextOverrides } from "../ui/withDefaults";
