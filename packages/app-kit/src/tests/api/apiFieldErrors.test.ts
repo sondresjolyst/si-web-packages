@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { apiFieldErrorDetails, apiFieldErrors } from "../../api";
+import { apiFieldErrors } from "../../api";
+import { apiFieldErrorDetails } from "../../api/apiFieldErrors";
 
 const axiosError = (data: unknown) =>
   Object.assign(new Error("Request failed with status code 400"), { isAxiosError: true, response: { status: 400, data } });

@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { CredentialsForm, SignInRejected, defaultCredentialsFormStrings as text } from "../../session/react";
+import { CredentialsForm, defaultCredentialsFormStrings as text } from "../../session/react";
+import { SignInRejected } from "../../session/react/credentialsFormStrings";
 
 const signIn = vi.fn();
 

@@ -1,7 +1,8 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
-import { STAT_SERIES_COLORS, StatHistoryChart } from "../../admin";
+import { StatHistoryChart } from "../../admin";
+import { STAT_SERIES_COLORS } from "../../admin/statHistoryChartStrings";
 
 interface Day {
   date: string;

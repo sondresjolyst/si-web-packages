@@ -17,7 +17,7 @@ import { withDefaults, type TextOverrides } from "../../ui/withDefaults";
 /** Props for `CredentialsForm`. */
 export interface CredentialsFormProps {
   initialEmail?: string | undefined;
-  /** A function that runs after next-auth accepts the credentials. Throw `SignInRejected` from it to refuse with a reason. */
+  /** A function that runs after next-auth accepts the credentials. If it throws, the form shows its generic error. */
   onSignedIn: () => void | Promise<void>;
   /** The extra buttons next to the submit button, such as a close button. */
   children?: ReactNode;

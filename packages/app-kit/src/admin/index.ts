@@ -5,7 +5,7 @@ export type { CompanySettingsFormStrings, CompanySettingsValidationStrings } fro
 export { AdminShell } from "./AdminShell";
 export type { AdminShellProps, AdminTab } from "./AdminShell";
 export { StatHistoryChart } from "./StatHistoryChart";
-export { STAT_SERIES_COLORS, defaultStatHistoryChartStrings } from "./statHistoryChartStrings";
+export { defaultStatHistoryChartStrings } from "./statHistoryChartStrings";
 export type { StatHistoryChartProps, StatSeries } from "./StatHistoryChart";
 export type { StatHistoryChartStrings } from "./statHistoryChartStrings";
 export { AdminUsersPanel } from "./AdminUsersPanel";

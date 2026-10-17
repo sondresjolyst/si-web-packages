@@ -5,7 +5,7 @@ import { formatApiError, type StatusMessages } from "./formatApiError";
 /**
  * Runs an API call and returns its data. A failure throws an `Error` with a message for the user,
  * from `formatApiError`. When the API answers with a validation problem, the error also carries its
- * per-field messages with their codes, which `apiFieldErrors` and `apiFieldErrorDetails` read. A
+ * per-field messages with their codes, which `apiFieldErrors` and the forms' field errors read. A
  * canceled call rethrows the cancel as it is, so the caller can ignore it.
  */
 export async function request<T>(
