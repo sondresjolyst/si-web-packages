@@ -1383,9 +1383,11 @@ with it and has to set the ones it uses itself.
 - For `@sjolystinnovation/app-kit/toast`, `admin`, and `branding`: sonner 2, as an optional peer
   dependency. Install a single copy, because two copies keep two separate toast stores.
 - `jsonwebtoken` comes with the package. `@sjolystinnovation/app-kit/auth` uses it on the server.
-- For the components in `ui`, `admin`, `legal`, `markdown`, `branding`, `payments`, and
-  `session/react`: Tailwind CSS 4. `ui`, `admin`, `branding`, `payments`, and `session/react` also
-  need `@heroicons/react` 2. The focus ring and the primary button use the theme's `primary` and
+- For `ui`, `admin`, `branding`, `sections`, `payments`, and `session/react`: `@heroicons/react` 2,
+  as an optional peer dependency. Every other entry point, such as the root entry, `seo`,
+  `next-config`, `forms`, `markdown`, `legal`, `api`, or `validation`, works without it.
+- For the components in `ui`, `admin`, `legal`, `markdown`, `sections`, `branding`, `payments`, and
+  `session/react`: Tailwind CSS 4. The focus ring and the primary button use the theme's `primary` and
   `primary-foreground` colors, unless you set their own variables.
 - TypeScript with `"moduleResolution": "bundler"`. Relative imports here are extensionless, which
   `node16` and `nodenext` reject.
