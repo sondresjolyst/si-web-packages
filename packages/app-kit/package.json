@@ -9,7 +9,10 @@
     "url": "git+https://github.com/sondresjolyst/si-web-packages.git",
     "directory": "packages/app-kit"
   },
-  "homepage": "https://github.com/sondresjolyst/si-web-packages#readme",
+  "homepage": "https://github.com/sondresjolyst/si-web-packages/tree/main/packages/app-kit#readme",
+  "bugs": {
+    "url": "https://github.com/sondresjolyst/si-web-packages/issues"
+  },
   "type": "module",
   "sideEffects": [
     "*.css"
@@ -43,7 +46,9 @@
   },
   "files": [
     "src",
-    "!src/tests"
+    "!src/tests",
+    "README.md",
+    "LICENSE"
   ],
   "publishConfig": {
     "access": "public"
@@ -119,11 +124,18 @@
   },
   "keywords": [
     "next.js",
+    "nextjs",
+    "app-router",
     "next-auth",
     "session",
     "jwt",
+    "authentication",
+    "axios",
     "react",
-    "tailwindcss"
+    "tailwindcss",
+    "admin",
+    "seo",
+    "typescript"
   ],
   "dependencies": {
     "@types/jsonwebtoken": "^9.0.10",
