@@ -1,10 +1,9 @@
+export { BrandingManager, type BrandingManagerProps } from "./BrandingManager";
 export {
-  BrandingManager,
   defaultBrandingManagerStrings,
-  type BrandingManagerProps,
   type BrandingManagerStrings,
   type BrandingValidationStrings,
-} from "./BrandingManager";
+} from "./brandingManagerStrings";
 export {
   BrandingProvider,
   useBranding,

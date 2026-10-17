@@ -3,22 +3,7 @@ import type { LegalPage } from "../api/legalPage";
 import { Markdown } from "../markdown";
 import { parseTimestamp } from "../seo/sitemap";
 import { withDefaults, type TextOverrides } from "../ui/withDefaults";
-
-/** The legal page's text around the content. Pass the app's own language. The defaults are English. */
-export interface LegalPageViewStrings {
-  /** The text before the date the page last changed. */
-  updated: string;
-  /** The text shown in place of the content when nobody has written the page yet. */
-  missing: string;
-  /** The text of the link back to the front page. */
-  toFrontPage: string;
-}
-
-export const defaultLegalPageViewStrings: LegalPageViewStrings = {
-  updated: "Last updated",
-  missing: "This content has not been written yet.",
-  toFrontPage: "Back to the front page",
-};
+import { defaultLegalPageViewStrings, type LegalPageViewStrings } from "./legalPageViewStrings";
 
 /** Props for `LegalPageView`. */
 export interface LegalPageViewProps {
