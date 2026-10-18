@@ -50,7 +50,7 @@ export interface ResetPasswordFlowStrings {
   email: string;
   code: string;
   newPassword: string;
-  /** The text shown under the new password field. */
+  /** The text shown under the new password field. It gives way to the field's error while one shows. */
   passwordHint: string | null;
   requestCode: string;
   requestingCode: string;

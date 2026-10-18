@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState, type FormEvent } from "react";
+import { useId, useState, type FormEvent } from "react";
 import { errorText, fieldErrorTexts } from "../api/fieldErrorText";
 import { passwordProblems, type PasswordStrings } from "../validation/passwordRules";
 import { Alert } from "./Alert";
@@ -76,6 +76,7 @@ export function ResetPasswordFlow({
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
   const [done, setDone] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const hintId = `${useId()}-hint`;
 
   // Field errors go under the fields this step shows, and the message holds the rest.
   const fail = (err: unknown, shown: readonly string[]) => {
@@ -91,6 +92,10 @@ export function ResetPasswordFlow({
   };
 
   const fieldError = (field: string) => fieldErrors[field]?.join(" ");
+  // The error under the new password says what to fix, and by default it holds the rules, so the
+  // hint steps aside while it shows.
+  const passwordError = fieldError("newPassword");
+  const showHint = Boolean(text.passwordHint) && !passwordError;
 
   const sendCode = async (event: FormEvent) => {
     event.preventDefault();
@@ -159,12 +164,13 @@ export function ResetPasswordFlow({
           <PasswordInput
             label={text.newPassword}
             name="newPassword"
-            error={fieldError("newPassword")}
+            error={passwordError}
+            aria-describedby={showHint ? hintId : undefined}
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
             required
           />
-          {text.passwordHint && <p className="text-xs text-auth-hint">{text.passwordHint}</p>}
+          {showHint && <p id={hintId} className="text-xs text-auth-hint">{text.passwordHint}</p>}
           <button type="submit" disabled={loading} className={button}>
             {loading ? text.settingPassword : text.setPassword}
           </button>

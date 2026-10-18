@@ -991,7 +991,7 @@ const params = useSearchParams();
 | `loginHref` | `string` | Where the sign-in links go. |
 | `initialEmail`, `initialCode` | `string` | The values from the emailed link. A code opens the second step. |
 | `className` | `string` | Replaces the outer `max-w-md mx-auto px-4 py-16`, such as to sit in the app's own card. |
-| `strings` | `TextOverrides<ResetPasswordFlowStrings>` | The page's text. The English defaults include an intro, the password rules as `passwordHint`, and a `done` text. Set `signInPrompt`, `intro`, `codeSent`, or `passwordHint` to `null` to leave it out. `done` set to `null` shows the API's message, or only the sign-in link when it sends none. `passwordInvalid` set to `null` lists every broken rule. `validation` and `errors` may name only some codes. |
+| `strings` | `TextOverrides<ResetPasswordFlowStrings>` | The page's text. The English defaults include an intro, the password rules as `passwordHint`, and a `done` text. Set `signInPrompt`, `intro`, `codeSent`, or `passwordHint` to `null` to leave it out. The hint gives way to the new password's error while one shows, since the default `passwordInvalid` repeats the rules. `done` set to `null` shows the API's message, or only the sign-in link when it sends none. `passwordInvalid` set to `null` lists every broken rule. `validation` and `errors` may name only some codes. |
 | `passwordStrings` | `TextOverrides<PasswordStrings>` | The rule messages, in the app's language. |
 
 A password that breaks the rules is marked under the new password field, without a call to the API.
