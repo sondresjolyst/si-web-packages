@@ -2,6 +2,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { request } from "../../api";
+import { nbPasswordStrings, nbResetPasswordFlowStrings as nb } from "../../locales/nb";
 import { ResetPasswordFlow, defaultResetPasswordFlowStrings as en } from "../../ui";
 
 const requestReset = vi.fn();
@@ -76,6 +77,66 @@ describe("ResetPasswordFlow", () => {
 
     expect(screen.getByLabelText(/^New password/)).toHaveAccessibleDescription(`The password does not meet the requirements. Use at least 8 characters, with at least one lowercase and one uppercase letter from A to Z and one digit from 0 to 9.`);
     expect(reset).not.toHaveBeenCalled();
+  });
+
+  it("describes the new password with the hint until an error takes its place", async () => {
+    flow({ initialEmail: "kari@example.no", initialCode: "AB12CD" });
+    const password = screen.getByLabelText(/^New password/);
+    expect(password).toHaveAccessibleDescription(en.passwordHint!);
+
+    await setPasswordWith("short");
+    expect(password).toHaveAccessibleDescription(en.passwordInvalid!);
+    expect(screen.queryByText(en.passwordHint!)).not.toBeInTheDocument();
+    expect(document.querySelector("form")!.textContent!.split(en.passwordHint!)).toHaveLength(2);
+
+    reset.mockReturnValue(new Promise(() => {}));
+    await userEvent.clear(password);
+    await setPasswordWith("Password1");
+    expect(password).toHaveAccessibleDescription(en.passwordHint!);
+    expect(screen.getByText(en.passwordHint!)).toHaveClass("text-auth-hint");
+  });
+
+  it("shows the Norwegian rules once after a weak password", async () => {
+    flow({ initialEmail: "kari@example.no", initialCode: "AB12CD", strings: nb, passwordStrings: nbPasswordStrings });
+    await userEvent.type(screen.getByLabelText(/^Nytt passord/), "short");
+    await userEvent.click(screen.getByRole("button", { name: nb.setPassword }));
+
+    expect(screen.getByLabelText(/^Nytt passord/)).toHaveAccessibleDescription(nb.passwordInvalid!);
+    expect(screen.queryByText(nb.passwordHint!)).not.toBeInTheDocument();
+    expect(document.querySelector("form")!.textContent!.split(nb.passwordHint!)).toHaveLength(2);
+  });
+
+  it("hides the hint while the API refuses the new password", async () => {
+    reset.mockRejectedValue(await problem({ NewPassword: ["Passwords must be fun."] }, { NewPassword: ["weakPassword"] }));
+    flow({ initialEmail: "kari@example.no", initialCode: "AB12CD" });
+    await setPasswordWith();
+
+    await waitFor(() => expect(screen.getByLabelText(/^New password/)).toHaveAccessibleDescription("Passwords must be fun."));
+    expect(screen.queryByText(en.passwordHint!)).not.toBeInTheDocument();
+  });
+
+  it("keeps the hint when only another field is refused", async () => {
+    reset.mockRejectedValue(await problem({ Code: ["Required."] }, { Code: ["required"] }));
+    flow({ initialEmail: "kari@example.no", initialCode: "AB12CD" });
+    await setPasswordWith();
+
+    await waitFor(() => expect(screen.getByLabelText(/^Reset code/)).toHaveAccessibleDescription("Required."));
+    expect(screen.getByLabelText(/^New password/)).toHaveAccessibleDescription(en.passwordHint!);
+  });
+
+  it("keeps the hint when the refusal is about the code", async () => {
+    reset.mockRejectedValue(new Error("Invalid or expired reset code."));
+    flow({ initialEmail: "kari@example.no", initialCode: "AB12CD" });
+    await setPasswordWith();
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("Invalid or expired reset code.");
+    expect(screen.getByLabelText(/^New password/)).toHaveAccessibleDescription(en.passwordHint!);
+  });
+
+  it("gives the new password no description without a hint or an error", () => {
+    flow({ initialEmail: "kari@example.no", initialCode: "AB12CD", strings: { passwordHint: null } });
+
+    expect(screen.getByLabelText(/^New password/)).not.toHaveAttribute("aria-describedby");
   });
 
   it("names every rule a weak password breaks when passwordInvalid is null", async () => {
