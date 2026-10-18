@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createPublicApi, PublicApiError } from "../../server";
 
 const fetchMock = vi.fn();
@@ -113,5 +113,83 @@ describe("createPublicApi", () => {
     fetchMock.mockResolvedValue(new Response(null, { status: 500 }));
 
     await expect(api.publicGetOptional("/stats")).resolves.toBeNull();
+  });
+});
+
+describe("createPublicApi with nullOnFailureDuringBuild", () => {
+  const buildApi = createPublicApi("http://api.test/api", { nullOnFailureDuringBuild: true });
+  const cookies = "/content/legal/cookies?locale=en";
+  let warn: ReturnType<typeof vi.spyOn>;
+
+  beforeEach(() => {
+    warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    vi.stubEnv("NEXT_PHASE", "phase-production-build");
+  });
+  afterEach(() => {
+    fetchMock.mockReset();
+    warn.mockRestore();
+    vi.unstubAllEnvs();
+  });
+
+  it("gives null and warns with the path and status when the API fails during next build", async () => {
+    fetchMock.mockImplementation(() => Promise.resolve(new Response(null, { status: 503 })));
+
+    await expect(buildApi.publicGet(cookies)).resolves.toBeNull();
+    await expect(buildApi.publicGetWithMeta(cookies)).resolves.toBeNull();
+    await expect(buildApi.publicGetOptional(cookies)).resolves.toBeNull();
+    expect(warn).toHaveBeenCalledTimes(3);
+    expect(warn).toHaveBeenCalledWith(
+      "GET /content/legal/cookies?locale=en failed with 503 during next build. The page builds without it until it revalidates.",
+    );
+  });
+
+  it("gives null and warns when the API cannot be reached or sends no JSON during next build", async () => {
+    fetchMock.mockRejectedValueOnce(new TypeError("fetch failed")).mockResolvedValueOnce(new Response("<html>", { status: 200 }));
+
+    await expect(buildApi.publicGet("/builds")).resolves.toBeNull();
+    await expect(buildApi.publicGet("/builds")).resolves.toBeNull();
+    expect(warn).toHaveBeenNthCalledWith(1, "GET /builds failed during next build. The page builds without it until it revalidates.");
+    expect(warn).toHaveBeenNthCalledWith(2, "GET /builds failed with 200 during next build. The page builds without it until it revalidates.");
+  });
+
+  it("gives null for a 404 during next build without a warning", async () => {
+    fetchMock.mockResolvedValue(new Response(null, { status: 404 }));
+
+    await expect(buildApi.publicGet("/builds/missing")).resolves.toBeNull();
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  it("returns the data unchanged during next build", async () => {
+    fetchMock.mockResolvedValue(json({ title: "Terms" }, { headers: { "last-modified": "Tue, 01 Sep 2026 10:00:00 GMT" } }));
+
+    await expect(buildApi.publicGetWithMeta("/content/legal/terms")).resolves.toEqual({
+      data: { title: "Terms" },
+      lastModified: new Date("2026-09-01T10:00:00Z"),
+    });
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  it.each([["the production server", "phase-production-server"], ["a process without a phase", ""]])(
+    "still throws at runtime, in %s, so a working page is never replaced by an empty one",
+    async (_name, phase) => {
+      vi.stubEnv("NEXT_PHASE", phase);
+      fetchMock.mockResolvedValue(new Response(null, { status: 503 }));
+
+      await expect(buildApi.publicGet(cookies)).rejects.toMatchObject({ name: "PublicApiError", status: 503 });
+      expect(warn).not.toHaveBeenCalled();
+    },
+  );
+
+  it("still throws during next build when the option is off", async () => {
+    fetchMock.mockResolvedValue(new Response(null, { status: 503 }));
+
+    await expect(api.publicGet(cookies)).rejects.toBeInstanceOf(PublicApiError);
+    await expect(createPublicApi("http://api.test/api", { nullOnFailureDuringBuild: false }).publicGet(cookies)).rejects.toBeInstanceOf(PublicApiError);
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  it("still throws for a path that is a bug in the caller", async () => {
+    await expect(buildApi.publicGet("builds")).rejects.toThrow(/single "\/"/);
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });

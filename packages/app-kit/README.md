@@ -661,7 +661,8 @@ The package also exports the `RevalidateTargetsConfig` and `RevalidateTargetPath
 
 ## `@sjolystinnovation/app-kit/server`
 
-For server components and route handlers only. It imports `next/cache` and `next/server`.
+For server components and route handlers only. It imports `next/cache`, `next/constants`, and
+`next/server`.
 
 ### `createPublicApi`
 
@@ -685,6 +686,19 @@ import { createPublicApi } from "@sjolystinnovation/app-kit/server";
 
 export const { publicGet, publicGetOptional, publicGetWithMeta } = createPublicApi(
   requireEnv("NEXT_PUBLIC_API_URL", process.env.NEXT_PUBLIC_API_URL),
+);
+```
+
+`next build` prerenders the pages that call these, so by default a build fails when the API is down.
+Set `nullOnFailureDuringBuild: true` to build those pages empty instead. During the build, an
+unreachable API or an error answer gives `null` and logs a warning with the path and status, so the
+empty page shows in the build log. ISR fills the page on its first revalidate once the API answers.
+At runtime a failure still throws, so a working page is never replaced by an empty one.
+
+```ts
+export const { publicGet, publicGetOptional, publicGetWithMeta } = createPublicApi(
+  requireEnv("NEXT_PUBLIC_API_URL", process.env.NEXT_PUBLIC_API_URL),
+  { nullOnFailureDuringBuild: true },
 );
 ```
 
