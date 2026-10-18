@@ -240,6 +240,13 @@ export const nbEmailStatsPanelStrings: EmailStatsPanelStrings = {
   delivered: "Levert",
   bounces: "Returnert",
   blocked: "Blokkert eller spam",
+  hardBounces: "Returnert, permanent feil",
+  softBounces: "Returnert, midlertidig feil",
+  blockedOnly: "Blokkert",
+  spamReports: "Meldt som spam",
+  invalid: "Ugyldig adresse",
+  period: "Periode",
+  periodOption: "{days} dager",
   loading: "Laster…",
   unavailable: "E-poststatistikken er ikke tilgjengelig akkurat nå. Prøv igjen senere.",
 };
