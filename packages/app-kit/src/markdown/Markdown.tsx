@@ -27,20 +27,20 @@ function styled<T extends Tag>(Element: T, className: string) {
   return Styled;
 }
 
-/** The default elements. A level one heading becomes a level two heading, since the page has its own `h1`. */
+/** The default elements. Each text element wraps a long word or link, so it cannot run past a narrow container. A level one heading becomes a level two heading, since the page has its own `h1`. */
 export const markdownComponents: Components = {
-  h1: styled("h2", "text-lg font-semibold text-markdown-heading"),
-  h2: styled("h2", "text-base font-semibold text-markdown-heading pt-2"),
-  h3: styled("h3", "text-sm font-semibold text-markdown-heading"),
-  p: styled("p", "leading-relaxed"),
+  h1: styled("h2", "text-lg font-semibold text-markdown-heading wrap-anywhere"),
+  h2: styled("h2", "text-base font-semibold text-markdown-heading pt-2 wrap-anywhere"),
+  h3: styled("h3", "text-sm font-semibold text-markdown-heading wrap-anywhere"),
+  p: styled("p", "leading-relaxed wrap-anywhere"),
   ul: styled("ul", "list-disc list-outside pl-5 space-y-1"),
   ol: styled("ol", "list-decimal list-outside pl-5 space-y-1"),
-  li: styled("li", "leading-relaxed"),
-  a: styled("a", "font-medium text-markdown-link underline hover:text-markdown-link-hover"),
+  li: styled("li", "leading-relaxed wrap-anywhere"),
+  a: styled("a", "font-medium text-markdown-link underline hover:text-markdown-link-hover wrap-anywhere"),
   strong: styled("strong", "font-semibold text-markdown-strong"),
   hr: styled("hr", "border-markdown-border"),
-  blockquote: styled("blockquote", "border-l-2 border-markdown-border pl-4 italic"),
-  code: styled("code", "rounded bg-markdown-code-bg px-1 py-0.5 text-xs font-mono text-markdown-code-text"),
+  blockquote: styled("blockquote", "border-l-2 border-markdown-border pl-4 italic wrap-anywhere"),
+  code: styled("code", "rounded bg-markdown-code-bg px-1 py-0.5 text-xs font-mono text-markdown-code-text wrap-anywhere"),
   table: props => (
     <div className="overflow-x-auto">
       <table className="w-full text-xs border-collapse" {...domProps(props)} />
@@ -48,8 +48,8 @@ export const markdownComponents: Components = {
   ),
   thead: styled("thead", "border-b border-markdown-border"),
   tbody: styled("tbody", "divide-y divide-markdown-border"),
-  th: styled("th", "text-left py-2 pr-4 font-semibold text-markdown-heading"),
-  td: styled("td", "py-2 pr-4 align-top"),
+  th: styled("th", "text-left py-2 pr-4 font-semibold text-markdown-heading wrap-anywhere"),
+  td: styled("td", "py-2 pr-4 align-top wrap-anywhere"),
 };
 
 const isExternal = (href: string | undefined) => href != null && /^https?:\/\//i.test(href);
