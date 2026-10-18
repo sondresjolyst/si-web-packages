@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import * as admin from "../admin";
 import * as api from "../api";
+import * as company from "../company";
 import * as session from "../session";
 import * as sessionReact from "../session/react";
 import * as testing from "../testing";
@@ -26,6 +27,8 @@ describe("entry points", () => {
     expect(Object.keys(admin)).toContain("StatHistoryChart");
     expect(Object.keys(ui)).toEqual(expect.arrayContaining(["ContentImage", "contentImageSrcSet"]));
     expect(Object.keys(api)).toContain("apiFieldErrors");
+    expect(api.formatOrgNumber).toBe(company.formatOrgNumber);
+    expect(api.mergeCompanyInfo).toBe(company.mergeCompanyInfo);
     expect(Object.keys(testing)).toEqual(expect.arrayContaining(["nextAuthMock", "resetTestMocks"]));
   });
 });

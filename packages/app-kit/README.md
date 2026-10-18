@@ -20,6 +20,7 @@ security headers. Each part is a separate entry point, so an app imports only wh
 - [`auth`](#sjolystinnovationapp-kitauth) and [`next-auth`](#sjolystinnovationapp-kitnext-auth)
 - [`session`](#sjolystinnovationapp-kitsession) and [`session/react`](#sjolystinnovationapp-kitsessionreact)
 - [`api`](#sjolystinnovationapp-kitapi) and [`server`](#sjolystinnovationapp-kitserver)
+- [`company`](#sjolystinnovationapp-kitcompany)
 - [`forms`](#sjolystinnovationapp-kitforms), [`toast`](#sjolystinnovationapp-kittoast), and [`validation`](#sjolystinnovationapp-kitvalidation)
 - [`ui`](#sjolystinnovationapp-kitui)
 - [`admin`](#sjolystinnovationapp-kitadmin)
@@ -51,12 +52,12 @@ ones the entry points you import need:
 | `react-markdown` 10, `remark-gfm` 4, and `rehype-sanitize` 6 | `markdown`, `legal`, and `sections` |
 | `vitest` 5 | `testing` |
 
-Every other entry point, such as the root entry, `next-config`, `seo`, `forms`, `legal`, or
-`locales/nb`, works without `@heroicons/react`. Install a single copy of `sonner`, because two
+Every other entry point, such as the root entry, `next-config`, `seo`, `forms`, `legal`, `company`,
+or `locales/nb`, works without `@heroicons/react`. Install a single copy of `sonner`, because two
 copies keep two separate toast stores. `jsonwebtoken` comes with the package.
 
-For a site without sign-in, which uses only entries such as the root entry, `ui`, `seo`, or
-`next-config`:
+For a site without sign-in, which uses only entries such as the root entry, `ui`, `seo`, `company`,
+or `next-config`:
 
 ```sh
 npm install @sjolystinnovation/app-kit next react react-dom @heroicons/react
@@ -101,6 +102,7 @@ The components use Tailwind CSS 4. Import the package's stylesheet after Tailwin
 | [`@sjolystinnovation/app-kit/session`](#sjolystinnovationapp-kitsession) | Session error codes and the re-sign-in prompt flag. Safe on the server. |
 | [`@sjolystinnovation/app-kit/session/react`](#sjolystinnovationapp-kitsessionreact) | The session provider, gates, expiry guard, sign-in form, and login page. |
 | [`@sjolystinnovation/app-kit/api`](#sjolystinnovationapp-kitapi) | The axios clients, error messages, field errors, and services for the API's endpoints. |
+| [`@sjolystinnovation/app-kit/company`](#sjolystinnovationapp-kitcompany) | `mergeCompanyInfo`, `formatOrgNumber`, and the `CompanyInfo` type. Imports no peer dependency. |
 | [`@sjolystinnovation/app-kit/server`](#sjolystinnovationapp-kitserver) | Cached public GETs and the revalidate route. Server only. |
 | [`@sjolystinnovation/app-kit/forms`](#sjolystinnovationapp-kitforms) | `useFormDraft`, which keeps form values in `localStorage`. |
 | [`@sjolystinnovation/app-kit/toast`](#sjolystinnovationapp-kittoast) | sonner's `toast`, quiet on errors while the re-sign-in prompt is open. |
@@ -615,24 +617,8 @@ The package also exports the response types `UserProfile`, `AdminUser`, `SiteSet
 
 ### `mergeCompanyInfo` and `formatOrgNumber`
 
-`mergeCompanyInfo(data, fallback)` gives the company details for public pages: the API's `/company`
-answer, with the app's own value for each field it left blank or could not give. Only the
-fallback's name is required. The legal name falls back to the name, and VAT to not registered.
-
-`formatOrgNumber({ orgNumber, vatRegistered })` adds ` MVA` once the business is VAT registered, and
-gives an empty string without a number.
-
-```ts
-// src/lib/companyInfo.ts
-import { formatOrgNumber, mergeCompanyInfo, type CompanyInfo } from "@sjolystinnovation/app-kit/api";
-
-export const getCompanyInfo = async () =>
-  mergeCompanyInfo(await publicGetOptional<CompanyInfo>("/company"), { name: "Example AS" });
-
-export const orgLine = (company: CompanyInfo) => formatOrgNumber(company);
-```
-
-The `CompanyInfo` and `CompanyFallback` types describe the two shapes.
+`./api` also exports the [`company`](#sjolystinnovationapp-kitcompany) helpers and types, so
+existing imports keep working.
 
 ### `defineRevalidateTargets`
 
@@ -713,6 +699,30 @@ export const POST = createRevalidateRoute({ targets: TARGET_PATHS, role: "Admin"
 `targets` can also be a plain object, such as
 `{ builds: ["/builds", "/builds/[slug]", "/sitemap.xml"] }`. The package also exports the
 `RevalidateRouteOptions` type.
+
+## `@sjolystinnovation/app-kit/company`
+
+The company details for public pages, such as a footer or a contact page. The entry imports no
+peer dependency, so a static site without axios or next-auth can use it.
+
+`mergeCompanyInfo(data, fallback)` gives the company details: the API's `/company` answer, with the
+app's own value for each field it left blank or could not give. Only the fallback's name is
+required. The legal name falls back to the name, and VAT to not registered.
+
+`formatOrgNumber({ orgNumber, vatRegistered })` adds ` MVA` once the business is VAT registered, and
+gives an empty string without a number.
+
+```ts
+// src/lib/companyInfo.ts
+import { formatOrgNumber, mergeCompanyInfo, type CompanyInfo } from "@sjolystinnovation/app-kit/company";
+
+export const getCompanyInfo = async () =>
+  mergeCompanyInfo(await publicGetOptional<CompanyInfo>("/company"), { name: "Example AS" });
+
+export const orgLine = (company: CompanyInfo) => formatOrgNumber(company);
+```
+
+The `CompanyInfo` and `CompanyFallback` types describe the two shapes.
 
 ## `@sjolystinnovation/app-kit/forms`
 

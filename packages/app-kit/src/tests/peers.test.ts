@@ -22,3 +22,10 @@ describe("@heroicons/react", () => {
     expect(users.sort()).toEqual(heroiconEntries);
   });
 });
+
+describe("./company", () => {
+  it("imports no package, so a site without axios or next-auth can use it", () => {
+    expect(pkg.exports["./company"]).toBe("./src/company/index.ts");
+    expect([...packagesImportedBy("company/index.ts")]).toEqual([]);
+  });
+});
