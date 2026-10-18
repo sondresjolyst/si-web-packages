@@ -14,7 +14,6 @@ describe("entry points", () => {
     ["session/react", sessionReact, "SignInRejected"],
     ["admin", admin, "STAT_SERIES_COLORS"],
     ["ui", ui, "CONTENT_IMAGE_WIDTHS"],
-    ["api", api, "apiFieldErrorDetails"],
     ["testing", testing, "axiosSpies"],
     ["testing", testing, "axiosInstanceMock"],
   ])("%s keeps %s internal", (_entry, module, name) => {
@@ -26,7 +25,9 @@ describe("entry points", () => {
     expect(Object.keys(sessionReact)).toContain("CredentialsForm");
     expect(Object.keys(admin)).toContain("StatHistoryChart");
     expect(Object.keys(ui)).toEqual(expect.arrayContaining(["ContentImage", "contentImageSrcSet"]));
-    expect(Object.keys(api)).toContain("apiFieldErrors");
+    expect(Object.keys(api)).toEqual(
+      expect.arrayContaining(["apiFieldErrors", "apiFieldErrorDetails", "fieldErrorText", "fieldErrorTexts", "errorText"]),
+    );
     expect(api.formatOrgNumber).toBe(company.formatOrgNumber);
     expect(api.mergeCompanyInfo).toBe(company.mergeCompanyInfo);
     expect(Object.keys(testing)).toEqual(expect.arrayContaining(["nextAuthMock", "resetTestMocks"]));
