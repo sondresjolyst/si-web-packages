@@ -1,3 +1,5 @@
+import { PHASE_PRODUCTION_BUILD } from "next/constants";
+
 /** A response from `publicGetWithMeta`, with its `Last-Modified` date. */
 export interface PublicResponse<T> {
   data: T;
@@ -15,6 +17,12 @@ export interface PublicGetOptions {
 export interface PublicApiOptions {
   /** The seconds a cached response stays fresh. Defaults to `60`. */
   revalidate?: number | undefined;
+  /**
+   * Whether a failed fetch gives `null` with a warning, in place of `PublicApiError`, while
+   * `next build` prerenders. The page then builds empty and ISR fills it on its first revalidate.
+   * Outside the build a failure still throws. Defaults to `false`.
+   */
+  nullOnFailureDuringBuild?: boolean | undefined;
 }
 
 /** Thrown when the API could not be reached, or answered with no usable content. */
@@ -43,7 +51,8 @@ function lastModifiedOf(response: Response): Date | null {
  * handlers.
  *
  * A 404 returns null. An unreachable or failing API throws `PublicApiError`, so a failed fetch is
- * never cached as an empty page in place of a working one.
+ * never cached as an empty page in place of a working one. With `nullOnFailureDuringBuild`, a
+ * failure during `next build` gives null instead, so the build does not depend on the API.
  */
 export function createPublicApi(baseUrl: string, options: PublicApiOptions = {}) {
   if (!baseUrl) {
@@ -68,6 +77,19 @@ export function createPublicApi(baseUrl: string, options: PublicApiOptions = {})
   }
 
   async function publicGetWithMeta<T>(path: string, opts: PublicGetOptions = {}): Promise<PublicResponse<T> | null> {
+    try {
+      return await fetchWithMeta<T>(path, opts);
+    } catch (error) {
+      // Read at call time, since next build sets the phase for the process that prerenders.
+      if (!options.nullOnFailureDuringBuild || !(error instanceof PublicApiError) || process.env.NEXT_PHASE !== PHASE_PRODUCTION_BUILD) {
+        throw error;
+      }
+      console.warn(`${error.message} during next build. The page builds without it until it revalidates.`);
+      return null;
+    }
+  }
+
+  async function fetchWithMeta<T>(path: string, opts: PublicGetOptions): Promise<PublicResponse<T> | null> {
     const url = urlFor(path);
     if (url == null) return null;
     let response: Response;
