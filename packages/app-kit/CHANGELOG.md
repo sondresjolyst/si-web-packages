@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.0.2](https://github.com/sondresjolyst/si-web-packages/compare/app-kit-v1.0.1...app-kit-v1.0.2) (2026-10-18)
+
+
+### Bug Fixes
+
+* **company:** export the company helpers from ./company, which needs neither axios nor next-auth ([#87](https://github.com/sondresjolyst/si-web-packages/issues/87)) ([6c61fc4](https://github.com/sondresjolyst/si-web-packages/commit/6c61fc4980521502b6c5297785a36217e08a8259)), closes [#85](https://github.com/sondresjolyst/si-web-packages/issues/85)
+* **server:** let createPublicApi build pages empty when the API fails during next build ([#90](https://github.com/sondresjolyst/si-web-packages/issues/90)) ([84799ed](https://github.com/sondresjolyst/si-web-packages/commit/84799ed4f43b992e4bf902282f24c7eed58f9e1b)), closes [#86](https://github.com/sondresjolyst/si-web-packages/issues/86)
+* **ui:** show the password rules once after a weak password in ResetPasswordFlow ([#89](https://github.com/sondresjolyst/si-web-packages/issues/89)) ([d1f9ebd](https://github.com/sondresjolyst/si-web-packages/commit/d1f9ebd8fb57e6e002bcf91e0a15a383dd6477d6)), closes [#81](https://github.com/sondresjolyst/si-web-packages/issues/81)
+
+
+### Dependencies
+
+* **npm:** bump next from 16.3.8 to 16.4.0 in the next group ([#83](https://github.com/sondresjolyst/si-web-packages/issues/83)) ([64f48f7](https://github.com/sondresjolyst/si-web-packages/commit/64f48f70204d14dc4fe4d36081f236fca9e4f012))
+
 ## [1.0.1](https://github.com/sondresjolyst/si-web-packages/compare/app-kit-v1.0.0...app-kit-v1.0.1) (2026-10-17)
 
 
