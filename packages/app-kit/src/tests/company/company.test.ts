@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatOrgNumber, mergeCompanyInfo, type CompanyInfo } from "../../api";
+import { formatOrgNumber, mergeCompanyInfo, type CompanyInfo } from "../../company";
 
 const full: CompanyInfo = {
   name: "Altinnendata",
