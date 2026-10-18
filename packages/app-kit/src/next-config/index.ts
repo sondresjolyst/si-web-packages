@@ -3,6 +3,8 @@ import { contentImagesRewrite, securityHeaders, type CspOptions, type Header } f
 
 export type { CspOptions } from "./headers";
 
+const ONE_YEAR_SECONDS = 31_536_000;
+
 /** Options for `defineAppConfig`. */
 export interface AppConfigOptions extends CspOptions {
   /**
@@ -18,9 +20,10 @@ export interface AppConfigOptions extends CspOptions {
   /** A Permissions-Policy that replaces the default one. */
   permissionsPolicy?: string | undefined;
   /**
-   * The number of seconds a cache may go on serving a page after it goes stale. Next's default is a
-   * year, long enough for a browser to hand back an old page and fetch the current one behind it.
-   * Defaults to `300`, matching the client router cache's stale time.
+   * The number of seconds a cached page may go on being served after it was last generated. Defaults
+   * to a year, Next's own default. Until then a stale page is served at once and regenerated in the
+   * background, and a failed regeneration keeps the last good page. Past it, the page is regenerated
+   * while the visitor waits, so a page that reads a down API answers 500 instead.
    */
   expireTime?: number | undefined;
   /**
@@ -43,7 +46,7 @@ export function defineAppConfig(o: AppConfigOptions, extra: NextConfig = {}): Ne
   return {
     output: "standalone",
     poweredByHeader: false,
-    expireTime: o.expireTime ?? 300,
+    expireTime: o.expireTime ?? ONE_YEAR_SECONDS,
     ...rest,
     transpilePackages: [...new Set(["@sjolystinnovation/app-kit", ...(transpilePackages ?? [])])],
     images: { qualities: [75, 100], ...images },

@@ -165,7 +165,7 @@ The config every app shares, for `next.config.ts`. It imports nothing but Next's
 loads it with no build step.
 
 `defineAppConfig(options, extra?)` gives the standalone build, app-kit in `transpilePackages`, no
-`X-Powered-By`, an `expireTime` of five minutes, image qualities 75 and 100, the incremental cache
+`X-Powered-By`, an `expireTime` of a year, image qualities 75 and 100, the incremental cache
 in memory, and the security headers on every page. It merges `extra` over that config. It combines
 `transpilePackages`, `images`, `experimental`, `headers`, and `rewrites` instead of replacing them.
 
@@ -191,8 +191,17 @@ export default defineAppConfig({
 | `frameSrc`, `objectSrc` | `string[]` | Sources for those directives. Both default to `'none'`. |
 | `pathHeaders` | `{ source, headers }[]` | Headers for particular paths, such as a file download. They come after the page headers and replace a page header of the same name. Every path keeps the rest. |
 | `permissionsPolicy` | `string` | Replaces `camera=(), microphone=(), geolocation=()`. |
-| `expireTime` | `number` | The seconds a cache may serve a stale page. Defaults to 300. Next's default is a year. |
+| `expireTime` | `number` | The seconds a cached page may be served after it was last generated. Defaults to a year, Next's default. |
 | `isrFlushToDisk` | `boolean` | Whether to write revalidated pages to disk. Defaults to `false`, for a read-only root filesystem. |
+
+Until a page reaches its `expireTime`, Next serves the cached copy at once and regenerates it in the
+background when it is stale. If the regeneration fails, for example because the API is down, Next
+keeps the last good copy and tries again on a later request. Once the page is past its
+`expireTime`, Next regenerates it while the visitor waits, and a page whose `publicGet` throws then
+answers 500. The long default keeps legal pages, the sitemap, and other pages with few visitors up
+through an API outage. A page that was never generated still answers 500 while the API is down,
+rather than being cached empty. Set a shorter `expireTime` only if a page must never be served more
+than that old, and accept the 500.
 
 Scripts allow `'unsafe-inline'`, since a nonce would make every statically rendered page dynamic.
 The package also exports the `AppConfigOptions` and `CspOptions` types.

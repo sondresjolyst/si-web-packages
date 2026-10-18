@@ -134,7 +134,7 @@ describe("defineAppConfig", () => {
     expect(config).toMatchObject({
       output: "standalone",
       poweredByHeader: false,
-      expireTime: 300,
+      expireTime: 31_536_000,
       transpilePackages: ["@sjolystinnovation/app-kit"],
       images: { qualities: [75, 100] },
       experimental: { isrFlushToDisk: false },
@@ -143,6 +143,11 @@ describe("defineAppConfig", () => {
     expect(await config.rewrites!()).toEqual([
       { source: "/content-images/:path*", destination: `${API}/content-images/:path*` },
     ]);
+  });
+
+  it("lets the expire time be set in the options or in the app's own config", () => {
+    expect(defineAppConfig({ apiUrl: API, dev: false, expireTime: 300 }).expireTime).toBe(300);
+    expect(defineAppConfig({ apiUrl: API, dev: false }, { expireTime: 600 }).expireTime).toBe(600);
   });
 
   it("gives every path the page headers, and nstuning's report its own after them", async () => {
