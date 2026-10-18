@@ -45,7 +45,8 @@ const secondary = "py-2.5 rounded-payment-button bg-payment-secondary-bg hover:b
 
 /**
  * Renders what a user sees on coming back from a payment provider: confirmed, still pending, or
- * failed. The app decides the state, such as with `usePollUntilFinal`.
+ * failed. The app decides the state, such as with `usePollUntilFinal`. The text sits in a polite
+ * live region, so a screen reader announces a change of state.
  */
 export function PaymentReturn({ state, success, pending, failed, onRefresh, refreshLabel = "Check again", className }: PaymentReturnProps) {
   const content = { success, pending, failed }[state];
@@ -53,9 +54,12 @@ export function PaymentReturn({ state, success, pending, failed, onRefresh, refr
   return (
     <div className={cx("max-w-md mx-auto px-4 py-12 flex flex-col items-center gap-5 text-center", className)}>
       <Icon className={cx("h-16 w-16", ICON_COLOURS[state])} aria-hidden />
-      <h1 className="text-xl font-bold text-payment-title">{content.title}</h1>
-      <p className="text-sm text-payment-text">{content.body}</p>
-      {content.note && <p className="text-xs text-payment-note">{content.note}</p>}
+      {/* One region that stays mounted, so a change of state is announced and first render is not. */}
+      <div role="status" aria-live="polite" aria-atomic="true" className="flex flex-col items-center gap-5">
+        <h1 className="text-xl font-bold text-payment-title">{content.title}</h1>
+        <p className="text-sm text-payment-text">{content.body}</p>
+        {content.note && <p className="text-xs text-payment-note">{content.note}</p>}
+      </div>
       {content.extra}
       {state === "pending" ? (
         <div className="flex gap-2">

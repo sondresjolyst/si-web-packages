@@ -195,6 +195,53 @@ describe("PaymentReturn", () => {
     expect(screen.getByRole("button", { name: "Sjekk igjen" })).toBeInTheDocument();
     expect(container.firstChild).toHaveClass("pb-32", "flex");
   });
+
+  describe("the live region", () => {
+    const view = (state: "success" | "pending" | "failed") => (
+      <PaymentReturn state={state} success={content("success")} pending={content("pending", { note: "We'll email you" })} failed={content("failed")} onRefresh={() => {}} />
+    );
+
+    it("is one polite, atomic status region holding the title, body and note", () => {
+      render(view("pending"));
+      const region = screen.getByRole("status");
+      expect(screen.getAllByRole("status")).toHaveLength(1);
+      expect(region).toHaveAttribute("aria-live", "polite");
+      expect(region).toHaveAttribute("aria-atomic", "true");
+      expect(region).toContainElement(screen.getByRole("heading", { level: 1 }));
+      expect(region).toHaveTextContent("pending title");
+      expect(region).toHaveTextContent("pending body");
+      expect(region).toHaveTextContent("We'll email you");
+    });
+
+    it("keeps the buttons and links out of the region, so they are not read out", () => {
+      render(view("pending"));
+      const region = screen.getByRole("status");
+      expect(region).not.toContainElement(screen.getByRole("button"));
+      expect(region).not.toContainElement(screen.getByRole("link"));
+    });
+
+    it("stays the same element when the state changes, with the new text in it", () => {
+      const { rerender } = render(view("pending"));
+      const region = screen.getByRole("status");
+      rerender(view("success"));
+      expect(screen.getByRole("status")).toBe(region);
+      expect(region).toHaveTextContent("success title");
+      expect(region).toHaveTextContent("success body");
+      expect(region).not.toHaveTextContent("pending title");
+      expect(region).not.toHaveTextContent("We'll email you");
+      rerender(view("failed"));
+      expect(screen.getByRole("status")).toBe(region);
+      expect(region).toHaveTextContent("failed title");
+    });
+
+    it("is present for every state, with the text already in it on first render", () => {
+      for (const state of ["success", "pending", "failed"] as const) {
+        const { unmount } = render(view(state));
+        expect(screen.getByRole("status")).toHaveTextContent(`${state} title`);
+        unmount();
+      }
+    });
+  });
 });
 
 describe("the entry point", () => {
