@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.1.0](https://github.com/sondresjolyst/si-web-packages/compare/app-kit-v1.0.2...app-kit-v1.1.0) (2026-10-18)
+
+
+### Features
+
+* **admin:** add a period picker and separate counts to EmailStatsPanel ([#91](https://github.com/sondresjolyst/si-web-packages/issues/91)) ([f8929e9](https://github.com/sondresjolyst/si-web-packages/commit/f8929e91339113b34cf186dc2ca9a92b897243a9)), closes [#78](https://github.com/sondresjolyst/si-web-packages/issues/78)
+
+
+### Bug Fixes
+
+* **next-config:** default expireTime to a year so stale pages stay up while the API is down ([#94](https://github.com/sondresjolyst/si-web-packages/issues/94)) ([4c138f2](https://github.com/sondresjolyst/si-web-packages/commit/4c138f2027fbf203a191d2ab2f7571a2945e2956)), closes [#92](https://github.com/sondresjolyst/si-web-packages/issues/92)
+
 ## [1.0.2](https://github.com/sondresjolyst/si-web-packages/compare/app-kit-v1.0.1...app-kit-v1.0.2) (2026-10-18)
 
 
