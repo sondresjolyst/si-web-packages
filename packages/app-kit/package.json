@@ -27,6 +27,7 @@
       "types": "./src/next-auth.d.ts"
     },
     "./api": "./src/api/index.ts",
+    "./company": "./src/company/index.ts",
     "./server": "./src/server/index.ts",
     "./ui": "./src/ui/index.ts",
     "./admin": "./src/admin/index.ts",

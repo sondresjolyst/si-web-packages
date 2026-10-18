@@ -1,3 +1,5 @@
+// Imports nothing, so the company entry works without axios or next-auth.
+
 /** The business as SjolystInnovation.AppKit.SiteSettings's public `/company` endpoint describes it. */
 export interface CompanyInfo {
   name: string;
