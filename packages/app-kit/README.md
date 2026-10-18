@@ -1189,19 +1189,31 @@ it plots and its label. It takes the next color of a built-in palette of five un
 The stats page card for the transactional email, from the `MapAppKitEmailStats` endpoint of
 SjolystInnovation.AppKit.Email through `createEmailStatsService`. It shows the emails sent,
 delivered, bounced, and blocked or reported as spam, for the last `days` days. Hard and soft bounces
-count together. The title names the days the API answered for. While the stats load, the panel shows
-`loading`. When they cannot load, such as when Brevo does not answer, it shows `unavailable` without
-a toast. The panel loads again when `days` changes, not when an inline `service` does.
+count together, and so do blocked emails and spam reports. With `separateCounts`, each count the API
+returns gets its own row: hard bounces, soft bounces, blocked, spam reports, and invalid addresses.
+The title names the days the API answered for. While the stats load, the panel shows `loading`.
+When they cannot load, such as when Brevo does not answer, it shows `unavailable` without a toast.
+The panel loads again when the days change, not when an inline `service` does, and shows `loading`
+until the new days answer.
+
+Give `periods` to let an admin pick the days with a row of buttons next to the title. The panel then
+keeps the picked days itself, starting on `days`. Give `onDaysChange` as well to keep the days in the
+app, which then passes the picked days back as `days`.
 
 ```tsx
 <EmailStatsPanel service={createEmailStatsService(api)} strings={{ title: "E-post (siste {days} dager)" }} />
+
+<EmailStatsPanel service={createEmailStatsService(api)} periods={[7, 30, 90]} separateCounts />
 ```
 
 | Prop | Type | Description |
 | --- | --- | --- |
 | `service` | `{ get(days?) }` | The email stats call, such as `createEmailStatsService(api)`. |
-| `days` | `number` | How many days back the stats go. Defaults to 30. |
-| `strings` | `TextOverrides<EmailStatsPanelStrings>` | `title`, where `{days}` becomes the days, and `sent`, `delivered`, `bounces`, `blocked`, `loading`, and `unavailable`. |
+| `days` | `number` | How many days back the stats go. Defaults to 30. With `periods` and no `onDaysChange`, the days the picker starts on. |
+| `periods` | `readonly number[]` | The days an admin can pick between, such as `[7, 30, 90]`. Without it, there is no picker. |
+| `onDaysChange` | `(days: number) => void` | Called with the picked days. Give it to control `days` from the app. |
+| `separateCounts` | `boolean` | Shows each count on its own row. Defaults to `false`. |
+| `strings` | `TextOverrides<EmailStatsPanelStrings>` | `title` and `periodOption`, where `{days}` becomes the days, `sent`, `delivered`, `bounces`, `blocked`, `loading`, and `unavailable`, the rows of `separateCounts` in `hardBounces`, `softBounces`, `blockedOnly`, `spamReports`, and `invalid`, and `period`, the picker's name for screen readers. |
 | `className` | `string` | Replaces the card's border and spacing, `rounded-2xl border border-admin-border p-5`, such as to sit in the app's own card. |
 
 ## `@sjolystinnovation/app-kit/branding`
@@ -1768,7 +1780,7 @@ The components draw every color, corner radius, and label size from theme variab
 | `--font-weight-auth-link` | semibold |
 | `--color-admin-title` | gray 900, the title of `AdminShell` |
 | `--color-admin-border` | gray 200, the line under the tabs |
-| `--color-admin-tab`, `-hover` | gray 500 and gray 900 |
+| `--color-admin-tab`, `-hover` | gray 500 and gray 900, also the periods `EmailStatsPanel` has not picked |
 | `--color-admin-tab-active` | gray 900 |
 | `--color-admin-tab-indicator` | `var(--color-primary)`, the line under the active tab |
 | `--color-chart-grid` | gray 200, the scale lines of `StatHistoryChart` |
@@ -1776,7 +1788,7 @@ The components draw every color, corner radius, and label size from theme variab
 | `--color-admin-stat-label` | gray 500, the labels and the waiting text of `EmailStatsPanel` |
 | `--color-admin-stat-value` | gray 700, the numbers of `EmailStatsPanel` |
 | `--radius-button` | `var(--radius-lg)` |
-| `--color-button-primary-bg` | `var(--color-primary)` |
+| `--color-button-primary-bg` | `var(--color-primary)`, also the period `EmailStatsPanel` has picked |
 | `--color-button-primary-text` | `var(--color-primary-foreground)` |
 | `--color-button-secondary-border` | gray 300 |
 | `--color-button-secondary-text` | gray 700 |
