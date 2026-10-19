@@ -53,7 +53,7 @@ function ScrimText({ text, big }: { text: string; big?: boolean }) {
   if (!text) return null;
   return (
     <div className="absolute inset-0 bg-black/40 flex items-center justify-center p-6">
-      <p className={`text-white font-black text-center whitespace-pre-line ${big ? "text-3xl sm:text-5xl max-w-3xl" : "text-2xl sm:text-4xl max-w-2xl"}`}>{text}</p>
+      <p className={`text-white font-black text-center whitespace-pre-line wrap-anywhere ${big ? "text-3xl sm:text-5xl max-w-3xl" : "text-2xl sm:text-4xl max-w-2xl"}`}>{text}</p>
     </div>
   );
 }
@@ -62,16 +62,16 @@ function ScrimText({ text, big }: { text: string; big?: boolean }) {
 export const heroRenderer: SectionRenderFn<HeroSection> = (section, { href, Link }) => (
   <section className="bg-primary">
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-20 sm:py-28">
-      <h1 className="text-4xl sm:text-6xl font-black tracking-tight text-primary-foreground max-w-3xl whitespace-pre-line">{section.heading}</h1>
-      {section.subheading && <p className="mt-5 text-lg text-primary-foreground/80 max-w-xl whitespace-pre-line">{section.subheading}</p>}
+      <h1 className="text-4xl sm:text-6xl font-black tracking-tight text-primary-foreground max-w-3xl whitespace-pre-line break-words">{section.heading}</h1>
+      {section.subheading && <p className="mt-5 text-lg text-primary-foreground/80 max-w-xl whitespace-pre-line wrap-anywhere">{section.subheading}</p>}
       <div className="mt-8 flex flex-wrap gap-3">
         {section.primaryLabel && (
-          <Link href={href(section.primaryHref || "#")} className="rounded-lg bg-gray-900 text-white font-semibold px-6 py-3 hover:bg-gray-800 transition">
+          <Link href={href(section.primaryHref || "#")} className="rounded-lg bg-gray-900 text-white font-semibold px-6 py-3 hover:bg-gray-800 transition wrap-anywhere">
             {section.primaryLabel}
           </Link>
         )}
         {section.secondaryLabel && (
-          <Link href={href(section.secondaryHref || "#")} className="rounded-lg bg-white text-gray-900 font-semibold px-6 py-3 hover:bg-gray-100 transition">
+          <Link href={href(section.secondaryHref || "#")} className="rounded-lg bg-white text-gray-900 font-semibold px-6 py-3 hover:bg-gray-100 transition wrap-anywhere">
             {section.secondaryLabel}
           </Link>
         )}
@@ -83,12 +83,12 @@ export const heroRenderer: SectionRenderFn<HeroSection> = (section, { href, Link
 /** A card with the ticked bullets. Empty bullets are left out. */
 export const featureRenderer: SectionRenderFn<FeatureSection> = section => (
   <section className="max-w-7xl mx-auto px-4 sm:px-6 py-16">
-    {section.heading && <h2 className="text-2xl font-bold text-gray-900 mb-6">{section.heading}</h2>}
+    {section.heading && <h2 className="text-2xl font-bold text-gray-900 mb-6 break-words">{section.heading}</h2>}
     <div className="w-full sm:max-w-md rounded-2xl border border-gray-200 p-6">
-      {section.text && <p className="text-sm text-gray-600">{section.text}</p>}
+      {section.text && <p className="text-sm text-gray-600 wrap-anywhere">{section.text}</p>}
       <ul className="mt-4 space-y-2">
         {section.bullets.filter(Boolean).map((item, i) => (
-          <li key={i} className="flex items-center gap-2 text-sm text-gray-700">
+          <li key={i} className="flex items-center gap-2 text-sm text-gray-700 wrap-anywhere">
             <CheckIcon className="h-4 w-4 text-gray-900 shrink-0" />
             {item}
           </li>
@@ -108,7 +108,7 @@ export interface TextRendererOptions {
 export function createTextRenderer({ bodyClassName = "space-y-4 text-gray-700" }: TextRendererOptions = {}): SectionRenderFn<TextSection> {
   return section => (
     <section className="max-w-3xl mx-auto px-4 sm:px-6 py-12">
-      {section.heading && <h2 className="text-2xl font-bold text-gray-900 mb-4">{section.heading}</h2>}
+      {section.heading && <h2 className="text-2xl font-bold text-gray-900 mb-4 break-words">{section.heading}</h2>}
       <div className={bodyClassName}>
         <Markdown>{section.body}</Markdown>
       </div>
@@ -129,8 +129,8 @@ export function createContactRenderer({ form = null, className = "bg-gray-50 bor
   return section => (
     <section id="contact" className={className}>
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-16">
-        {section.heading && <h2 className="text-2xl font-bold text-gray-900">{section.heading}</h2>}
-        {section.text && <p className="mt-1 text-sm text-gray-600 mb-6">{section.text}</p>}
+        {section.heading && <h2 className="text-2xl font-bold text-gray-900 break-words">{section.heading}</h2>}
+        {section.text && <p className="mt-1 text-sm text-gray-600 mb-6 wrap-anywhere">{section.text}</p>}
         {form}
       </div>
     </section>
@@ -141,12 +141,12 @@ export function createContactRenderer({ form = null, className = "bg-gray-50 bor
 export const ctaRenderer: SectionRenderFn<CtaSection> = (section, { href, Link }) => (
   <section className="bg-primary">
     <div className="max-w-5xl mx-auto px-4 sm:px-6 py-14 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
-      <div>
-        <h2 className="text-2xl sm:text-3xl font-black text-primary-foreground whitespace-pre-line">{section.heading}</h2>
-        {section.text && <p className="mt-2 text-primary-foreground/80 whitespace-pre-line">{section.text}</p>}
+      <div className="min-w-0">
+        <h2 className="text-2xl sm:text-3xl font-black text-primary-foreground whitespace-pre-line break-words">{section.heading}</h2>
+        {section.text && <p className="mt-2 text-primary-foreground/80 whitespace-pre-line wrap-anywhere">{section.text}</p>}
       </div>
       {section.primaryLabel && (
-        <Link href={href(section.primaryHref || "#")} className="shrink-0 rounded-lg bg-gray-900 text-white font-semibold px-6 py-3 hover:bg-gray-800 transition">
+        <Link href={href(section.primaryHref || "#")} className="shrink-0 rounded-lg bg-gray-900 text-white font-semibold px-6 py-3 hover:bg-gray-800 transition wrap-anywhere">
           {section.primaryLabel}
         </Link>
       )}
@@ -211,7 +211,7 @@ export function createImageRenderer({ intrinsicSize = true }: ImageRendererOptio
               {...size}
               className={`w-full${auto} rounded-2xl ${layout === "right" ? "sm:order-2" : ""}`}
             />
-            {section.text && <p className="text-gray-700 leading-relaxed whitespace-pre-line">{section.text}</p>}
+            {section.text && <p className="text-gray-700 leading-relaxed whitespace-pre-line wrap-anywhere">{section.text}</p>}
           </div>
         </section>
       );
@@ -221,7 +221,7 @@ export function createImageRenderer({ intrinsicSize = true }: ImageRendererOptio
       <section className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
         <figure>
           <Image imageId={section.imageId} alt={section.alt} sizes="(max-width: 1024px) 100vw, 1024px" {...size} className={`w-full${auto} rounded-2xl`} />
-          {section.caption && <figcaption className="mt-2 text-center text-sm text-gray-500">{section.caption}</figcaption>}
+          {section.caption && <figcaption className="mt-2 text-center text-sm text-gray-500 wrap-anywhere">{section.caption}</figcaption>}
         </figure>
       </section>
     );
