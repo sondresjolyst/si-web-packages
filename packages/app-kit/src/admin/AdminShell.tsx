@@ -20,18 +20,39 @@ export type AdminShellProps = GateProps & {
   children: ReactNode;
 };
 
+const trimSlash = (path: string) => (path.endsWith("/") ? path.slice(0, -1) : path);
+
+/** Whether `pathname` is `href` or a page below it. The match is by whole path segments. */
+function isWithin(pathname: string, href: string) {
+  const base = trimSlash(href);
+  return pathname === base || pathname.startsWith(`${base}/`);
+}
+
+/** The `href` of the tab that is active for `pathname`: the longest `href` that is the path or a parent of it. */
+function activeHref(pathname: string, tabs: readonly AdminTab[]) {
+  let active: string | undefined;
+  for (const { href } of tabs) {
+    if (isWithin(pathname, href) && (active === undefined || href.length > active.length)) {
+      active = href;
+    }
+  }
+  return active;
+}
+
 /**
- * The admin area's frame: a title and a tab bar above the page, for users with `role` only. The tab
- * whose `href` is the current path shows as active. The gate props are `RoleGate`'s.
+ * The admin area's frame: a title and a tab bar above the page, for users with `role` only. A tab
+ * is active on its own `href` and on the pages below it. When several tabs match, only the one
+ * with the longest `href` is active. The gate props are `RoleGate`'s.
  */
 export function AdminShell({ title, tabs, children, ...gate }: AdminShellProps) {
   const pathname = usePathname();
+  const current = activeHref(pathname, tabs);
   const page = (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 py-10">
       <h1 className="text-2xl font-black text-admin-title mb-4">{title}</h1>
       <nav className="flex gap-1 border-b border-admin-border mb-8 overflow-x-auto overflow-y-hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {tabs.map((tab) => {
-          const active = pathname === tab.href;
+          const active = tab.href === current;
           return (
             <Link
               key={tab.href}

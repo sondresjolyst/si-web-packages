@@ -1040,8 +1040,8 @@ The admin area. The forms report with `toast`, so the app needs sonner and a `To
 ### `AdminShell`
 
 The frame: a title and a tab bar above the page, behind a `RoleGate`. It takes `RoleGate`'s `role`,
-`fallback`, and `denied` or `deniedHref`. The tab whose `href` is the current path is active, with
-`aria-current="page"`. Each tab is an `AdminTab`, `{ href, label }`.
+`fallback`, and `denied` or `deniedHref`. A tab is active on its own `href` and on the pages below it, with
+`aria-current="page"`. When several tabs match, only the one with the longest `href` is active. Each tab is an `AdminTab`, `{ href, label }`.
 
 ```tsx
 // src/app/[locale]/(protected)/admin/layout.tsx
