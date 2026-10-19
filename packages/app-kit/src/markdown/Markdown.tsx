@@ -27,7 +27,7 @@ function styled<T extends Tag>(Element: T, className: string) {
   return Styled;
 }
 
-/** The default elements. Each text element wraps a long word or link, so it cannot run past a narrow container. A level one heading becomes a level two heading, since the page has its own `h1`. */
+/** The default elements. Each text element wraps a long word or link, so it cannot run past a narrow container. A table header uses `break-words`, since `wrap-anywhere` would shrink its column until a short header breaks mid-word. A level one heading becomes a level two heading, since the page has its own `h1`. */
 export const markdownComponents: Components = {
   h1: styled("h2", "text-lg font-semibold text-markdown-heading wrap-anywhere"),
   h2: styled("h2", "text-base font-semibold text-markdown-heading pt-2 wrap-anywhere"),
@@ -48,7 +48,7 @@ export const markdownComponents: Components = {
   ),
   thead: styled("thead", "border-b border-markdown-border"),
   tbody: styled("tbody", "divide-y divide-markdown-border"),
-  th: styled("th", "text-left py-2 pr-4 font-semibold text-markdown-heading wrap-anywhere"),
+  th: styled("th", "text-left py-2 pr-4 font-semibold text-markdown-heading break-words"),
   td: styled("td", "py-2 pr-4 align-top wrap-anywhere"),
 };
 

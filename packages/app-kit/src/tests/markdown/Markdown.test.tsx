@@ -32,7 +32,7 @@ describe("Markdown", () => {
     expect(screen.getByText("code")).toHaveClass("bg-markdown-code-bg", "text-markdown-code-text");
   });
 
-  it("wraps a long word or link in every text element, so it cannot run past a narrow container", () => {
+  it("wraps a long word or link in every text element outside a table header, so it cannot run past a narrow container", () => {
     const md = "# H1\n\n## H2\n\n### H3\n\npara [link](/x) `code`\n\n- item\n\n1. first\n\n> quote\n\n| A |\n| - |\n| cell |";
     render(<Markdown>{md}</Markdown>);
     for (const name of ["H1", "H2", "H3"]) expect(screen.getByRole("heading", { name })).toHaveClass("wrap-anywhere");
@@ -43,11 +43,17 @@ describe("Markdown", () => {
       screen.getByText("item"),
       screen.getByText("first"),
       screen.getByText("quote").closest("blockquote"),
-      screen.getByRole("columnheader", { name: "A" }),
       screen.getByRole("cell", { name: "cell" }),
     ]) {
       expect(el).toHaveClass("wrap-anywhere");
     }
+  });
+
+  it("keeps a table header on break-words, so its column cannot shrink until a short header breaks mid-word", () => {
+    render(<Markdown>{"| A |\n| - |\n| cell |"}</Markdown>);
+    const header = screen.getByRole("columnheader", { name: "A" });
+    expect(header).toHaveClass("break-words");
+    expect(header).not.toHaveClass("wrap-anywhere");
   });
 
   it("turns a level one heading into level two, since the page has its own h1", () => {
