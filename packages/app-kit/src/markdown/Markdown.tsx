@@ -62,7 +62,7 @@ export interface MarkdownProps {
   components?: Components | undefined;
   /** Whether links to other sites open in a new tab, without passing the opener or referrer. Defaults to `false`. */
   externalLinks?: boolean | undefined;
-  /** The classes for a `div` around the output. Without it, the elements render bare, so a parent's `space-y-*` spaces them. */
+  /** The classes for a `div` around the output. The `div` also wraps long words, which an app's own element inherits. Without it, the elements render bare, so a parent's `space-y-*` spaces them. */
   className?: string | undefined;
 }
 
@@ -87,5 +87,5 @@ export function Markdown({ children, components, externalLinks = false, classNam
       {children}
     </ReactMarkdown>
   );
-  return className === undefined ? output : <div className={className}>{output}</div>;
+  return className === undefined ? output : <div className={`${className} wrap-anywhere`.trim()}>{output}</div>;
 }

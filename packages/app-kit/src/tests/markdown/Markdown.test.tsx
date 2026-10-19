@@ -73,6 +73,35 @@ describe("Markdown", () => {
     expect(wrapped.container.firstElementChild!.children).toHaveLength(2);
   });
 
+  it("lets the wrapping div wrap long words, so an app's own element without a wrap class does too", () => {
+    const { container } = render(
+      <Markdown className="space-y-4" components={{ h1: ({ children }) => <h1 className="text-sm">{children}</h1> }}>
+        {"# Own heading"}
+      </Markdown>,
+    );
+    const root = container.firstElementChild!;
+    expect(root).toHaveClass("space-y-4", "wrap-anywhere");
+    expect(root.querySelector("h1")).not.toHaveClass("wrap-anywhere");
+    expect(root.querySelector("h1")!.parentElement).toBe(root);
+  });
+
+  it("wraps long words in the div even when the class is empty", () => {
+    const { container } = render(<Markdown className="">{"text"}</Markdown>);
+    expect(container.firstElementChild!.className).toBe("wrap-anywhere");
+  });
+
+  it("adds no wrapping div and no wrap class to the bare output", () => {
+    const { container } = render(<Markdown>{"text"}</Markdown>);
+    expect(container.firstElementChild!.tagName).toBe("P");
+    expect(container.querySelector("div")).toBeNull();
+  });
+
+  it("keeps the table header off the wrapping classes inside the wrapping div", () => {
+    render(<Markdown className="x">{"| H |\n| - |\n| c |"}</Markdown>);
+    expect(screen.getByRole("columnheader", { name: "H" })).toHaveClass("break-words");
+    expect(screen.getByRole("columnheader", { name: "H" })).not.toHaveClass("wrap-anywhere");
+  });
+
   it("takes an app's own element for a tag", () => {
     render(<Markdown components={{ p: ({ children }) => <p className="text-xs">{children}</p> }}>{"hi **there**"}</Markdown>);
     expect(screen.getByText("hi", { exact: false })).toHaveClass("text-xs");
