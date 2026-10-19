@@ -1653,6 +1653,8 @@ each fetch uses the latest `fetcher` and `isFinal`. Its types are `PollOptions` 
 
 `PaymentReturn` shows the outcome: confirmed, still pending, or failed. It takes the text and the
 way on for each state. When you pass `onRefresh`, it shows a refresh button while pending.
+The title, text and note sit in one polite live region, so a screen reader announces the new text
+when the state changes from pending to confirmed or failed. It does not announce on first render.
 
 ```tsx
 "use client";
