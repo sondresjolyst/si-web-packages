@@ -36,4 +36,17 @@ describe("LegalPageView", () => {
 
     expect(screen.getByText("Last updated: 5 March 2026")).toBeInTheDocument();
   });
+
+  it.each([
+    ["the page's title", page],
+    ["the fallback title", null],
+  ])("breaks a long word in %s, and keeps it on break-words so a short word never splits", (_, value) => {
+    const long = "Supercalifragilistic".repeat(4);
+    render(<LegalPageView page={value && { ...value, title: long }} title={long} homeHref="/" dateLocale="en-GB" />);
+
+    const heading = screen.getByRole("heading", { level: 1 });
+    expect(heading).toHaveTextContent(long);
+    expect(heading).toHaveClass("break-words");
+    expect(heading).not.toHaveClass("wrap-anywhere");
+  });
 });

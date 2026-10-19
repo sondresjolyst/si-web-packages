@@ -26,7 +26,7 @@ export function LegalPageView({ page, title, homeHref, dateLocale, strings }: Le
 
   return (
     <div className="max-w-2xl mx-auto px-4 sm:px-6 py-12 space-y-6">
-      <h1 className="text-3xl font-black text-gray-900">{page?.title ?? title}</h1>
+      <h1 className="text-3xl font-black text-gray-900 break-words">{page?.title ?? title}</h1>
       {updatedAt && (
         <p className="text-xs text-gray-500">
           {text.updated}: {new Intl.DateTimeFormat(dateLocale, { dateStyle: "long" }).format(updatedAt)}

@@ -255,7 +255,7 @@ export function AdminUsersPanel({ service, getRoles, defaultInviteRole = "Admin"
             return (
               <li key={user.id} className="p-4 space-y-2">
                 <div className="flex items-start justify-between gap-3">
-                  <div className={user.isDeleted ? "text-gray-400" : "text-gray-800"}>
+                  <div className={`min-w-0 wrap-anywhere ${user.isDeleted ? "text-gray-400" : "text-gray-800"}`}>
                     <span className="font-medium">
                       {user.firstName} {user.lastName}
                     </span>
