@@ -1328,7 +1328,7 @@ import { Markdown } from "@sjolystinnovation/app-kit/markdown";
 | `children` | `string \| null \| undefined` | | The Markdown. Empty, `null`, or `undefined` renders nothing. |
 | `components` | `Components` | | Replaces the element for a tag, such as `{ p: MyParagraph }`. Tags not named keep the default. It gets the props without `node`, so it can spread them onto an element. |
 | `externalLinks` | `boolean` | `false` | Whether to open `http` and `https` links in a new tab with `rel="noopener noreferrer"`. Site-relative links stay in the tab. |
-| `className` | `string` | | Wraps the output in a `div` with these classes. Without it the elements render bare, so a parent's `space-y-*` spaces them. |
+| `className` | `string` | | Wraps the output in a `div` with these classes and `wrap-anywhere`, so an element of your own wraps a long word too. Without it the elements render bare, so a parent's `space-y-*` spaces them. |
 
 The text takes its color and size from the parent. A level one heading becomes a level two, since
 the page has its own `h1`.
