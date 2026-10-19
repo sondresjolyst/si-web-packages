@@ -306,11 +306,12 @@ describe("LegalPagesEditor", () => {
 
 describe("LegalPagesEditor earlier versions", () => {
   const versions: LegalPageRevisionSummary[] = [
-    { id: 2, savedAt: "2026-10-15T13:05:00Z", title: "Vilkår 2" },
+    { id: 3, savedAt: "2026-10-15T13:05:42Z", title: "Vilkår 2" },
+    { id: 2, savedAt: "2026-10-15T13:05:07Z", title: "Vilkår 2" },
     { id: 1, savedAt: "2026-10-01T09:30:00Z", title: "Vilkår 1" },
   ];
-  const old: LegalPageRevision = { ...versions[1], key: "terms", locale: "no", bodyMarkdown: "## Gammel tekst\n\nDette sto der **før**.", savedBy: "u1" };
-  const at = (value: string) => new Intl.DateTimeFormat("en-GB", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
+  const old: LegalPageRevision = { ...versions[2], key: "terms", locale: "no", bodyMarkdown: "## Gammel tekst\n\nDette sto der **før**.", savedBy: "u1" };
+  const at = (value: string) => new Intl.DateTimeFormat("en-GB", { dateStyle: "medium", timeStyle: "medium" }).format(new Date(value));
   const withHistory = () => ({ ...service, listRevisions: vi.fn().mockResolvedValue(versions), getRevision: vi.fn().mockResolvedValue(old) });
   const versionButtons = async () => within(await screen.findByRole("region", { name: "Earlier versions" })).findAllByRole("button");
 
@@ -321,7 +322,15 @@ describe("LegalPagesEditor earlier versions", () => {
     const items = await versionButtons();
 
     expect(history.listRevisions).toHaveBeenCalledWith("terms", "no");
-    expect(items.map(b => b.textContent)).toEqual([`${at(versions[0].savedAt)}Vilkår 2Current`, `${at(versions[1].savedAt)}Vilkår 1`]);
+    expect(items.map(b => b.textContent)).toEqual([
+      `${at(versions[0].savedAt)}Vilkår 2Current`,
+      `${at(versions[1].savedAt)}Vilkår 2`,
+      `${at(versions[2].savedAt)}Vilkår 1`,
+    ]);
+    // Saves in the same minute stay apart by their seconds.
+    expect(items[0].textContent).toContain("42");
+    expect(items[1].textContent).toContain("07");
+    expect(at(versions[0].savedAt)).not.toBe(at(versions[1].savedAt));
   });
 
   it("opens a version read-only with its Markdown rendered, and closes it", async () => {
@@ -329,15 +338,15 @@ describe("LegalPagesEditor earlier versions", () => {
     editor({ service: history, dateLocale: "en-GB" });
     const items = await versionButtons();
 
-    await userEvent.click(items[1]);
+    await userEvent.click(items[2]);
 
     const article = await screen.findByRole("article", { name: "Vilkår 1" });
     expect(history.getRevision).toHaveBeenCalledWith("terms", "no", 1);
     expect(within(article).getByRole("heading", { name: "Gammel tekst" })).toBeInTheDocument();
     expect(within(article).getByText("før").tagName).toBe("STRONG");
-    expect(within(article).getByText(`Saved: ${at(versions[1].savedAt)}`)).toBeInTheDocument();
+    expect(within(article).getByText(`Saved: ${at(versions[2].savedAt)}`)).toBeInTheDocument();
     expect(within(article).queryByRole("textbox")).toBeNull();
-    expect(items[1]).toHaveAttribute("aria-pressed", "true");
+    expect(items[2]).toHaveAttribute("aria-pressed", "true");
     expect(screen.getByLabelText("Content (Markdown)")).toHaveValue("# Vilkår");
 
     await userEvent.click(within(article).getByRole("button", { name: "Close" }));
@@ -388,7 +397,7 @@ describe("LegalPagesEditor earlier versions", () => {
 
     const items = await versionButtons();
 
-    expect(items).toHaveLength(2);
+    expect(items).toHaveLength(3);
     items.forEach(item => expect(item).toBeDisabled());
   });
 

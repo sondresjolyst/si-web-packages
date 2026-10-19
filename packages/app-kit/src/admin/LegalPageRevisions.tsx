@@ -52,7 +52,7 @@ export function LegalPageRevisions<K extends string, L extends string>({ service
 
   const formatted = (value: string) => {
     const date = parseTimestamp(value);
-    return date ? new Intl.DateTimeFormat(dateLocale, { dateStyle: "medium", timeStyle: "short" }).format(date) : value;
+    return date ? new Intl.DateTimeFormat(dateLocale, { dateStyle: "medium", timeStyle: "medium" }).format(date) : value;
   };
 
   const open = async (id: number) => {
