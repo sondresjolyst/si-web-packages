@@ -8,3 +8,19 @@ export interface LegalPage<Key extends string = string> {
   bodyMarkdown: string;
   updatedAt: string;
 }
+
+/** A saved version of a legal page in the list of versions, as the revisions endpoint returns it. */
+export interface LegalPageRevisionSummary {
+  id: number;
+  savedAt: string;
+  title: string;
+}
+
+/** A saved version of a legal page with its body, as the revision endpoint returns it. */
+export interface LegalPageRevision extends LegalPageRevisionSummary {
+  key: string;
+  locale: string;
+  bodyMarkdown: string;
+  /** The user id of the admin who saved it, or null when not known. */
+  savedBy: string | null;
+}

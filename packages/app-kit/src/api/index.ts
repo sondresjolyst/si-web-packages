@@ -21,4 +21,4 @@ export {
 } from "./services";
 export type { LegalServiceOptions } from "./services";
 export type { OnSaved, UserProfile, SiteSettings, AdminUser, EmailStats } from "./services";
-export type { LegalPage } from "./legalPage";
+export type { LegalPage, LegalPageRevision, LegalPageRevisionSummary } from "./legalPage";

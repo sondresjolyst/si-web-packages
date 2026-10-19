@@ -34,6 +34,17 @@ export interface LegalPagesEditorStrings {
   required: string;
   saved: string;
   saveFailed: string;
+  /** The heading of the list of saved versions of the open page. */
+  revisionsHeading: string;
+  /** Shown in place of the list while the open page has no saved versions. */
+  noRevisions: string;
+  revisionsFailed: string;
+  /** The tag on the newest saved version, which is the text the page has now. */
+  currentRevision: string;
+  /** Written before the date of an opened version. */
+  revisionSaved: string;
+  closeRevision: string;
+  revisionFailed: string;
   /** The field error texts, by code. Any code left out keeps its default. */
   validation: LegalPagesValidationStrings;
 }
@@ -50,6 +61,13 @@ export const defaultLegalPagesEditorStrings: LegalPagesEditorStrings = {
   required: "Fill in the title and the content",
   saved: "Page saved",
   saveFailed: "Failed to save the page",
+  revisionsHeading: "Earlier versions",
+  noRevisions: "No earlier versions",
+  revisionsFailed: "Failed to load the earlier versions",
+  currentRevision: "Current",
+  revisionSaved: "Saved",
+  closeRevision: "Close",
+  revisionFailed: "Failed to open the version",
   validation: {
     required: "Required.",
     tooLong: "At most {max} characters.",
