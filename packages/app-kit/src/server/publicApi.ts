@@ -11,6 +11,12 @@ export interface PublicResponse<T> {
 export interface PublicGetOptions {
   /** The cache tags, so a revalidate route can purge this fetch by tag. */
   tags?: string[] | undefined;
+  /**
+   * The seconds a cached response stays fresh for this call, in place of the instance's
+   * `revalidate`. `0` reads live and caches nothing, and `false` caches without an end. Defaults to
+   * the instance's `revalidate`.
+   */
+  revalidate?: number | false | undefined;
 }
 
 /** Options for `createPublicApi`. */
@@ -94,8 +100,9 @@ export function createPublicApi(baseUrl: string, options: PublicApiOptions = {})
     if (url == null) return null;
     let response: Response;
     try {
+      const callRevalidate = opts.revalidate ?? revalidate;
       response = await fetch(url, {
-        next: opts.tags ? { revalidate, tags: opts.tags } : { revalidate },
+        next: opts.tags ? { revalidate: callRevalidate, tags: opts.tags } : { revalidate: callRevalidate },
       });
     } catch (cause) {
       throw new PublicApiError(path, null, { cause });

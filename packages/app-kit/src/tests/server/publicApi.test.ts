@@ -33,6 +33,51 @@ describe("createPublicApi", () => {
     expect(fetchMock).toHaveBeenCalledWith("http://api.test/api/x", { next: { revalidate: 300 } });
   });
 
+  describe("a revalidate for one call", () => {
+    it.each([
+      ["0, to read live", 0],
+      ["a shorter window", 5],
+      ["a longer window", 3600],
+      ["false, to cache without an end", false],
+    ] as const)("overrides the instance default with %s", async (_label, revalidate) => {
+      fetchMock.mockImplementation(async () => json({}));
+
+      await createPublicApi("http://api.test/api", { revalidate: 300 }).publicGet("/x", { revalidate });
+
+      expect(fetchMock).toHaveBeenCalledWith("http://api.test/api/x", { next: { revalidate } });
+    });
+
+    it("keeps the tags with it", async () => {
+      fetchMock.mockImplementation(async () => json({}));
+
+      await api.publicGet("/x", { tags: ["t"], revalidate: 0 });
+
+      expect(fetchMock).toHaveBeenCalledWith("http://api.test/api/x", { next: { revalidate: 0, tags: ["t"] } });
+    });
+
+    it("keeps the instance default when the call sets none, and a later call is not changed by an earlier one", async () => {
+      fetchMock.mockImplementation(async () => json({}));
+      const custom = createPublicApi("http://api.test/api", { revalidate: 300 });
+
+      await custom.publicGet("/a", { revalidate: 0 });
+      await custom.publicGet("/b", { tags: ["t"] });
+      await custom.publicGet("/c", { revalidate: undefined });
+
+      expect(fetchMock).toHaveBeenNthCalledWith(2, "http://api.test/api/b", { next: { revalidate: 300, tags: ["t"] } });
+      expect(fetchMock).toHaveBeenNthCalledWith(3, "http://api.test/api/c", { next: { revalidate: 300 } });
+    });
+
+    it("applies to publicGetOptional and publicGetWithMeta too", async () => {
+      fetchMock.mockImplementation(async () => json({}));
+
+      await api.publicGetOptional("/a", { revalidate: 0 });
+      await api.publicGetWithMeta("/b", { revalidate: 7 });
+
+      expect(fetchMock).toHaveBeenNthCalledWith(1, "http://api.test/api/a", { next: { revalidate: 0 } });
+      expect(fetchMock).toHaveBeenNthCalledWith(2, "http://api.test/api/b", { next: { revalidate: 7 } });
+    });
+  });
+
   it("returns null for a resource that does not exist", async () => {
     fetchMock.mockResolvedValue(new Response(null, { status: 404 }));
 

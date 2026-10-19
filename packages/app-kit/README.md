@@ -685,13 +685,15 @@ For server components and route handlers only. It imports `next/cache`, `next/co
 
 `createPublicApi(baseUrl, options?)` returns cached GETs against the API's anonymous endpoints:
 
-- `publicGet(path, { tags? })` gives the data, or `null` when the API answers 404. An unreachable or
+- `publicGet(path, { tags?, revalidate? })` gives the data, or `null` when the API answers 404. An unreachable or
   failing API throws `PublicApiError`, so a failed fetch is never cached as an empty page in place
   of a working one.
-- `publicGetOptional(path, { tags? })` gives `null` on any failure, for data a page can do without.
-- `publicGetWithMeta(path, { tags? })` also gives `lastModified`, from the `Last-Modified` header.
+- `publicGetOptional(path, { tags?, revalidate? })` gives `null` on any failure, for data a page can do without.
+- `publicGetWithMeta(path, { tags?, revalidate? })` also gives `lastModified`, from the `Last-Modified` header.
 
-Responses stay fresh for 60 seconds unless `options.revalidate` says otherwise. An empty `baseUrl`
+Responses stay fresh for 60 seconds unless `options.revalidate` says otherwise. A call can set its own
+`revalidate` in seconds, which wins over the instance's. Use `0` for a page that must read live data,
+such as a checkout, and `false` to cache without an end. A call that sets none keeps the instance's. An empty `baseUrl`
 throws. Each path starts with a single `/`, or the call throws. A path with a `.` or `..` segment,
 encoded or not, gives `null` without a request, the same as a 404. Run a slug or other user input
 through `encodeURIComponent` before you put it in a path.
