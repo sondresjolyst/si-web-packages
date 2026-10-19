@@ -172,3 +172,56 @@ describe("SectionRenderer registry and context", () => {
     expect(screen.getByRole("link", { name: "Results" })).toHaveAttribute("href", "/runs");
   });
 });
+
+describe("SectionRenderer long words", () => {
+  const long = "Supercalifragilistic".repeat(4);
+  const wrapped = (el: HTMLElement | null) => expect(el).toHaveClass("wrap-anywhere");
+  const broken = (el: HTMLElement | null) => {
+    expect(el).toHaveClass("break-words");
+    expect(el).not.toHaveClass("wrap-anywhere");
+  };
+
+  it("breaks a long word in the hero, and keeps the heading on break-words so a short word never splits", () => {
+    render(<SectionRenderer section={{ ...hero, heading: long, subheading: long, primaryLabel: long, secondaryLabel: long }} />);
+    broken(screen.getByRole("heading", { level: 1 }));
+    wrapped(screen.getAllByText(long).find(el => el.tagName === "P") ?? null);
+    for (const link of screen.getAllByRole("link")) wrapped(link);
+  });
+
+  it("breaks a long word in the feature heading, text and bullets", () => {
+    render(<SectionRenderer section={{ id: "f", type: "feature", visible: true, heading: long, text: long, bullets: [long] }} />);
+    broken(screen.getByRole("heading", { level: 2 }));
+    wrapped(screen.getAllByText(long).find(el => el.tagName === "P") ?? null);
+    wrapped(screen.getByRole("listitem"));
+  });
+
+  it("breaks a long word in the text section heading", () => {
+    render(<SectionRenderer section={{ id: "t", type: "text", visible: true, heading: long, body: "text" }} />);
+    broken(screen.getByRole("heading", { level: 2 }));
+  });
+
+  it("breaks a long word in the contact heading and text", () => {
+    render(<SectionRenderer section={{ id: "c", type: "contact", visible: true, heading: long, text: long }} />);
+    broken(screen.getByRole("heading", { level: 2 }));
+    wrapped(screen.getAllByText(long).find(el => el.tagName === "P") ?? null);
+  });
+
+  it("breaks a long word in the call to action, and lets its text column shrink", () => {
+    render(<SectionRenderer section={{ id: "a", type: "cta", visible: true, heading: long, text: long, primaryLabel: long, primaryHref: "/go" }} />);
+    const heading = screen.getByRole("heading", { level: 2 });
+    broken(heading);
+    expect(heading.parentElement).toHaveClass("min-w-0");
+    wrapped(screen.getAllByText(long).find(el => el.tagName === "P") ?? null);
+    wrapped(screen.getByRole("link"));
+  });
+
+  it.each([
+    ["caption", { caption: long }],
+    ["side text", { layout: "left", text: long }],
+    ["overlay text", { layout: "overlay", text: long }],
+    ["full overlay text", { layout: "overlayFull", text: long }],
+  ] as const)("breaks a long word in the image %s", (_, changes) => {
+    render(<SectionRenderer section={image(changes)} />);
+    wrapped(screen.getByText(long));
+  });
+});
