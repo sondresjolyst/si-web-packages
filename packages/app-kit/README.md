@@ -561,6 +561,28 @@ try {
 }
 ```
 
+### `apiFieldErrorDetails` and the field error texts
+
+`apiFieldErrorDetails(error)` reads the same field errors as `apiFieldErrors`, each with its `code`
+and `limit` from the problem's `codes` and `limits` extensions. The `ApiFieldError` type describes
+one. `fieldErrorText(error, validation)` gives the text from `validation` for the error's code, with
+`{max}` filled in from the limit, and the API's message when `validation` has no text for the code.
+`fieldErrorTexts(error, validation)` does that for every field of a failed call, keyed like
+`apiFieldErrors`, and answers `{}` when there are none. `errorText(error, errors, fallback)` does it
+for a failure that is not about one field, using its `apiErrorCode`. The forms in this package use
+them for their `strings`, so a form that posts to the app's own API can show the same texts.
+
+```ts
+const validation = { required: "Du må fylle ut {felt}.", tooLong: "Bruk {max} eller færre tegn." };
+
+try {
+  await api.post("/things", form);
+} catch (err) {
+  setFieldErrors(fieldErrorTexts(err, validation));
+  toast.error(errorText(err, { lockedOut: "Kontoen er låst." }, "Noe gikk galt."));
+}
+```
+
 ### `apiErrorCode`
 
 `apiErrorCode(error)` reads the code of a failure that is not about one field, from a failed call,
