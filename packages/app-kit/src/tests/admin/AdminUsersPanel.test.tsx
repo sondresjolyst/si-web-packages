@@ -577,4 +577,19 @@ describe("AdminUsersPanel", () => {
     await userEvent.click(within(row("kari@example.no")).getByTitle("Fjern Admin"));
     await waitFor(() => expect(toast.success).toHaveBeenCalledWith("Fjernet Admin fra Kari"));
   });
+
+  it.each([
+    ["an active user", false],
+    ["a deleted user", true],
+  ])("wraps a long name and email for %s, and lets the text shrink beside the delete button", async (_, isDeleted) => {
+    const long = "Supercalifragilistic".repeat(4);
+    const email = `${long}@example.no`;
+    service.getUsers.mockResolvedValue([{ ...kari, firstName: long, lastName: long, email, isDeleted }]);
+    panel();
+
+    const text = (await screen.findByText(email)).parentElement;
+    expect(text).toHaveClass("min-w-0", "wrap-anywhere");
+    expect(text).toHaveTextContent(`${long} ${long}`);
+    expect(text?.parentElement).toBe(row(email).firstElementChild);
+  });
 });
