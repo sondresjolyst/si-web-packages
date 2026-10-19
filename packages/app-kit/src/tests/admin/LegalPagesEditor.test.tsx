@@ -1,8 +1,9 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { LegalPagesEditor, LocaleTabs, defaultLegalPageKeyLabels } from "../../admin";
-import { request, type LegalPage } from "../../api";
+import { request, type LegalPage, type LegalPageRevision, type LegalPageRevisionSummary } from "../../api";
+import { nbLegalPagesEditorStrings } from "../../locales/nb";
 
 const toast = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn() }));
 vi.mock("../../toast", () => ({ toast }));
@@ -300,6 +301,102 @@ describe("LegalPagesEditor", () => {
   it("renders nothing without pages or locales", () => {
     const { container } = editor({ keys: [] });
     expect(container).toBeEmptyDOMElement();
+  });
+});
+
+describe("LegalPagesEditor earlier versions", () => {
+  const versions: LegalPageRevisionSummary[] = [
+    { id: 2, savedAt: "2026-10-15T13:05:00Z", title: "Vilkår 2" },
+    { id: 1, savedAt: "2026-10-01T09:30:00Z", title: "Vilkår 1" },
+  ];
+  const old: LegalPageRevision = { ...versions[1], key: "terms", locale: "no", bodyMarkdown: "## Gammel tekst\n\nDette sto der **før**.", savedBy: "u1" };
+  const at = (value: string) => new Intl.DateTimeFormat("en-GB", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
+  const withHistory = () => ({ ...service, listRevisions: vi.fn().mockResolvedValue(versions), getRevision: vi.fn().mockResolvedValue(old) });
+  const versionButtons = async () => within(await screen.findByRole("region", { name: "Earlier versions" })).findAllByRole("button");
+
+  it("lists the open page's versions newest first with the date and time, and tags the newest as current", async () => {
+    const history = withHistory();
+    editor({ service: history, dateLocale: "en-GB" });
+
+    const items = await versionButtons();
+
+    expect(history.listRevisions).toHaveBeenCalledWith("terms", "no");
+    expect(items.map(b => b.textContent)).toEqual([`${at(versions[0].savedAt)}Vilkår 2Current`, `${at(versions[1].savedAt)}Vilkår 1`]);
+  });
+
+  it("opens a version read-only with its Markdown rendered, and closes it", async () => {
+    const history = withHistory();
+    editor({ service: history, dateLocale: "en-GB" });
+    const items = await versionButtons();
+
+    await userEvent.click(items[1]);
+
+    const article = await screen.findByRole("article", { name: "Vilkår 1" });
+    expect(history.getRevision).toHaveBeenCalledWith("terms", "no", 1);
+    expect(within(article).getByRole("heading", { name: "Gammel tekst" })).toBeInTheDocument();
+    expect(within(article).getByText("før").tagName).toBe("STRONG");
+    expect(within(article).getByText(`Saved: ${at(versions[1].savedAt)}`)).toBeInTheDocument();
+    expect(within(article).queryByRole("textbox")).toBeNull();
+    expect(items[1]).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByLabelText("Content (Markdown)")).toHaveValue("# Vilkår");
+
+    await userEvent.click(within(article).getByRole("button", { name: "Close" }));
+    expect(screen.queryByRole("article")).toBeNull();
+  });
+
+  it("says there are no earlier versions instead of hiding the section", async () => {
+    const first = editor({ service: { ...service, listRevisions: vi.fn().mockResolvedValue([]) } });
+    expect(await within(await screen.findByRole("region", { name: "Earlier versions" })).findByText("No earlier versions")).toBeInTheDocument();
+    first.unmount();
+
+    // A service without the calls still shows the section.
+    editor();
+    expect(await within(await screen.findByRole("region", { name: "Earlier versions" })).findByText("No earlier versions")).toBeInTheDocument();
+  });
+
+  it("loads the versions again after a save, and per page and locale, closing an opened version on a switch", async () => {
+    const history = withHistory();
+    editor({ service: history });
+    await userEvent.click((await versionButtons())[1]);
+    await screen.findByRole("article");
+
+    await userEvent.click(screen.getByRole("button", { name: "Save" }));
+    await waitFor(() => expect(history.listRevisions).toHaveBeenCalledTimes(2));
+    await userEvent.click(screen.getByRole("button", { name: /English/ }));
+
+    expect(history.listRevisions).toHaveBeenLastCalledWith("terms", "en");
+    expect(screen.queryByRole("article")).toBeNull();
+  });
+
+  it("says when the versions could not load, and toasts when a version cannot open", async () => {
+    const first = editor({ service: { ...service, listRevisions: vi.fn().mockRejectedValue(new Error("Forbidden")) } });
+    expect(await within(await screen.findByRole("region", { name: "Earlier versions" })).findByText("Failed to load the earlier versions")).toBeInTheDocument();
+    first.unmount();
+
+    const history = { ...withHistory(), getRevision: vi.fn().mockRejectedValueOnce(new Error("Not found")).mockRejectedValueOnce("nope") };
+    editor({ service: history });
+    const items = await versionButtons();
+    await userEvent.click(items[0]);
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith("Not found"));
+    await userEvent.click(items[0]);
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith("Failed to open the version"));
+    expect(screen.queryByRole("article")).toBeNull();
+  });
+
+  it("disables the versions while the service cannot open them", async () => {
+    editor({ service: { ...service, listRevisions: vi.fn().mockResolvedValue(versions) } });
+
+    const items = await versionButtons();
+
+    expect(items).toHaveLength(2);
+    items.forEach(item => expect(item).toBeDisabled());
+  });
+
+  it("shows the Norwegian text", async () => {
+    editor({ service: { ...service, listRevisions: vi.fn().mockResolvedValue([]) }, strings: nbLegalPagesEditorStrings });
+
+    const region = await screen.findByRole("region", { name: "Tidligere versjoner" });
+    expect(await within(region).findByText("Ingen tidligere versjoner")).toBeInTheDocument();
   });
 });
 

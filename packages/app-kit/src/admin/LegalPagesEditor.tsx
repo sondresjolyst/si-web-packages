@@ -9,12 +9,16 @@ import { FieldError } from "../ui/field";
 import { TextInput } from "../ui/TextInput";
 import { withDefaults, type TextOverrides } from "../ui/withDefaults";
 import { defaultLegalPageKeyLabels, defaultLegalPagesEditorStrings, type LegalPagesEditorStrings, type LegalPagesValidationStrings } from "./legalPagesEditorStrings";
+import { LegalPageRevisions, type LegalPageRevisionCalls } from "./LegalPageRevisions";
 import { LocaleTabs } from "./LocaleTabs";
 
 /** Props for `LegalPagesEditor`. */
 export interface LegalPagesEditorProps<K extends string, L extends string> {
-  /** The legal page calls, such as `createLegalService(api, publicApi)`. */
-  service: {
+  /**
+   * The legal page calls, such as `createLegalService(api, publicApi)`. `listRevisions` and
+   * `getRevision` fill the list of earlier versions. Without them the list says there are none.
+   */
+  service: LegalPageRevisionCalls<K, L> & {
     /** The app's pages, as `createLegalService` gives them. */
     keys?: readonly K[] | undefined;
     listAll: () => Promise<LegalPage<K>[]>;
@@ -28,6 +32,8 @@ export interface LegalPagesEditorProps<K extends string, L extends string> {
   locales: readonly L[];
   /** Each locale's tab label, such as `Norsk`. */
   localeLabels: Record<L, string>;
+  /** The BCP 47 tag the dates of the earlier versions are written in, such as `nb-NO`. Defaults to the browser's language. */
+  dateLocale?: string | undefined;
   /** The editor's text. `validation` may name only some codes, the rest keep their defaults. */
   strings?:
     | (TextOverrides<Omit<LegalPagesEditorStrings, "validation">> & {
@@ -41,7 +47,7 @@ type Draft = { title: string; bodyMarkdown: string };
 const emptyDraft: Draft = { title: "", bodyMarkdown: "" };
 
 /** The admin editor for the legal pages: one page and one locale at a time, with the title and the Markdown body. */
-export function LegalPagesEditor<K extends string, L extends string>({ service, keys: keysProp, keyLabels, locales, localeLabels, strings }: LegalPagesEditorProps<K, L>) {
+export function LegalPagesEditor<K extends string, L extends string>({ service, keys: keysProp, keyLabels, locales, localeLabels, dateLocale, strings }: LegalPagesEditorProps<K, L>) {
   const keys = keysProp ?? service.keys ?? (LEGAL_PAGE_KEYS as readonly string[] as readonly K[]);
   const labelOf = (key: K) => keyLabels?.[key] ?? (defaultLegalPageKeyLabels as Record<string, string | undefined>)[key] ?? key;
   const { validation: validationOverrides, ...textOverrides } = strings ?? {};
@@ -53,6 +59,8 @@ export function LegalPagesEditor<K extends string, L extends string>({ service, 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [failed, setFailed] = useState(false);
+  // Counts the saves, so the list of earlier versions loads again after each.
+  const [saves, setSaves] = useState(0);
   // The per-field texts from the last failed save, with the page and locale they belong to.
   const [fieldErrors, setFieldErrors] = useState<{ slot: string; fields: Record<string, string[]> } | null>(null);
   // The latest service, so an inline one does not load the pages again on every render.
@@ -93,6 +101,7 @@ export function LegalPagesEditor<K extends string, L extends string>({ service, 
     try {
       await serviceRef.current.save({ key: activeKey, locale: activeLocale, title: draft.title.trim(), bodyMarkdown: draft.bodyMarkdown });
       setFieldErrors(null);
+      setSaves(n => n + 1);
       toast.success(text.saved);
     } catch (err) {
       const fields = fieldErrorTexts(err, validation);
@@ -154,6 +163,8 @@ export function LegalPagesEditor<K extends string, L extends string>({ service, 
         />
         <FieldError id="legal-body-error" error={bodyError} />
       </div>
+
+      <LegalPageRevisions key={slot} service={service} pageKey={activeKey} locale={activeLocale} version={saves} dateLocale={dateLocale} text={text} />
     </div>
   );
 }

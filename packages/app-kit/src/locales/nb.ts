@@ -217,6 +217,13 @@ export const nbLegalPagesEditorStrings: LegalPagesEditorStrings = {
   required: "Du må fylle ut tittel og innhold.",
   saved: "Siden er lagret",
   saveFailed: "Kunne ikke lagre siden",
+  revisionsHeading: "Tidligere versjoner",
+  noRevisions: "Ingen tidligere versjoner",
+  revisionsFailed: "Kunne ikke laste tidligere versjoner",
+  currentRevision: "Gjeldende",
+  revisionSaved: "Lagret",
+  closeRevision: "Lukk",
+  revisionFailed: "Kunne ikke åpne versjonen",
   validation: { required, tooLong },
 };
 

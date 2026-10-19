@@ -224,6 +224,26 @@ describe("createLegalService", () => {
     expect(onSaved).not.toHaveBeenCalled();
   });
 
+  it("lists the saved versions of a page and reads one, signed in", async () => {
+    const versions = [{ id: 2, savedAt: "2026-10-15T13:00:00Z", title: "Vilkår" }];
+    const service = createLegalService(fakeClient("api", sent, () => versions), fakeClient("public", sent));
+
+    await expect(service.listRevisions("terms", "no")).resolves.toEqual(versions);
+    await service.getRevision("privacy", "en", 7);
+
+    expect(sent.map((s) => `${s.client} ${s.method} ${s.url}`)).toEqual([
+      "api get /content/legal/terms/no/revisions",
+      "api get /content/legal/privacy/en/revisions/7",
+    ]);
+  });
+
+  it("says why the saved versions could not be read", async () => {
+    const service = createLegalService(fakeClient("api", sent, () => "", 500), fakeClient("public", sent));
+
+    await expect(service.listRevisions("terms", "no")).rejects.toThrow();
+    await expect(service.getRevision("terms", "no", 1)).rejects.toThrow();
+  });
+
   it("holds the default pages when the app picks none", () => {
     const service = createLegalService(fakeClient("api", sent), fakeClient("public", sent));
 

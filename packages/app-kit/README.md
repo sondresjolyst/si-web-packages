@@ -595,7 +595,7 @@ own English fallback. The error keeps the field errors for `apiFieldErrors` and 
 | `createAdminUsersService(api)` | `getUsers(includeDeleted?)`, `roles`, `addRole`, `removeRole`, `deleteUser`, and `invite({ email, firstName, lastName, role })` | Auth |
 | `createSettingsService(api, { onSaved? })` | `get` and `update` | SiteSettings |
 | `createBrandingService(api, publicApi, { onSaved? })` | `get`, which answers `{}` when the API cannot be read, and `update(form)` | SiteSettings |
-| `createLegalService(api, publicApi, { keys?, onSaved? })` | `keys`, `get(key, locale)`, which answers `null` for a missing page, `listAll`, and `save({ key, locale, title, bodyMarkdown })` | SiteSettings |
+| `createLegalService(api, publicApi, { keys?, onSaved? })` | `keys`, `get(key, locale)`, which answers `null` for a missing page, `listAll`, `save({ key, locale, title, bodyMarkdown })`, `listRevisions(key, locale)`, and `getRevision(key, locale, id)` | SiteSettings |
 | `createEmailStatsService(api)` | `get(days?)`, the email stats for the last `days` days, 30 by default | Email |
 
 `roles` gives the roles an admin may give, from `GET /users/roles`, in the order the API configures
@@ -622,7 +622,7 @@ export default createUserService(createApiClient(apiUrl), createPublicClient(api
 ```
 
 The package also exports the response types `UserProfile`, `AdminUser`, `SiteSettings`,
-`LegalPage`, and `EmailStats`, the `OnSaved` callback type, and the `LegalServiceOptions` type.
+`LegalPage`, `LegalPageRevisionSummary`, `LegalPageRevision`, and `EmailStats`, the `OnSaved` callback type, and the `LegalServiceOptions` type.
 
 ### `mergeCompanyInfo` and `formatOrgNumber`
 
@@ -1115,6 +1115,12 @@ are open. `{max}` in `tooLong` becomes the title's limit. The pages come from `k
 service's `keys`, else `LEGAL_PAGE_KEYS`. A page missing from `keyLabels` takes its label from
 `defaultLegalPageKeyLabels`, the English labels of the three default pages, or else shows its key.
 
+Below the editor, the earlier versions of the open page and locale are listed newest first, with the
+date and time of each in `dateLocale`. The newest is tagged as current. A version opens read-only
+below the list with its Markdown rendered. The list loads again after each save. While the page has
+no saved versions, or the service has no `listRevisions`, the section says so instead of going away.
+The versions need SjolystInnovation.AppKit.SiteSettings with legal page history.
+
 ```tsx
 <LegalPagesEditor
   service={LegalService}
@@ -1127,11 +1133,12 @@ service's `keys`, else `LEGAL_PAGE_KEYS`. A page missing from `keyLabels` takes 
 
 | Prop | Type | Description |
 | --- | --- | --- |
-| `service` | `{ keys?, listAll, save }` | The legal page calls, such as `createLegalService(api, publicApi)`. |
+| `service` | `{ keys?, listAll, save, listRevisions?, getRevision? }` | The legal page calls, such as `createLegalService(api, publicApi)`. |
 | `keys` | `readonly K[]` | The pages, in tab order. The editor opens on the first. Defaults to the service's `keys`, else `LEGAL_PAGE_KEYS`. |
 | `keyLabels` | `Partial<Record<K, string>>` | Each page's tab label. A page left out uses `defaultLegalPageKeyLabels`, else its key. |
 | `locales` | `readonly L[]` | The locales each page is written in. The editor opens on the first. |
 | `localeLabels` | `Record<L, string>` | Each locale's tab label. |
+| `dateLocale` | `string` | The BCP 47 tag the dates of the earlier versions are written in, such as `nb-NO`. Defaults to the browser's language. |
 | `strings` | `TextOverrides<LegalPagesEditorStrings>`, with `validation` as `TextOverrides<LegalPagesValidationStrings>` | The editor's text. |
 
 `LocaleTabs` is the same tab bar on its own, for other translated forms:

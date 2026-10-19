@@ -1,7 +1,7 @@
 import axios, { type AxiosInstance } from "axios";
 import { getSession } from "next-auth/react";
 import type { Branding } from "../branding/types";
-import type { LegalPage } from "./legalPage";
+import type { LegalPage, LegalPageRevision, LegalPageRevisionSummary } from "./legalPage";
 import { LEGAL_PAGE_KEYS, type DefaultLegalPageKey } from "../legal/keys";
 import { request } from "./request";
 
@@ -140,7 +140,7 @@ export interface LegalServiceOptions<Key extends string> {
  * Creates the calls for the legal pages on SjolystInnovation.AppKit.SiteSettings, such as terms,
  * privacy, and cookies. Reading is anonymous and returns null for a page that is missing or cannot be
  * read, so a page shows its fallback. `keys` on the result holds the app's pages, for the editor and
- * the sitemap.
+ * the sitemap. `listRevisions` and `getRevision` read the saved versions of a page, signed in.
  */
 export function createLegalService<const Key extends string = DefaultLegalPageKey>(
   api: AxiosInstance,
@@ -168,6 +168,18 @@ export function createLegalService<const Key extends string = DefaultLegalPageKe
       await options.onSaved?.();
       return page;
     },
+
+    listRevisions: (key: Key, locale: string) =>
+      request(
+        () => api.get<LegalPageRevisionSummary[]>(`/content/legal/${encodeURIComponent(key)}/${encodeURIComponent(locale)}/revisions`),
+        "Failed to load legal page versions",
+      ),
+
+    getRevision: (key: Key, locale: string, id: number) =>
+      request(
+        () => api.get<LegalPageRevision>(`/content/legal/${encodeURIComponent(key)}/${encodeURIComponent(locale)}/revisions/${id}`),
+        "Failed to load legal page version",
+      ),
   };
 }
 
