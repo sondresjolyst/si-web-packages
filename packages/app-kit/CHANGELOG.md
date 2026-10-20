@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.1](https://github.com/sondresjolyst/si-web-packages/compare/app-kit-v1.2.0...app-kit-v1.2.1) (2026-10-20)
+
+
+### Bug Fixes
+
+* **admin:** wrap the AdminShell tabs onto more rows so none are hidden ([#117](https://github.com/sondresjolyst/si-web-packages/issues/117)) ([8e4c630](https://github.com/sondresjolyst/si-web-packages/commit/8e4c6302bc31df1a8bab5ff2be85bd070a6d34d1)), closes [#116](https://github.com/sondresjolyst/si-web-packages/issues/116)
+
 ## [1.2.0](https://github.com/sondresjolyst/si-web-packages/compare/app-kit-v1.1.0...app-kit-v1.2.0) (2026-10-19)
 
 
