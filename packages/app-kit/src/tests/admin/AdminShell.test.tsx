@@ -47,6 +47,21 @@ describe("AdminShell", () => {
     expect(users).toHaveClass("border-transparent", "text-admin-tab");
   });
 
+  it("wraps the tabs onto more rows instead of hiding them in a sideways scroll", () => {
+    render(
+      <AdminShell role="Admin" title="Admin" tabs={tabs} denied={<p>No access</p>}>
+        <p>users page</p>
+      </AdminShell>,
+    );
+
+    const nav = screen.getByRole("navigation");
+    expect(nav).toHaveClass("flex", "flex-wrap");
+    expect(nav.className).not.toMatch(/overflow|scrollbar/);
+    for (const link of screen.getAllByRole("link")) {
+      expect(link).toHaveClass("border-b-2", "whitespace-nowrap");
+    }
+  });
+
   it("marks the tab above a page below it", () => {
     navigation.pathname = "/no/admin/users/u1";
     render(
