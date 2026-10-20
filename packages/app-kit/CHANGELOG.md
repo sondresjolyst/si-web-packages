@@ -1,5 +1,23 @@
 # Changelog
 
+## [1.2.0](https://github.com/sondresjolyst/si-web-packages/compare/app-kit-v1.1.0...app-kit-v1.2.0) (2026-10-19)
+
+
+### Features
+
+* **admin:** mark a tab active on the pages below its href in AdminShell ([#98](https://github.com/sondresjolyst/si-web-packages/issues/98)) ([720496e](https://github.com/sondresjolyst/si-web-packages/commit/720496e729fe74887c220319d01211068c42a465)), closes [#97](https://github.com/sondresjolyst/si-web-packages/issues/97)
+* **api:** export apiFieldErrorDetails, fieldErrorText, fieldErrorTexts and errorText ([#100](https://github.com/sondresjolyst/si-web-packages/issues/100)) ([29f610d](https://github.com/sondresjolyst/si-web-packages/commit/29f610d5f3904462bcff13b661c024b4aed507a3)), closes [#99](https://github.com/sondresjolyst/si-web-packages/issues/99)
+* **app-kit:** announce a change of state in PaymentReturn through a polite live region ([#103](https://github.com/sondresjolyst/si-web-packages/issues/103)) ([8ab5fc5](https://github.com/sondresjolyst/si-web-packages/commit/8ab5fc5b70e85a4dd289818a78d486bed154b5ab)), closes [#101](https://github.com/sondresjolyst/si-web-packages/issues/101)
+* **legal:** list and open the earlier versions of a legal page in LegalPagesEditor ([#110](https://github.com/sondresjolyst/si-web-packages/issues/110)) ([3b09390](https://github.com/sondresjolyst/si-web-packages/commit/3b09390117f3bc675de5d90b9661dcc29523888a))
+* **server:** let one createPublicApi call set its own revalidate ([#104](https://github.com/sondresjolyst/si-web-packages/issues/104)) ([83a9f12](https://github.com/sondresjolyst/si-web-packages/commit/83a9f1223570b85b3a8b720b69c9cd291c08f8c1)), closes [#102](https://github.com/sondresjolyst/si-web-packages/issues/102)
+
+
+### Bug Fixes
+
+* **app-kit:** wrap long words in the LegalPageView title and the AdminUsersPanel rows ([#108](https://github.com/sondresjolyst/si-web-packages/issues/108)) ([7db3b4b](https://github.com/sondresjolyst/si-web-packages/commit/7db3b4bf3dc9d5f6e2ee07396cfd996781a41c1b)), closes [#107](https://github.com/sondresjolyst/si-web-packages/issues/107)
+* **markdown:** wrap long words and links in the default elements ([#96](https://github.com/sondresjolyst/si-web-packages/issues/96)) ([0665c54](https://github.com/sondresjolyst/si-web-packages/commit/0665c54ea188ff278d9bef0fe7d38e3cad5dae5f)), closes [#95](https://github.com/sondresjolyst/si-web-packages/issues/95)
+* **sections:** wrap long words in the default section renderers ([#106](https://github.com/sondresjolyst/si-web-packages/issues/106)) ([50f6274](https://github.com/sondresjolyst/si-web-packages/commit/50f627495d21f2e8b0feb6deebdca1a642000c6b)), closes [#105](https://github.com/sondresjolyst/si-web-packages/issues/105)
+
 ## [1.1.0](https://github.com/sondresjolyst/si-web-packages/compare/app-kit-v1.0.2...app-kit-v1.1.0) (2026-10-18)
 
 
