@@ -87,7 +87,6 @@
   --color-admin-tab: var(--color-gray-500);
   --color-admin-tab-hover: var(--color-gray-900);
   --color-admin-tab-active: var(--color-gray-900);
-  --color-admin-tab-indicator: var(--color-primary);
   --color-chart-grid: var(--color-gray-200);
   --color-chart-label: var(--color-gray-400);
   --color-admin-stat-label: var(--color-gray-500);

@@ -4,6 +4,8 @@ export { defaultCompanySettingsFormStrings } from "./companySettingsFormStrings"
 export type { CompanySettingsFormStrings, CompanySettingsValidationStrings } from "./companySettingsFormStrings";
 export { AdminShell } from "./AdminShell";
 export type { AdminShellProps, AdminTab } from "./AdminShell";
+export { defaultAdminShellStrings } from "./adminShellStrings";
+export type { AdminShellStrings } from "./adminShellStrings";
 export { StatHistoryChart } from "./StatHistoryChart";
 export { defaultStatHistoryChartStrings } from "./statHistoryChartStrings";
 export type { StatHistoryChartProps, StatSeries } from "./StatHistoryChart";
