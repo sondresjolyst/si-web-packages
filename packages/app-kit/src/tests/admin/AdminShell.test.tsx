@@ -36,7 +36,7 @@ describe("AdminShell", () => {
   it("shows only the title and the page on the overview, with no breadcrumb and no tabs", () => {
     renderShell("/no/admin");
 
-    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Admin");
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(/^Admin$/);
     expect(screen.getByText("page")).toBeInTheDocument();
     expect(screen.queryByRole("navigation")).not.toBeInTheDocument();
     expect(screen.queryByRole("link")).not.toBeInTheDocument();
@@ -60,7 +60,7 @@ describe("AdminShell", () => {
     expect(links[0]).not.toHaveAttribute("aria-current");
     expect(links[1]).toHaveAttribute("href", "/no/admin/shop");
     expect(links[1]).toHaveAttribute("aria-current", "page");
-    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Admin");
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(/^Butikk$/);
   });
 
   it("shows no tab bar for the other sections", () => {
@@ -77,6 +77,7 @@ describe("AdminShell", () => {
 
     expect(screen.getByRole("link", { current: "page" })).toHaveTextContent("Butikk");
     expect(screen.getByRole("link", { current: "page" })).toHaveAttribute("href", "/no/admin/shop");
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(/^Butikk$/);
   });
 
   it("lets the breadcrumb wrap instead of scrolling sideways", () => {
@@ -104,6 +105,7 @@ describe("AdminShell", () => {
 
     expect(within(breadcrumb()!).getAllByRole("link").map((link) => link.textContent)).toEqual(["Admin"]);
     expect(screen.queryByRole("link", { current: "page" })).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(/^Admin$/);
   });
 
   it("takes the breadcrumb's name from strings", () => {

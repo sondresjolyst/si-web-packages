@@ -47,8 +47,9 @@ function activeHref(pathname: string, tabs: readonly AdminTab[]) {
 
 /**
  * The admin area's frame, for users with `role` only. The overview page shows the title above the
- * page. Every other page also shows a breadcrumb above the title, the title as a link back to the
- * overview and then the label of the page's section. The overview is `overviewHref`, or else the
+ * page. Every other page also shows a breadcrumb above the heading, the title as a link back to the
+ * overview and then the label of the page's section. On a section's pages the heading is the
+ * section's label instead of the title. The overview is `overviewHref`, or else the
  * first tab. A section is a tab other than the overview. It is current on its own `href` and on the
  * pages below it. When several tabs match, the one with the longest `href` is current. The gate
  * props are `RoleGate`'s.
@@ -83,7 +84,7 @@ export function AdminShell({ title, tabs, overviewHref, strings, children, ...ga
           </ol>
         </nav>
       )}
-      <h1 className="text-2xl font-black text-admin-title mb-8">{title}</h1>
+      <h1 className="text-2xl font-black text-admin-title mb-8">{section ? section.label : title}</h1>
       {children}
     </div>
   );

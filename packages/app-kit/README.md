@@ -1071,7 +1071,8 @@ Each tab is an `AdminTab`, `{ href, label }`, for the overview or one section. T
 On every page but the overview, a breadcrumb sits above the title: the title as a link back to the
 overview, then the label of the page's section with `aria-current="page"`. A section is current on its
 own `href` and on the pages below it. When several tabs match, the one with the longest `href` is
-current. A page outside every section shows only the link back. `strings.breadcrumb` names the
+current. On a section's pages the heading is the section's label instead of the title. A page
+outside every section keeps the title as its heading and shows only the link back. `strings.breadcrumb` names the
 breadcrumb for screen readers. Its type is `AdminShellStrings`, and the English default is in
 `defaultAdminShellStrings`.
 
