@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.0](https://github.com/sondresjolyst/si-web-packages/compare/app-kit-v1.2.1...app-kit-v1.3.0) (2026-10-21)
+
+
+### Features
+
+* **admin:** replace the AdminShell tab bar with a breadcrumb back to the admin overview ([#120](https://github.com/sondresjolyst/si-web-packages/issues/120)) ([1dc50dc](https://github.com/sondresjolyst/si-web-packages/commit/1dc50dcf08ff1f1543947ed4d99c73db41ae6ce6)), closes [#119](https://github.com/sondresjolyst/si-web-packages/issues/119)
+
 ## [1.2.1](https://github.com/sondresjolyst/si-web-packages/compare/app-kit-v1.2.0...app-kit-v1.2.1) (2026-10-20)
 
 
