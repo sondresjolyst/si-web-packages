@@ -1,79 +1,118 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
-import { AdminShell } from "../../admin";
+import { render, screen, within } from "@testing-library/react";
+import type { ReactNode } from "react";
+import { AdminShell, type AdminShellProps } from "../../admin";
 import { makeSession, navigation, resetTestMocks, setSession } from "../../testing";
 
 vi.mock("next/navigation", async () => (await import("../../testing")).nextNavigationMock());
 vi.mock("next-auth/react", async () => (await import("../../testing")).nextAuthMock());
 
 const tabs = [
+  { href: "/no/admin", label: "Oversikt" },
+  { href: "/no/admin/shop", label: "Butikk" },
   { href: "/no/admin/users", label: "Brukere" },
   { href: "/no/admin/legal", label: "Juridisk" },
 ];
 
+type ShellOptions = Partial<Pick<AdminShellProps, "tabs" | "overviewHref" | "strings">> & { fallback?: ReactNode };
+
+function renderShell(pathname: string, props: ShellOptions = {}) {
+  navigation.pathname = pathname;
+  return render(
+    <AdminShell role="Admin" title="Admin" tabs={tabs} denied={<p>No access</p>} {...props}>
+      <p>page</p>
+    </AdminShell>,
+  );
+}
+
+const breadcrumb = () => screen.queryByRole("navigation", { name: "Breadcrumb" });
+
 describe("AdminShell", () => {
   beforeEach(() => {
     resetTestMocks();
-    navigation.pathname = "/no/admin/users";
     setSession(makeSession());
   });
 
-  it("shows the title, the tabs and the page for an admin", () => {
-    render(
-      <AdminShell role="Admin" title="Admin" tabs={tabs} denied={<p>No access</p>}>
-        <p>users page</p>
-      </AdminShell>,
-    );
+  it("shows only the title and the page on the overview, with no breadcrumb and no tabs", () => {
+    renderShell("/no/admin");
 
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Admin");
-    expect(screen.getByRole("link", { name: "Brukere" })).toHaveAttribute("href", "/no/admin/users");
-    expect(screen.getByRole("link", { name: "Juridisk" })).toHaveAttribute("href", "/no/admin/legal");
-    expect(screen.getByText("users page")).toBeInTheDocument();
+    expect(screen.getByText("page")).toBeInTheDocument();
+    expect(screen.queryByRole("navigation")).not.toBeInTheDocument();
+    expect(screen.queryByRole("link")).not.toBeInTheDocument();
   });
 
-  it("marks only the tab for the current path as active", () => {
-    navigation.pathname = "/no/admin/legal";
-    render(
-      <AdminShell role="Admin" title="Admin" tabs={tabs} denied={<p>No access</p>}>
-        <p>legal page</p>
-      </AdminShell>,
-    );
+  it("treats the overview with a trailing slash as the overview", () => {
+    renderShell("/no/admin/");
 
-    const legal = screen.getByRole("link", { name: "Juridisk" });
-    const users = screen.getByRole("link", { name: "Brukere" });
-    expect(legal).toHaveAttribute("aria-current", "page");
-    expect(legal).toHaveClass("border-admin-tab-indicator", "text-admin-tab-active");
-    expect(users).not.toHaveAttribute("aria-current");
-    expect(users).toHaveClass("border-transparent", "text-admin-tab");
+    expect(breadcrumb()).not.toBeInTheDocument();
   });
 
-  it("wraps the tabs onto more rows instead of hiding them in a sideways scroll", () => {
-    render(
-      <AdminShell role="Admin" title="Admin" tabs={tabs} denied={<p>No access</p>}>
-        <p>users page</p>
-      </AdminShell>,
-    );
+  it("shows Admin / Butikk on a section page, with Admin linking back to the overview", () => {
+    renderShell("/no/admin/shop");
 
-    const nav = screen.getByRole("navigation");
-    expect(nav).toHaveClass("flex", "flex-wrap");
-    expect(nav.className).not.toMatch(/overflow|scrollbar/);
-    for (const link of screen.getAllByRole("link")) {
-      expect(link).toHaveClass("border-b-2", "whitespace-nowrap");
-    }
+    const nav = breadcrumb();
+    expect(nav).toBeInTheDocument();
+    expect(nav).toHaveTextContent("Admin/Butikk");
+    const links = within(nav!).getAllByRole("link");
+    expect(links.map((link) => link.textContent)).toEqual(["Admin", "Butikk"]);
+    expect(links[0]).toHaveAttribute("href", "/no/admin");
+    expect(links[0]).not.toHaveAttribute("aria-current");
+    expect(links[1]).toHaveAttribute("href", "/no/admin/shop");
+    expect(links[1]).toHaveAttribute("aria-current", "page");
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Admin");
   });
 
-  it("marks the tab above a page below it", () => {
-    navigation.pathname = "/no/admin/users/u1";
-    render(
-      <AdminShell role="Admin" title="Admin" tabs={tabs} denied={<p>No access</p>}>
-        <p>user page</p>
-      </AdminShell>,
-    );
+  it("shows no tab bar for the other sections", () => {
+    renderShell("/no/admin/shop");
 
-    expect(screen.getByRole("link", { current: "page" })).toHaveTextContent("Brukere");
+    expect(screen.getAllByRole("navigation")).toHaveLength(1);
+    expect(screen.queryByRole("link", { name: "Brukere" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Juridisk" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Oversikt" })).not.toBeInTheDocument();
   });
 
-  describe("active tab on sub pages", () => {
+  it("names a sub page by the section above it", () => {
+    renderShell("/no/admin/shop/orders/5");
+
+    expect(screen.getByRole("link", { current: "page" })).toHaveTextContent("Butikk");
+    expect(screen.getByRole("link", { current: "page" })).toHaveAttribute("href", "/no/admin/shop");
+  });
+
+  it("lets the breadcrumb wrap instead of scrolling sideways", () => {
+    renderShell("/no/admin/shop");
+
+    const list = within(breadcrumb()!).getByRole("list");
+    expect(list).toHaveClass("flex", "flex-wrap");
+    expect(list.className).not.toMatch(/overflow|scrollbar/);
+  });
+
+  it("links back to overviewHref when it is given", () => {
+    renderShell("/no/admin/shop", { overviewHref: "/no/admin/start", tabs: tabs.slice(1) });
+
+    expect(within(breadcrumb()!).getByRole("link", { name: "Admin" })).toHaveAttribute("href", "/no/admin/start");
+  });
+
+  it("shows no breadcrumb on overviewHref", () => {
+    renderShell("/no/admin/start", { overviewHref: "/no/admin/start", tabs: tabs.slice(1) });
+
+    expect(breadcrumb()).not.toBeInTheDocument();
+  });
+
+  it("shows only the link back on an admin page outside every section", () => {
+    renderShell("/no/admin/other");
+
+    expect(within(breadcrumb()!).getAllByRole("link").map((link) => link.textContent)).toEqual(["Admin"]);
+    expect(screen.queryByRole("link", { current: "page" })).not.toBeInTheDocument();
+  });
+
+  it("takes the breadcrumb's name from strings", () => {
+    renderShell("/no/admin/shop", { strings: { breadcrumb: "Brødsmulesti" } });
+
+    expect(screen.getByRole("navigation", { name: "Brødsmulesti" })).toBeInTheDocument();
+  });
+
+  describe("current section on sub pages", () => {
     const nested = [
       { href: "/admin", label: "Overview" },
       { href: "/admin/shop", label: "Shop" },
@@ -81,18 +120,13 @@ describe("AdminShell", () => {
       { href: "/admin/shopping", label: "Shopping" },
     ];
 
-    function activeLabels(pathname: string) {
-      navigation.pathname = pathname;
-      render(
-        <AdminShell role="Admin" title="Admin" tabs={nested} denied={<p>No access</p>}>
-          <p>page</p>
-        </AdminShell>,
-      );
+    function currentLabels(pathname: string, list = nested) {
+      renderShell(pathname, { tabs: list });
       return screen.queryAllByRole("link", { current: "page" }).map((link) => link.textContent);
     }
 
     it.each([
-      ["/admin", ["Overview"]],
+      ["/admin", []],
       ["/admin/shop", ["Shop"]],
       ["/admin/shop/settings", ["Shop"]],
       ["/admin/shop/5/edit", ["Shop"]],
@@ -100,41 +134,24 @@ describe("AdminShell", () => {
       ["/admin/shop/orders/5", ["Orders"]],
       ["/admin/shopping", ["Shopping"]],
       ["/admin/shopping/cart", ["Shopping"]],
-      ["/admin/other", ["Overview"]],
+      ["/admin/other", []],
       ["/admin/shop/", ["Shop"]],
       ["/admin/shop/orders/", ["Orders"]],
       ["/no/admin", []],
     ])("marks %s as %j", (pathname, expected) => {
-      expect(activeLabels(pathname)).toEqual(expected);
+      expect(currentLabels(pathname)).toEqual(expected);
     });
 
-    it("does not match a tab whose name only starts like the path", () => {
-      navigation.pathname = "/admin/shopx";
-      render(
-        <AdminShell role="Admin" title="Admin" tabs={[{ href: "/admin/shop", label: "Shop" }]} denied={<p>No access</p>}>
-          <p>page</p>
-        </AdminShell>,
-      );
-      expect(screen.queryByRole("link", { current: "page" })).not.toBeInTheDocument();
+    it("does not match a section whose name only starts like the path", () => {
+      expect(currentLabels("/admin/shopx", [{ href: "/admin", label: "Overview" }, { href: "/admin/shop", label: "Shop" }])).toEqual([]);
     });
 
-    it("marks a tab with a trailing slash on its href", () => {
-      navigation.pathname = "/admin/shop/settings";
-      render(
-        <AdminShell role="Admin" title="Admin" tabs={[{ href: "/admin/shop/", label: "Shop" }]} denied={<p>No access</p>}>
-          <p>page</p>
-        </AdminShell>,
-      );
-      expect(screen.getByRole("link", { current: "page" })).toHaveTextContent("Shop");
+    it("matches a section with a trailing slash on its href", () => {
+      expect(currentLabels("/admin/shop/settings", [{ href: "/admin", label: "Overview" }, { href: "/admin/shop/", label: "Shop" }])).toEqual(["Shop"]);
     });
 
     it("picks the longest match whatever the order of the tabs", () => {
-      navigation.pathname = "/admin/shop/orders/5";
-      render(
-        <AdminShell role="Admin" title="Admin" tabs={[...nested].reverse()} denied={<p>No access</p>}>
-          <p>page</p>
-        </AdminShell>,
-      );
+      renderShell("/admin/shop/orders/5", { tabs: [...nested].reverse(), overviewHref: "/admin" });
       expect(screen.getAllByRole("link", { current: "page" })).toHaveLength(1);
       expect(screen.getByRole("link", { current: "page" })).toHaveTextContent("Orders");
     });
@@ -142,19 +159,16 @@ describe("AdminShell", () => {
 
   it("shows the denied block instead of the frame to a user without the role", () => {
     setSession(makeSession({ roles: [] }));
-    render(
-      <AdminShell role="Admin" title="Admin" tabs={tabs} denied={<p>No access</p>}>
-        <p>users page</p>
-      </AdminShell>,
-    );
+    renderShell("/no/admin/users");
 
     expect(screen.getByText("No access")).toBeInTheDocument();
     expect(screen.queryByRole("heading")).not.toBeInTheDocument();
-    expect(screen.queryByText("users page")).not.toBeInTheDocument();
+    expect(screen.queryByText("page")).not.toBeInTheDocument();
   });
 
   it("sends a user without the role to deniedHref", () => {
     setSession(makeSession({ roles: [] }));
+    navigation.pathname = "/no/admin/users";
     render(
       <AdminShell role="Admin" title="Admin" tabs={tabs} deniedHref="/no" fallback={<p>Checking…</p>}>
         <p>users page</p>
@@ -167,13 +181,9 @@ describe("AdminShell", () => {
 
   it("shows the fallback while the session loads", () => {
     setSession("loading");
-    render(
-      <AdminShell role="Admin" title="Admin" tabs={tabs} denied={<p>No access</p>} fallback={<p>Checking…</p>}>
-        <p>users page</p>
-      </AdminShell>,
-    );
+    renderShell("/no/admin/users", { fallback: <p>Checking…</p> });
 
     expect(screen.getByText("Checking…")).toBeInTheDocument();
-    expect(screen.queryByText("users page")).not.toBeInTheDocument();
+    expect(screen.queryByText("page")).not.toBeInTheDocument();
   });
 });

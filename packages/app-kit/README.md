@@ -1063,9 +1063,17 @@ The admin area. The forms report with `toast`, so the app needs sonner and a `To
 
 ### `AdminShell`
 
-The frame: a title and a tab bar above the page, behind a `RoleGate`. It takes `RoleGate`'s `role`,
-`fallback`, and `denied` or `deniedHref`. A tab is active on its own `href` and on the pages below it, with
-`aria-current="page"`. When several tabs match, only the one with the longest `href` is active. Each tab is an `AdminTab`, `{ href, label }`.
+The frame: a title above the page, behind a `RoleGate`. It takes `RoleGate`'s `role`, `fallback`,
+and `denied` or `deniedHref`. The overview page is the admin area's menu, so the frame has no tab bar.
+Each tab is an `AdminTab`, `{ href, label }`, for the overview or one section. The overview is
+`overviewHref`, or else the first tab.
+
+On every page but the overview, a breadcrumb sits above the title: the title as a link back to the
+overview, then the label of the page's section with `aria-current="page"`. A section is current on its
+own `href` and on the pages below it. When several tabs match, the one with the longest `href` is
+current. A page outside every section shows only the link back. `strings.breadcrumb` names the
+breadcrumb for screen readers. Its type is `AdminShellStrings`, and the English default is in
+`defaultAdminShellStrings`.
 
 ```tsx
 // src/app/[locale]/(protected)/admin/layout.tsx
@@ -1076,11 +1084,12 @@ import { AdminShell } from "@sjolystinnovation/app-kit/admin";
 export default function AdminLayout({ children }: { children: ReactNode }) {
   const { dict, locale } = useDictionary();
   const tabs = [
+    { href: `/${locale}/admin`, label: dict.admin.overview },
     { href: `/${locale}/admin/users`, label: dict.admin.users },
     { href: `/${locale}/admin/legal`, label: dict.admin.legal },
   ];
   return (
-    <AdminShell role="Admin" title={dict.admin.title} tabs={tabs} deniedHref={`/${locale}`}>
+    <AdminShell role="Admin" title={dict.admin.title} tabs={tabs} strings={{ breadcrumb: dict.admin.breadcrumb }} deniedHref={`/${locale}`}>
       {children}
     </AdminShell>
   );
@@ -1821,10 +1830,9 @@ The components draw every color, corner radius, and label size from theme variab
 | `--color-auth-link`, `-hover` | gray 900, the sign-in links |
 | `--font-weight-auth-link` | semibold |
 | `--color-admin-title` | gray 900, the title of `AdminShell` |
-| `--color-admin-border` | gray 200, the line under the tabs |
-| `--color-admin-tab`, `-hover` | gray 500 and gray 900, also the periods `EmailStatsPanel` has not picked |
-| `--color-admin-tab-active` | gray 900 |
-| `--color-admin-tab-indicator` | `var(--color-primary)`, the line under the active tab |
+| `--color-admin-border` | gray 200, the border of `EmailStatsPanel` |
+| `--color-admin-tab`, `-hover` | gray 500 and gray 900, the link back in the `AdminShell` breadcrumb, also the periods `EmailStatsPanel` has not picked |
+| `--color-admin-tab-active` | gray 900, the current section in the breadcrumb |
 | `--color-chart-grid` | gray 200, the scale lines of `StatHistoryChart` |
 | `--color-chart-label` | gray 400, the chart's numbers and dates |
 | `--color-admin-stat-label` | gray 500, the labels and the waiting text of `EmailStatsPanel` |

@@ -4,8 +4,10 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import { RoleGate, type RoleGateProps } from "../session/react/RoleGate";
+import { withDefaults, type TextOverrides } from "../ui/withDefaults";
+import { defaultAdminShellStrings, type AdminShellStrings } from "./adminShellStrings";
 
-/** One tab in the admin navigation. */
+/** One section of the admin area, or its overview. */
 export interface AdminTab {
   href: string;
   label: string;
@@ -16,7 +18,11 @@ type GateProps = RoleGateProps extends infer P ? (P extends unknown ? Omit<P, "c
 /** Props for `AdminShell`. The gate props are `RoleGate`'s, without `children`. */
 export type AdminShellProps = GateProps & {
   title: ReactNode;
+  /** The overview and the sections. The breadcrumb names a page's section by its tab's label. */
   tabs: readonly AdminTab[];
+  /** The overview page the breadcrumb links back to. Defaults to the first tab's `href`. */
+  overviewHref?: string | undefined;
+  strings?: TextOverrides<AdminShellStrings> | undefined;
   children: ReactNode;
 };
 
@@ -28,7 +34,7 @@ function isWithin(pathname: string, href: string) {
   return pathname === base || pathname.startsWith(`${base}/`);
 }
 
-/** The `href` of the tab that is active for `pathname`: the longest `href` that is the path or a parent of it. */
+/** The `href` of the tab that is current for `pathname`: the longest `href` that is the path or a parent of it. */
 function activeHref(pathname: string, tabs: readonly AdminTab[]) {
   let active: string | undefined;
   for (const { href } of tabs) {
@@ -40,34 +46,44 @@ function activeHref(pathname: string, tabs: readonly AdminTab[]) {
 }
 
 /**
- * The admin area's frame: a title and a tab bar above the page, for users with `role` only. The tabs
- * wrap onto more rows when they do not fit, and each tab draws its own underline. A tab
- * is active on its own `href` and on the pages below it. When several tabs match, only the one
- * with the longest `href` is active. The gate props are `RoleGate`'s.
+ * The admin area's frame, for users with `role` only. The overview page shows the title above the
+ * page. Every other page also shows a breadcrumb above the title, the title as a link back to the
+ * overview and then the label of the page's section. The overview is `overviewHref`, or else the
+ * first tab. A section is a tab other than the overview. It is current on its own `href` and on the
+ * pages below it. When several tabs match, the one with the longest `href` is current. The gate
+ * props are `RoleGate`'s.
  */
-export function AdminShell({ title, tabs, children, ...gate }: AdminShellProps) {
+export function AdminShell({ title, tabs, overviewHref, strings, children, ...gate }: AdminShellProps) {
   const pathname = usePathname();
+  const text = withDefaults(defaultAdminShellStrings, strings);
+  const overview = overviewHref ?? tabs[0]?.href;
+  const onOverview = overview !== undefined && trimSlash(pathname) === trimSlash(overview);
   const current = activeHref(pathname, tabs);
+  const section = tabs.find((tab) => tab.href === current && trimSlash(tab.href) !== trimSlash(overview ?? ""));
   const page = (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 py-10">
-      <h1 className="text-2xl font-black text-admin-title mb-4">{title}</h1>
-      <nav className="flex flex-wrap gap-x-1 border-b border-admin-border mb-8">
-        {tabs.map((tab) => {
-          const active = tab.href === current;
-          return (
-            <Link
-              key={tab.href}
-              href={tab.href}
-              aria-current={active ? "page" : undefined}
-              className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors whitespace-nowrap ${
-                active ? "border-admin-tab-indicator text-admin-tab-active" : "border-transparent text-admin-tab hover:text-admin-tab-hover"
-              }`}
-            >
-              {tab.label}
-            </Link>
-          );
-        })}
-      </nav>
+      {overview !== undefined && !onOverview && (
+        <nav aria-label={text.breadcrumb} className="mb-2 text-sm">
+          <ol className="flex flex-wrap items-center gap-x-2">
+            <li>
+              <Link href={overview} className="text-admin-tab hover:text-admin-tab-hover transition-colors">
+                {title}
+              </Link>
+            </li>
+            {section && (
+              <li className="flex items-center gap-x-2">
+                <span aria-hidden="true" className="text-admin-tab">
+                  /
+                </span>
+                <Link href={section.href} aria-current="page" className="font-medium text-admin-tab-active hover:text-admin-tab-hover transition-colors">
+                  {section.label}
+                </Link>
+              </li>
+            )}
+          </ol>
+        </nav>
+      )}
+      <h1 className="text-2xl font-black text-admin-title mb-8">{title}</h1>
       {children}
     </div>
   );
