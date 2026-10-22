@@ -102,7 +102,7 @@ The components use Tailwind CSS 4. Import the package's stylesheet after Tailwin
 | [`@sjolystinnovation/app-kit/session`](#sjolystinnovationapp-kitsession) | Session error codes and the re-sign-in prompt flag. Safe on the server. |
 | [`@sjolystinnovation/app-kit/session/react`](#sjolystinnovationapp-kitsessionreact) | The session provider, gates, expiry guard, sign-in form, and login page. |
 | [`@sjolystinnovation/app-kit/api`](#sjolystinnovationapp-kitapi) | The axios clients, error messages, field errors, and services for the API's endpoints. |
-| [`@sjolystinnovation/app-kit/company`](#sjolystinnovationapp-kitcompany) | `mergeCompanyInfo`, `formatOrgNumber`, and the `CompanyInfo` type. Imports no peer dependency. |
+| [`@sjolystinnovation/app-kit/company`](#sjolystinnovationapp-kitcompany) | `mergeCompanyInfo`, `formatOrgNumber`, `brregUrl`, and the `CompanyInfo` type. Imports no peer dependency. |
 | [`@sjolystinnovation/app-kit/server`](#sjolystinnovationapp-kitserver) | Cached public GETs and the revalidate route. Server only. |
 | [`@sjolystinnovation/app-kit/forms`](#sjolystinnovationapp-kitforms) | `useFormDraft`, which keeps form values in `localStorage`. |
 | [`@sjolystinnovation/app-kit/toast`](#sjolystinnovationapp-kittoast) | sonner's `toast`, quiet on errors while the re-sign-in prompt is open. |
@@ -759,14 +759,19 @@ required. The legal name falls back to the name, and VAT to not registered.
 `formatOrgNumber({ orgNumber, vatRegistered })` adds ` MVA` once the business is VAT registered, and
 gives an empty string without a number.
 
+`brregUrl(orgNumber)` gives the Brønnøysund Register Centre's page for the business, built from the
+digits of the org number, so `938 433 240` and `938433240` give the same link. It gives an empty
+string when the number has no digits.
+
 ```ts
 // src/lib/companyInfo.ts
-import { formatOrgNumber, mergeCompanyInfo, type CompanyInfo } from "@sjolystinnovation/app-kit/company";
+import { brregUrl, formatOrgNumber, mergeCompanyInfo, type CompanyInfo } from "@sjolystinnovation/app-kit/company";
 
 export const getCompanyInfo = async () =>
   mergeCompanyInfo(await publicGetOptional<CompanyInfo>("/company"), { name: "Example AS" });
 
 export const orgLine = (company: CompanyInfo) => formatOrgNumber(company);
+export const registerLink = (company: CompanyInfo) => brregUrl(company.orgNumber);
 ```
 
 The `CompanyInfo` and `CompanyFallback` types describe the two shapes.

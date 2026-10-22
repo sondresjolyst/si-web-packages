@@ -47,3 +47,12 @@ export function formatOrgNumber({ orgNumber, vatRegistered }: { orgNumber?: stri
   if (!orgNumber) return "";
   return vatRegistered ? `${orgNumber} MVA` : orgNumber;
 }
+
+/**
+ * The Brønnøysund Register Centre's page for the business, built from the digits of its org number, so
+ * `938 433 240` and `938433240` give the same link. Returns `""` when the number has no digits.
+ */
+export function brregUrl(orgNumber: string | null | undefined): string {
+  const digits = (orgNumber ?? "").replace(/\D/g, "");
+  return digits ? `https://virksomhet.brreg.no/nb/oppslag/enheter/${digits}` : "";
+}

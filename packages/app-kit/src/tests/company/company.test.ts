@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatOrgNumber, mergeCompanyInfo, type CompanyInfo } from "../../company";
+import { brregUrl, formatOrgNumber, mergeCompanyInfo, type CompanyInfo } from "../../company";
 
 const full: CompanyInfo = {
   name: "Altinnendata",
@@ -46,5 +46,20 @@ describe("formatOrgNumber", () => {
     expect(formatOrgNumber({ orgNumber: "123 456 789", vatRegistered: false })).toBe("123 456 789");
     expect(formatOrgNumber({ orgNumber: "", vatRegistered: true })).toBe("");
     expect(formatOrgNumber({ orgNumber: null })).toBe("");
+  });
+});
+
+describe("brregUrl", () => {
+  it("builds the register page from the digits of the org number", () => {
+    expect(brregUrl("938 433 240")).toBe("https://virksomhet.brreg.no/nb/oppslag/enheter/938433240");
+    expect(brregUrl("938433240")).toBe("https://virksomhet.brreg.no/nb/oppslag/enheter/938433240");
+    expect(brregUrl("NO 938.433.240 MVA")).toBe("https://virksomhet.brreg.no/nb/oppslag/enheter/938433240");
+  });
+
+  it("gives nothing without digits", () => {
+    expect(brregUrl("")).toBe("");
+    expect(brregUrl("MVA")).toBe("");
+    expect(brregUrl(null)).toBe("");
+    expect(brregUrl(undefined)).toBe("");
   });
 });
