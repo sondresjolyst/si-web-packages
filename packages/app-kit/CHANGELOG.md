@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.4.0](https://github.com/sondresjolyst/si-web-packages/compare/app-kit-v1.3.0...app-kit-v1.4.0) (2026-10-22)
+
+
+### Features
+
+* add ConfirmDialog, fillTemplate and shared phone, kroner and brreg helpers ([#123](https://github.com/sondresjolyst/si-web-packages/issues/123)) ([09307e1](https://github.com/sondresjolyst/si-web-packages/commit/09307e154a91f2dd17dbd28d66fe697b47e1cee4))
+
 ## [1.3.0](https://github.com/sondresjolyst/si-web-packages/compare/app-kit-v1.2.1...app-kit-v1.3.0) (2026-10-21)
 
 
