@@ -1046,6 +1046,18 @@ export default function Error({ reset }: { error: Error; reset: () => void }) {
 | `strings` | `TextOverrides<ErrorStateStrings>` | `title`, `body`, `tryAgain`, and `home`. |
 | `className` | `string` | Classes for placing it, on the outer element. |
 
+### `fillTemplate`
+
+`fillTemplate(text, values)` fills each `{name}` in a dictionary string from `values`, which take
+strings or numbers. A placeholder with no value stays as it is, and a value with `$` in it is
+inserted as typed.
+
+```ts
+import { fillTemplate } from "@sjolystinnovation/app-kit/ui";
+
+fillTemplate("Page {page} of {pages}", { page: 2, pages: 10 }); // "Page 2 of 10"
+```
+
 ### `NotFoundState`
 
 What a `not-found.tsx` shows: a large code, the message as the page's heading, and a link home. It

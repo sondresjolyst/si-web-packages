@@ -10,6 +10,7 @@ export { ErrorState } from "./ErrorState";
 export type { ErrorStateProps } from "./ErrorState";
 export { defaultErrorStateStrings } from "./errorStateStrings";
 export type { ErrorStateStrings } from "./errorStateStrings";
+export { fillTemplate } from "./fillTemplate";
 export { NotFoundState } from "./NotFoundState";
 export type { NotFoundStateProps } from "./NotFoundState";
 export { defaultNotFoundStateStrings } from "./notFoundStateStrings";
