@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  defaultAdminShellStrings,
   defaultAdminUsersPanelStrings,
   defaultCompanySettingsFormStrings,
   defaultEmailStatsPanelStrings,
@@ -27,6 +28,7 @@ const pairs: [string, object, object][] = [
   ["nbNotFoundStateStrings", nb.nbNotFoundStateStrings, defaultNotFoundStateStrings],
   ["nbConfirmDialogStrings", nb.nbConfirmDialogStrings, defaultConfirmDialogStrings],
   ["nbCompanySettingsFormStrings", nb.nbCompanySettingsFormStrings, defaultCompanySettingsFormStrings],
+  ["nbAdminShellStrings", nb.nbAdminShellStrings, defaultAdminShellStrings],
   ["nbAdminUsersPanelStrings", nb.nbAdminUsersPanelStrings, defaultAdminUsersPanelStrings],
   ["nbLegalPagesEditorStrings", nb.nbLegalPagesEditorStrings, defaultLegalPagesEditorStrings],
   ["nbStatHistoryChartStrings", nb.nbStatHistoryChartStrings, defaultStatHistoryChartStrings],
@@ -89,6 +91,10 @@ describe("the Norwegian strings", () => {
     expect(nb.nbPasswordStrings.tooShort).toContain("8 tegn");
     // Skatteetaten names the field first, then says what is wrong and how to fix it.
     expect(Object.values(nb.nbPasswordStrings).filter(text => !/^Passordet [^.]+\. \S/.test(text))).toEqual([]);
+  });
+
+  it("names the admin breadcrumb Brødsmulesti", () => {
+    expect(nb.nbAdminShellStrings.breadcrumb).toBe("Brødsmulesti");
   });
 
   it("need no peer dependency, so a server component can import them", () => {

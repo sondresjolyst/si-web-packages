@@ -5,6 +5,7 @@
 // says what is wrong and how to fix it, as Skatteetaten does, and uses Altinn's phrasing such as
 // "Du må fylle ut" and "Bruk {max} eller færre tegn".
 
+import type { AdminShellStrings } from "../admin/adminShellStrings";
 import type { AdminUsersPanelStrings } from "../admin/adminUsersPanelStrings";
 import type { CompanySettingsFormStrings } from "../admin/companySettingsFormStrings";
 import type { EmailStatsPanelStrings } from "../admin/emailStatsPanelStrings";
@@ -156,6 +157,11 @@ export const nbCompanySettingsFormStrings: CompanySettingsFormStrings = {
     invalidPostalCode: "Postnummeret er ugyldig. Et postnummer består av 4 siffer.",
     placeRequired: "Du må fylle ut poststed når du har fylt ut postnummer.",
   },
+};
+
+/** For `AdminShell`. */
+export const nbAdminShellStrings: AdminShellStrings = {
+  breadcrumb: "Brødsmulesti",
 };
 
 /** For `AdminUsersPanel`. */

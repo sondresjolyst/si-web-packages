@@ -1802,6 +1802,7 @@ it.
 | `nbErrorStateStrings`, `nbNotFoundStateStrings` | `ErrorState` and `NotFoundState` |
 | `nbConfirmDialogStrings` | `ConfirmDialog` |
 | `nbCompanySettingsFormStrings` | `CompanySettingsForm`, with its field error codes |
+| `nbAdminShellStrings` | `AdminShell` |
 | `nbAdminUsersPanelStrings` | `AdminUsersPanel`, with its field error, refusal, and delete codes |
 | `nbLegalPagesEditorStrings`, `nbLegalPageKeyLabels` | `LegalPagesEditor` and its `keyLabels` for the default pages |
 | `nbStatHistoryChartStrings` | `StatHistoryChart` |
