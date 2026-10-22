@@ -64,6 +64,9 @@ const panel = (props: Pick<AdminUsersPanelProps, "defaultInviteRole" | "strings"
 // A row by the user's email, which is unique on the page.
 const row = (email: string) => screen.getByText(email).closest("li") as HTMLElement;
 
+// A button in the open confirm dialog.
+const inDialog = (name: string) => userEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name }));
+
 beforeEach(() => {
   service.getUsers.mockReset().mockImplementation((deleted: boolean) => Promise.resolve(deleted ? [kari, ola, gone] : [kari, ola]));
   service.addRole.mockReset().mockResolvedValue(undefined);
@@ -289,61 +292,80 @@ describe("AdminUsersPanel", () => {
   });
 
   it("deletes a user after the confirm names them, and loads the list again", async () => {
-    const confirm = vi.spyOn(window, "confirm").mockReturnValue(true);
     panel();
     await screen.findByText("kari@example.no");
 
     await userEvent.click(within(row("kari@example.no")).getByTitle("Delete"));
 
-    expect(confirm).toHaveBeenCalledWith("Delete Kari Nordmann? Their name, email and password are removed, and they cannot sign in again.");
+    const dialog = screen.getByRole("dialog");
+    expect(dialog).toHaveTextContent("Delete Kari Nordmann? Their name, email and password are removed, and they cannot sign in again.");
+    expect(service.deleteUser).not.toHaveBeenCalled();
+    await inDialog("Delete");
     expect(service.deleteUser).toHaveBeenCalledWith("u1");
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
     await waitFor(() => expect(toast.success).toHaveBeenCalledWith("User deleted"));
     await waitFor(() => expect(service.getUsers).toHaveBeenCalledTimes(2));
   });
 
   it("shows loading while the list reloads after a delete", async () => {
-    vi.spyOn(window, "confirm").mockReturnValue(true);
     panel();
     await screen.findByText("kari@example.no");
     service.getUsers.mockImplementationOnce(() => new Promise(() => {}));
 
     await userEvent.click(within(row("kari@example.no")).getByTitle("Delete"));
+    await inDialog("Delete");
 
     expect(await screen.findByText("Loading…")).toBeInTheDocument();
   });
 
   it("uses the latest service after the prop changes", async () => {
-    vi.spyOn(window, "confirm").mockReturnValue(true);
     const view = panel();
     await screen.findByText("kari@example.no");
     const next = { ...service, deleteUser: vi.fn().mockResolvedValue(undefined) };
     view.rerender(<AdminUsersPanel service={next} getRoles={getRoles} />);
 
     await userEvent.click(within(row("kari@example.no")).getByTitle("Delete"));
+    await inDialog("Delete");
 
     expect(next.deleteUser).toHaveBeenCalledWith("u1");
     expect(service.deleteUser).not.toHaveBeenCalled();
   });
 
-  it("names a user by email in the confirm when they have no name", async () => {
-    const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+  it("names a user by email in the confirm when they have no name, and deletes nobody on cancel", async () => {
     service.getUsers.mockResolvedValue([{ ...ola, firstName: "", email: "anon@example.no" }]);
     panel();
     await screen.findByText("anon@example.no");
 
     await userEvent.click(screen.getByTitle("Delete"));
 
-    expect(confirm).toHaveBeenCalledWith(expect.stringMatching(/^Delete anon@example\.no\?/));
+    expect(screen.getByRole("dialog")).toHaveTextContent(/Delete anon@example\.no\?/);
+    await inDialog("Cancel");
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     expect(service.deleteUser).not.toHaveBeenCalled();
   });
 
+  it("keeps both dialog buttons off while the delete runs", async () => {
+    let finish: () => void = () => {};
+    service.deleteUser.mockImplementation(() => new Promise<void>((resolve) => (finish = resolve)));
+    panel();
+    await screen.findByText("kari@example.no");
+
+    await userEvent.click(within(row("kari@example.no")).getByTitle("Delete"));
+    await inDialog("Delete");
+
+    expect(within(screen.getByRole("dialog")).getByRole("button", { name: "Cancel" })).toBeDisabled();
+    expect(within(screen.getByRole("dialog")).getByRole("button", { name: "Delete" })).toBeDisabled();
+    finish();
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+  });
+
   it("explains a failed delete", async () => {
-    vi.spyOn(window, "confirm").mockReturnValue(true);
     service.deleteUser.mockRejectedValue(new Error("Last admin"));
     panel();
     await screen.findByText("kari@example.no");
 
     await userEvent.click(within(row("kari@example.no")).getByTitle("Delete"));
+    await inDialog("Delete");
 
     await waitFor(() => expect(toast.error).toHaveBeenCalledWith("Last admin"));
     expect(service.getUsers).toHaveBeenCalledTimes(1);
@@ -491,15 +513,16 @@ describe("AdminUsersPanel", () => {
   });
 
   it("shows the app's delete text for a refused delete, apart from the role text with the same code", async () => {
-    vi.spyOn(window, "confirm").mockReturnValue(true);
     service.deleteUser.mockRejectedValueOnce(await codeError(409, "The last admin account cannot be deleted. Give someone else the admin role first.", "lastAdmin"));
     service.deleteUser.mockRejectedValueOnce(await codeError(409, "Another change to the accounts happened at the same time. Try again.", "accountChangeConflict"));
     panel({ strings: { errors: { lastAdmin: "Role text." }, deleteErrors: { lastAdmin: "Den siste administratoren kan ikke slettes." } } });
     await screen.findByText("kari@example.no");
 
     await userEvent.click(within(row("kari@example.no")).getByTitle("Delete"));
+    await inDialog("Delete");
     await waitFor(() => expect(toast.error).toHaveBeenLastCalledWith("Den siste administratoren kan ikke slettes."));
     await userEvent.click(within(row("kari@example.no")).getByTitle("Delete"));
+    await inDialog("Delete");
     await waitFor(() => expect(toast.error).toHaveBeenLastCalledWith("Another change to the accounts happened at the same time. Try again."));
   });
 
@@ -552,7 +575,6 @@ describe("AdminUsersPanel", () => {
   });
 
   it("uses the app's strings, with the placeholders filled", async () => {
-    vi.spyOn(window, "confirm").mockReturnValue(false);
     panel({
       strings: {
         users: "Brukere",
@@ -561,6 +583,7 @@ describe("AdminUsersPanel", () => {
         delete: "Slett",
         remove: "Fjern",
         roleRemoved: "Fjernet {role} fra {name}",
+        cancel: "Avbryt",
         confirmDelete: "Slette {name}?",
       },
     });
@@ -572,7 +595,9 @@ describe("AdminUsersPanel", () => {
     expect(screen.getByText("Invite user")).toBeInTheDocument();
 
     await userEvent.click(within(row("kari@example.no")).getByTitle("Slett"));
-    expect(window.confirm).toHaveBeenCalledWith("Slette Kari Nordmann?");
+    expect(screen.getByRole("dialog")).toHaveTextContent("Slette Kari Nordmann?");
+    expect(within(screen.getByRole("dialog")).getByRole("button", { name: "Avbryt" })).toBeInTheDocument();
+    await inDialog("Avbryt");
 
     await userEvent.click(within(row("kari@example.no")).getByTitle("Fjern Admin"));
     await waitFor(() => expect(toast.success).toHaveBeenCalledWith("Fjernet Admin fra Kari"));

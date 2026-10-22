@@ -1,11 +1,16 @@
 export { Alert } from "./Alert";
 export type { AlertProps } from "./Alert";
+export { ConfirmDialog } from "./ConfirmDialog";
+export type { ConfirmDialogProps } from "./ConfirmDialog";
+export { defaultConfirmDialogStrings } from "./confirmDialogStrings";
+export type { ConfirmDialogStrings } from "./confirmDialogStrings";
 export { ContentImage, contentImagePath, contentImageSrcSet } from "./ContentImage";
 export type { ContentImageProps } from "./ContentImage";
 export { ErrorState } from "./ErrorState";
 export type { ErrorStateProps } from "./ErrorState";
 export { defaultErrorStateStrings } from "./errorStateStrings";
 export type { ErrorStateStrings } from "./errorStateStrings";
+export { fillTemplate } from "./fillTemplate";
 export { NotFoundState } from "./NotFoundState";
 export type { NotFoundStateProps } from "./NotFoundState";
 export { defaultNotFoundStateStrings } from "./notFoundStateStrings";

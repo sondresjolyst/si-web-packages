@@ -5,6 +5,7 @@
 // says what is wrong and how to fix it, as Skatteetaten does, and uses Altinn's phrasing such as
 // "Du må fylle ut" and "Bruk {max} eller færre tegn".
 
+import type { AdminShellStrings } from "../admin/adminShellStrings";
 import type { AdminUsersPanelStrings } from "../admin/adminUsersPanelStrings";
 import type { CompanySettingsFormStrings } from "../admin/companySettingsFormStrings";
 import type { EmailStatsPanelStrings } from "../admin/emailStatsPanelStrings";
@@ -18,6 +19,7 @@ import type { SharedSectionType } from "../sections/types";
 import type { CredentialsFormStrings } from "../session/react/credentialsFormStrings";
 import type { LoginPageStrings } from "../session/react/loginPageStrings";
 import type { SessionExpiryGuardStrings } from "../session/react/sessionExpiryGuardStrings";
+import type { ConfirmDialogStrings } from "../ui/confirmDialogStrings";
 import type { ErrorStateStrings } from "../ui/errorStateStrings";
 import type { NotFoundStateStrings } from "../ui/notFoundStateStrings";
 import type { ResetPasswordFlowStrings } from "../ui/resetPasswordFlowStrings";
@@ -117,6 +119,12 @@ export const nbNotFoundStateStrings: NotFoundStateStrings = {
   home: "Til forsiden",
 };
 
+/** For `ConfirmDialog`. */
+export const nbConfirmDialogStrings: ConfirmDialogStrings = {
+  confirm: "Bekreft",
+  cancel: "Avbryt",
+};
+
 /** For `CompanySettingsForm`. */
 export const nbCompanySettingsFormStrings: CompanySettingsFormStrings = {
   contactRecipient: "Mottaker for henvendelser",
@@ -149,6 +157,11 @@ export const nbCompanySettingsFormStrings: CompanySettingsFormStrings = {
     invalidPostalCode: "Postnummeret er ugyldig. Et postnummer består av 4 siffer.",
     placeRequired: "Du må fylle ut poststed når du har fylt ut postnummer.",
   },
+};
+
+/** For `AdminShell`. */
+export const nbAdminShellStrings: AdminShellStrings = {
+  breadcrumb: "Brødsmulesti",
 };
 
 /** For `AdminUsersPanel`. */

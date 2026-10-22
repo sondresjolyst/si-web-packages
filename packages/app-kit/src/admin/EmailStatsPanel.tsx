@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { EmailStats } from "../api/services";
+import { fillTemplate } from "../ui/fillTemplate";
 import { withDefaults, type TextOverrides } from "../ui/withDefaults";
 import { defaultEmailStatsPanelStrings, type EmailStatsPanelStrings } from "./emailStatsPanelStrings";
 
@@ -97,7 +98,7 @@ export function EmailStatsPanel({
     else setPicked({ from: days, days: next });
   };
 
-  const title = <h2 className={`font-bold text-admin-title${hasPicker ? "" : " mb-3"}`}>{text.title.replaceAll("{days}", String(shownDays))}</h2>;
+  const title = <h2 className={`font-bold text-admin-title${hasPicker ? "" : " mb-3"}`}>{fillTemplate(text.title, { days: shownDays })}</h2>;
 
   return (
     <section className={className}>
@@ -115,7 +116,7 @@ export function EmailStatsPanel({
                   option === selected ? "bg-button-primary-bg text-button-primary-text" : "text-admin-tab hover:text-admin-tab-hover"
                 }`}
               >
-                {text.periodOption.replaceAll("{days}", String(option))}
+                {fillTemplate(text.periodOption, { days: option })}
               </button>
             ))}
           </div>

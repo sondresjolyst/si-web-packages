@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  defaultAdminShellStrings,
   defaultAdminUsersPanelStrings,
   defaultCompanySettingsFormStrings,
   defaultEmailStatsPanelStrings,
@@ -12,7 +13,7 @@ import { defaultLegalPageViewStrings } from "../../legal";
 import * as nb from "../../locales/nb";
 import { defaultSectionTypeLabels, defaultSectionsEditorStrings } from "../../sections";
 import { defaultCredentialsFormStrings, defaultLoginPageStrings, defaultSessionExpiryGuardStrings } from "../../session/react";
-import { defaultErrorStateStrings, defaultNotFoundStateStrings, defaultResetPasswordFlowStrings } from "../../ui";
+import { defaultConfirmDialogStrings, defaultErrorStateStrings, defaultNotFoundStateStrings, defaultResetPasswordFlowStrings } from "../../ui";
 import { defaultPasswordStrings, passwordProblems, passwordSchema } from "../../validation";
 import { packagesImportedBy } from "../importGraph";
 
@@ -25,7 +26,9 @@ const pairs: [string, object, object][] = [
   ["nbResetPasswordFlowStrings", nb.nbResetPasswordFlowStrings, defaultResetPasswordFlowStrings],
   ["nbErrorStateStrings", nb.nbErrorStateStrings, defaultErrorStateStrings],
   ["nbNotFoundStateStrings", nb.nbNotFoundStateStrings, defaultNotFoundStateStrings],
+  ["nbConfirmDialogStrings", nb.nbConfirmDialogStrings, defaultConfirmDialogStrings],
   ["nbCompanySettingsFormStrings", nb.nbCompanySettingsFormStrings, defaultCompanySettingsFormStrings],
+  ["nbAdminShellStrings", nb.nbAdminShellStrings, defaultAdminShellStrings],
   ["nbAdminUsersPanelStrings", nb.nbAdminUsersPanelStrings, defaultAdminUsersPanelStrings],
   ["nbLegalPagesEditorStrings", nb.nbLegalPagesEditorStrings, defaultLegalPagesEditorStrings],
   ["nbStatHistoryChartStrings", nb.nbStatHistoryChartStrings, defaultStatHistoryChartStrings],
@@ -88,6 +91,10 @@ describe("the Norwegian strings", () => {
     expect(nb.nbPasswordStrings.tooShort).toContain("8 tegn");
     // Skatteetaten names the field first, then says what is wrong and how to fix it.
     expect(Object.values(nb.nbPasswordStrings).filter(text => !/^Passordet [^.]+\. \S/.test(text))).toEqual([]);
+  });
+
+  it("names the admin breadcrumb Brødsmulesti", () => {
+    expect(nb.nbAdminShellStrings.breadcrumb).toBe("Brødsmulesti");
   });
 
   it("need no peer dependency, so a server component can import them", () => {

@@ -5,6 +5,8 @@ import { useEffect, useId, useRef, useState } from "react";
 import { errorText, fieldErrorTexts } from "../api/fieldErrorText";
 import type { AdminUser, createAdminUsersService } from "../api/services";
 import { toast } from "../toast";
+import { ConfirmDialog } from "../ui/ConfirmDialog";
+import { fillTemplate } from "../ui/fillTemplate";
 import { FieldError } from "../ui/field";
 import { TextInput } from "../ui/TextInput";
 import { Toggle } from "../ui/Toggle";
@@ -50,9 +52,6 @@ export type AdminUsersPanelProps = {
 // The invite fields the form shows, so a field error for any other field goes in the toast.
 const INVITE_FIELDS = ["firstName", "lastName", "email", "role"];
 
-const fill = (text: string, values: Record<string, string>) =>
-  text.replace(/\{(\w+)\}/g, (match, key: string) => values[key] ?? match);
-
 const reason = (err: unknown, fallback: string) => (err instanceof Error && err.message ? err.message : fallback);
 
 /**
@@ -77,6 +76,9 @@ export function AdminUsersPanel({ service, getRoles, defaultInviteRole = "Admin"
   const [invite, setInvite] = useState({ email: "", firstName: "", lastName: "", role: defaultInviteRole });
   const [inviting, setInviting] = useState(false);
   // The per-field texts from the last failed invite, keyed by field name.
+  // The user the open delete confirm names, and whether the delete runs.
+  const [deleting, setDeleting] = useState<AdminUser | null>(null);
+  const [deleteBusy, setDeleteBusy] = useState(false);
   const [inviteErrors, setInviteErrors] = useState<Record<string, string[]>>({});
   // Bumping it fetches the list again after a change, through the same effect as every other load.
   const [reloads, setReloads] = useState(0);
@@ -135,7 +137,7 @@ export function AdminUsersPanel({ service, getRoles, defaultInviteRole = "Admin"
     try {
       await serviceRef.current.addRole(user.id, selectedRole);
       setRoles(user.id, [...user.roles, selectedRole]);
-      toast.success(fill(text.roleAssigned, { name: user.firstName, role: selectedRole }));
+      toast.success(fillTemplate(text.roleAssigned, { name: user.firstName, role: selectedRole }));
       setAddRoleFor(null);
       setSelectedRole("");
     } catch (err) {
@@ -149,21 +151,23 @@ export function AdminUsersPanel({ service, getRoles, defaultInviteRole = "Admin"
     try {
       await serviceRef.current.removeRole(user.id, role);
       setRoles(user.id, user.roles.filter((r) => r !== role));
-      toast.success(fill(text.roleRemoved, { name: user.firstName, role }));
+      toast.success(fillTemplate(text.roleRemoved, { name: user.firstName, role }));
     } catch (err) {
       toast.error(errorText(err, errors, text.roleRemoveFailed));
     }
   };
 
   const deleteUser = async (user: AdminUser) => {
-    const label = `${user.firstName} ${user.lastName}`.trim() || user.email;
-    if (!window.confirm(fill(text.confirmDelete, { name: label }))) return;
+    setDeleteBusy(true);
     try {
       await serviceRef.current.deleteUser(user.id);
       toast.success(text.userDeleted);
       reload();
     } catch (err) {
       toast.error(errorText(err, deleteErrors, text.userDeleteFailed));
+    } finally {
+      setDeleteBusy(false);
+      setDeleting(null);
     }
   };
 
@@ -245,6 +249,18 @@ export function AdminUsersPanel({ service, getRoles, defaultInviteRole = "Admin"
         <p className="text-xs text-gray-500">{text.inviteHint}</p>
       </div>
 
+      {deleting && (
+        <ConfirmDialog
+          title={text.delete}
+          message={fillTemplate(text.confirmDelete, { name: `${deleting.firstName} ${deleting.lastName}`.trim() || deleting.email })}
+          confirmLabel={text.delete}
+          busy={deleteBusy}
+          strings={{ cancel: text.cancel }}
+          onConfirm={() => void deleteUser(deleting)}
+          onClose={() => setDeleting(null)}
+        />
+      )}
+
       {loading ? (
         <p className="text-gray-500">{text.loading}</p>
       ) : (
@@ -264,7 +280,7 @@ export function AdminUsersPanel({ service, getRoles, defaultInviteRole = "Admin"
                   </div>
                   {!user.isDeleted && (
                     <button
-                      onClick={() => deleteUser(user)}
+                      onClick={() => setDeleting(user)}
                       title={text.delete}
                       className="shrink-0 p-2 rounded-lg text-red-500 hover:text-red-700 hover:bg-red-50 transition-colors"
                     >

@@ -102,12 +102,12 @@ The components use Tailwind CSS 4. Import the package's stylesheet after Tailwin
 | [`@sjolystinnovation/app-kit/session`](#sjolystinnovationapp-kitsession) | Session error codes and the re-sign-in prompt flag. Safe on the server. |
 | [`@sjolystinnovation/app-kit/session/react`](#sjolystinnovationapp-kitsessionreact) | The session provider, gates, expiry guard, sign-in form, and login page. |
 | [`@sjolystinnovation/app-kit/api`](#sjolystinnovationapp-kitapi) | The axios clients, error messages, field errors, and services for the API's endpoints. |
-| [`@sjolystinnovation/app-kit/company`](#sjolystinnovationapp-kitcompany) | `mergeCompanyInfo`, `formatOrgNumber`, and the `CompanyInfo` type. Imports no peer dependency. |
+| [`@sjolystinnovation/app-kit/company`](#sjolystinnovationapp-kitcompany) | `mergeCompanyInfo`, `formatOrgNumber`, `brregUrl`, and the `CompanyInfo` type. Imports no peer dependency. |
 | [`@sjolystinnovation/app-kit/server`](#sjolystinnovationapp-kitserver) | Cached public GETs and the revalidate route. Server only. |
 | [`@sjolystinnovation/app-kit/forms`](#sjolystinnovationapp-kitforms) | `useFormDraft`, which keeps form values in `localStorage`. |
 | [`@sjolystinnovation/app-kit/toast`](#sjolystinnovationapp-kittoast) | sonner's `toast`, quiet on errors while the re-sign-in prompt is open. |
-| [`@sjolystinnovation/app-kit/validation`](#sjolystinnovationapp-kitvalidation) | The password schema and zod field errors. |
-| [`@sjolystinnovation/app-kit/ui`](#sjolystinnovationapp-kitui) | Form controls, alerts, content images, error pages, and the password reset flow. |
+| [`@sjolystinnovation/app-kit/validation`](#sjolystinnovationapp-kitvalidation) | The password schema, zod field errors, and the Norwegian mobile number check. |
+| [`@sjolystinnovation/app-kit/ui`](#sjolystinnovationapp-kitui) | Form controls, alerts, a confirm dialog, content images, error pages, and the password reset flow. |
 | [`@sjolystinnovation/app-kit/admin`](#sjolystinnovationapp-kitadmin) | The admin frame, company settings, users, legal pages editor, stats chart, and email stats panel. |
 | [`@sjolystinnovation/app-kit/branding`](#sjolystinnovationapp-kitbranding) | The uploaded logo and favicon: provider, hook, and admin form. |
 | [`@sjolystinnovation/app-kit/branding/server`](#sjolystinnovationapp-kitbrandingserver) | The `app/icon.ts` response for the uploaded favicon. Server only. |
@@ -116,7 +116,7 @@ The components use Tailwind CSS 4. Import the package's stylesheet after Tailwin
 | [`@sjolystinnovation/app-kit/sections`](#sjolystinnovationapp-kitsections) | Page sections with a renderer registry and an editor registry. |
 | [`@sjolystinnovation/app-kit/seo`](#sjolystinnovationapp-kitseo) | Canonical URLs, metadata, sitemaps, `robots.txt`, and structured data. |
 | [`@sjolystinnovation/app-kit/seo/og`](#sjolystinnovationapp-kitseoog) | The default Open Graph share image. |
-| [`@sjolystinnovation/app-kit/payments`](#sjolystinnovationapp-kitpayments) | The page a user returns to from a payment provider. |
+| [`@sjolystinnovation/app-kit/payments`](#sjolystinnovationapp-kitpayments) | The page a user returns to from a payment provider, and the kroner and øre helpers. |
 | [`@sjolystinnovation/app-kit/locales/nb`](#sjolystinnovationapp-kitlocalesnb) | Norwegian (bokmål) text for every component that takes `strings`. Imports no peer dependency. |
 | [`@sjolystinnovation/app-kit/testing`](#sjolystinnovationapp-kittesting) | vitest doubles for next-auth, next/navigation, and sonner. |
 | [`@sjolystinnovation/app-kit/styles.css`](#theming) | The theme variables and styles the components use. |
@@ -759,14 +759,19 @@ required. The legal name falls back to the name, and VAT to not registered.
 `formatOrgNumber({ orgNumber, vatRegistered })` adds ` MVA` once the business is VAT registered, and
 gives an empty string without a number.
 
+`brregUrl(orgNumber)` gives the Brønnøysund Register Centre's page for the business, built from the
+digits of the org number, so `938 433 240` and `938433240` give the same link. It gives an empty
+string when the number has no digits.
+
 ```ts
 // src/lib/companyInfo.ts
-import { formatOrgNumber, mergeCompanyInfo, type CompanyInfo } from "@sjolystinnovation/app-kit/company";
+import { brregUrl, formatOrgNumber, mergeCompanyInfo, type CompanyInfo } from "@sjolystinnovation/app-kit/company";
 
 export const getCompanyInfo = async () =>
   mergeCompanyInfo(await publicGetOptional<CompanyInfo>("/company"), { name: "Example AS" });
 
 export const orgLine = (company: CompanyInfo) => formatOrgNumber(company);
+export const registerLink = (company: CompanyInfo) => brregUrl(company.orgNumber);
 ```
 
 The `CompanyInfo` and `CompanyFallback` types describe the two shapes.
@@ -854,6 +859,19 @@ import { zodFieldErrors } from "@sjolystinnovation/app-kit/validation";
 
 const parsed = contactSchema.safeParse(form);
 if (!parsed.success) setErrors(zodFieldErrors(parsed.error, { message: issue => issueMessage(issue, dict) }));
+```
+
+### `normalizeNoPhone`
+
+`normalizeNoPhone(raw)` turns a Norwegian mobile number into the digits Vipps takes, such as
+`4791234567`, or gives `null` when it is not one. It drops spaces, dashes, brackets, and a leading
+`+`, and adds `47` to an eight-digit number. It follows `VippsPhoneNumber.TryNormalize` in
+SjolystInnovation.AppKit.Vipps, so a form and the API agree on what is valid.
+
+```ts
+import { normalizeNoPhone } from "@sjolystinnovation/app-kit/validation";
+
+const msisdn = normalizeNoPhone("+47 912 34 567"); // "4791234567"
 ```
 
 ## `@sjolystinnovation/app-kit/ui`
@@ -945,6 +963,39 @@ A colored message box.
 | `className` | `string` | | Classes for placing the alert, such as a margin. Restyle it through the theme variables. A clashing class wins or loses by the order Tailwind emits them in. |
 | `children` | `ReactNode` | | The content. |
 
+### `ConfirmDialog`
+
+A modal confirmation on the native `<dialog>`. The browser traps focus in it, moves focus in when it
+opens, closes it on Escape, and gives focus back to the element that opened it. Render it while a
+confirmation is pending and unmount it in `onClose`. While `busy`, both buttons are off and Escape
+does nothing.
+
+```tsx
+{pending && (
+  <ConfirmDialog
+    title="Cancel the order"
+    message="The buyer is refunded."
+    confirmLabel="Cancel order"
+    busy={busy}
+    strings={{ cancel: "Back" }}
+    onConfirm={() => void cancelOrder()}
+    onClose={() => setPending(false)}
+  />
+)}
+```
+
+| Prop | Type | Description |
+| --- | --- | --- |
+| `title` | `string` | The heading, which names the dialog. |
+| `message` | `string` | The text under the heading. |
+| `confirmLabel` | `string` | The confirm button's text. Defaults to `strings.confirm`. |
+| `busy` | `boolean` | Turns both buttons off and ignores Escape while a request runs. |
+| `confirmDisabled` | `boolean` | Turns the confirm button off, for example while a field in the dialog is invalid. |
+| `children` | `ReactNode` | Content under the message, such as an amount field. |
+| `onConfirm` | `() => void` | Called by the confirm button. |
+| `onClose` | `() => void` | Called by the cancel button and when the dialog closes, such as on Escape. |
+| `strings` | `TextOverrides<ConfirmDialogStrings>` | `confirm` and `cancel`. |
+
 ### `ContentImage`
 
 An uploaded image from the content API, as a plain `<img>` with a `srcset` of the widths the API
@@ -994,6 +1045,18 @@ export default function Error({ reset }: { error: Error; reset: () => void }) {
 | `homeHref` | `string` | Where the front page link goes, such as `/` or `/en`. |
 | `strings` | `TextOverrides<ErrorStateStrings>` | `title`, `body`, `tryAgain`, and `home`. |
 | `className` | `string` | Classes for placing it, on the outer element. |
+
+### `fillTemplate`
+
+`fillTemplate(text, values)` fills each `{name}` in a dictionary string from `values`, which take
+strings or numbers. A placeholder with no value stays as it is, and a value with `$` in it is
+inserted as typed.
+
+```ts
+import { fillTemplate } from "@sjolystinnovation/app-kit/ui";
+
+fillTemplate("Page {page} of {pages}", { page: 2, pages: 10 }); // "Page 2 of 10"
+```
 
 ### `NotFoundState`
 
@@ -1184,7 +1247,7 @@ The versions need SjolystInnovation.AppKit.SiteSettings with legal page history.
 ### `AdminUsersPanel`
 
 The users page. It lists every user with their roles, shows deleted users behind a toggle, gives
-and takes roles, deletes an account after a confirm, and invites a user by email. It calls the API
+and takes roles, deletes an account after a `ConfirmDialog`, and invites a user by email. It calls the API
 through `createAdminUsersService`. The roles an admin may give come from the service's `roles`, or
 from `getRoles` when the app passes it. A service without `roles` needs `getRoles`. You can pass
 inline functions, because the panel does not fetch again when they change.
@@ -1708,6 +1771,18 @@ export function OrderReturn({ orderId }: { orderId: string }) {
 
 `formatNok(ore)` formats øre as kroner, such as `NOK 373,75`.
 
+`parseKroner(typed)` reads the kroner a user typed as whole øre. It takes whole kroner, or kroner with
+one or two decimals after a comma or a dot, and gives `null` for anything else. The sum is done on
+integers, so `0.29` is always 29 øre. `kroner(ore)` goes the other way, as an input or an accounting
+system takes it: no grouping, a comma decimal, and two decimals, such as `373,75`.
+
+```ts
+import { kroner, parseKroner } from "@sjolystinnovation/app-kit/payments";
+
+parseKroner("59,5"); // 5950
+kroner(5950); // "59,50"
+```
+
 ## `@sjolystinnovation/app-kit/locales/nb`
 
 Norwegian (bokmål) text for every component that takes `strings`, one complete object per
@@ -1725,7 +1800,9 @@ it.
 | `nbResetPasswordFlowStrings` | `ResetPasswordFlow`, with its field error and refusal codes |
 | `nbPasswordStrings` | `passwordSchema`, `passwordProblems`, and `passwordStrings` of `ResetPasswordFlow` |
 | `nbErrorStateStrings`, `nbNotFoundStateStrings` | `ErrorState` and `NotFoundState` |
+| `nbConfirmDialogStrings` | `ConfirmDialog` |
 | `nbCompanySettingsFormStrings` | `CompanySettingsForm`, with its field error codes |
+| `nbAdminShellStrings` | `AdminShell` |
 | `nbAdminUsersPanelStrings` | `AdminUsersPanel`, with its field error, refusal, and delete codes |
 | `nbLegalPagesEditorStrings`, `nbLegalPageKeyLabels` | `LegalPagesEditor` and its `keyLabels` for the default pages |
 | `nbStatHistoryChartStrings` | `StatHistoryChart` |
