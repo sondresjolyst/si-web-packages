@@ -107,7 +107,7 @@ The components use Tailwind CSS 4. Import the package's stylesheet after Tailwin
 | [`@sjolystinnovation/app-kit/forms`](#sjolystinnovationapp-kitforms) | `useFormDraft`, which keeps form values in `localStorage`. |
 | [`@sjolystinnovation/app-kit/toast`](#sjolystinnovationapp-kittoast) | sonner's `toast`, quiet on errors while the re-sign-in prompt is open. |
 | [`@sjolystinnovation/app-kit/validation`](#sjolystinnovationapp-kitvalidation) | The password schema and zod field errors. |
-| [`@sjolystinnovation/app-kit/ui`](#sjolystinnovationapp-kitui) | Form controls, alerts, content images, error pages, and the password reset flow. |
+| [`@sjolystinnovation/app-kit/ui`](#sjolystinnovationapp-kitui) | Form controls, alerts, a confirm dialog, content images, error pages, and the password reset flow. |
 | [`@sjolystinnovation/app-kit/admin`](#sjolystinnovationapp-kitadmin) | The admin frame, company settings, users, legal pages editor, stats chart, and email stats panel. |
 | [`@sjolystinnovation/app-kit/branding`](#sjolystinnovationapp-kitbranding) | The uploaded logo and favicon: provider, hook, and admin form. |
 | [`@sjolystinnovation/app-kit/branding/server`](#sjolystinnovationapp-kitbrandingserver) | The `app/icon.ts` response for the uploaded favicon. Server only. |
@@ -945,6 +945,39 @@ A colored message box.
 | `className` | `string` | | Classes for placing the alert, such as a margin. Restyle it through the theme variables. A clashing class wins or loses by the order Tailwind emits them in. |
 | `children` | `ReactNode` | | The content. |
 
+### `ConfirmDialog`
+
+A modal confirmation on the native `<dialog>`. The browser traps focus in it, moves focus in when it
+opens, closes it on Escape, and gives focus back to the element that opened it. Render it while a
+confirmation is pending and unmount it in `onClose`. While `busy`, both buttons are off and Escape
+does nothing.
+
+```tsx
+{pending && (
+  <ConfirmDialog
+    title="Cancel the order"
+    message="The buyer is refunded."
+    confirmLabel="Cancel order"
+    busy={busy}
+    strings={{ cancel: "Back" }}
+    onConfirm={() => void cancelOrder()}
+    onClose={() => setPending(false)}
+  />
+)}
+```
+
+| Prop | Type | Description |
+| --- | --- | --- |
+| `title` | `string` | The heading, which names the dialog. |
+| `message` | `string` | The text under the heading. |
+| `confirmLabel` | `string` | The confirm button's text. Defaults to `strings.confirm`. |
+| `busy` | `boolean` | Turns both buttons off and ignores Escape while a request runs. |
+| `confirmDisabled` | `boolean` | Turns the confirm button off, for example while a field in the dialog is invalid. |
+| `children` | `ReactNode` | Content under the message, such as an amount field. |
+| `onConfirm` | `() => void` | Called by the confirm button. |
+| `onClose` | `() => void` | Called by the cancel button and when the dialog closes, such as on Escape. |
+| `strings` | `TextOverrides<ConfirmDialogStrings>` | `confirm` and `cancel`. |
+
 ### `ContentImage`
 
 An uploaded image from the content API, as a plain `<img>` with a `srcset` of the widths the API
@@ -1184,7 +1217,7 @@ The versions need SjolystInnovation.AppKit.SiteSettings with legal page history.
 ### `AdminUsersPanel`
 
 The users page. It lists every user with their roles, shows deleted users behind a toggle, gives
-and takes roles, deletes an account after a confirm, and invites a user by email. It calls the API
+and takes roles, deletes an account after a `ConfirmDialog`, and invites a user by email. It calls the API
 through `createAdminUsersService`. The roles an admin may give come from the service's `roles`, or
 from `getRoles` when the app passes it. A service without `roles` needs `getRoles`. You can pass
 inline functions, because the panel does not fetch again when they change.
@@ -1725,6 +1758,7 @@ it.
 | `nbResetPasswordFlowStrings` | `ResetPasswordFlow`, with its field error and refusal codes |
 | `nbPasswordStrings` | `passwordSchema`, `passwordProblems`, and `passwordStrings` of `ResetPasswordFlow` |
 | `nbErrorStateStrings`, `nbNotFoundStateStrings` | `ErrorState` and `NotFoundState` |
+| `nbConfirmDialogStrings` | `ConfirmDialog` |
 | `nbCompanySettingsFormStrings` | `CompanySettingsForm`, with its field error codes |
 | `nbAdminUsersPanelStrings` | `AdminUsersPanel`, with its field error, refusal, and delete codes |
 | `nbLegalPagesEditorStrings`, `nbLegalPageKeyLabels` | `LegalPagesEditor` and its `keyLabels` for the default pages |

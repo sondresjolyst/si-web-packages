@@ -18,6 +18,7 @@ import type { SharedSectionType } from "../sections/types";
 import type { CredentialsFormStrings } from "../session/react/credentialsFormStrings";
 import type { LoginPageStrings } from "../session/react/loginPageStrings";
 import type { SessionExpiryGuardStrings } from "../session/react/sessionExpiryGuardStrings";
+import type { ConfirmDialogStrings } from "../ui/confirmDialogStrings";
 import type { ErrorStateStrings } from "../ui/errorStateStrings";
 import type { NotFoundStateStrings } from "../ui/notFoundStateStrings";
 import type { ResetPasswordFlowStrings } from "../ui/resetPasswordFlowStrings";
@@ -115,6 +116,12 @@ export const nbNotFoundStateStrings: NotFoundStateStrings = {
   code: "404",
   body: "Siden finnes ikke, eller den er flyttet.",
   home: "Til forsiden",
+};
+
+/** For `ConfirmDialog`. */
+export const nbConfirmDialogStrings: ConfirmDialogStrings = {
+  confirm: "Bekreft",
+  cancel: "Avbryt",
 };
 
 /** For `CompanySettingsForm`. */

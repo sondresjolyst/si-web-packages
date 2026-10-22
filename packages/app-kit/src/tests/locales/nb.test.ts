@@ -12,7 +12,7 @@ import { defaultLegalPageViewStrings } from "../../legal";
 import * as nb from "../../locales/nb";
 import { defaultSectionTypeLabels, defaultSectionsEditorStrings } from "../../sections";
 import { defaultCredentialsFormStrings, defaultLoginPageStrings, defaultSessionExpiryGuardStrings } from "../../session/react";
-import { defaultErrorStateStrings, defaultNotFoundStateStrings, defaultResetPasswordFlowStrings } from "../../ui";
+import { defaultConfirmDialogStrings, defaultErrorStateStrings, defaultNotFoundStateStrings, defaultResetPasswordFlowStrings } from "../../ui";
 import { defaultPasswordStrings, passwordProblems, passwordSchema } from "../../validation";
 import { packagesImportedBy } from "../importGraph";
 
@@ -25,6 +25,7 @@ const pairs: [string, object, object][] = [
   ["nbResetPasswordFlowStrings", nb.nbResetPasswordFlowStrings, defaultResetPasswordFlowStrings],
   ["nbErrorStateStrings", nb.nbErrorStateStrings, defaultErrorStateStrings],
   ["nbNotFoundStateStrings", nb.nbNotFoundStateStrings, defaultNotFoundStateStrings],
+  ["nbConfirmDialogStrings", nb.nbConfirmDialogStrings, defaultConfirmDialogStrings],
   ["nbCompanySettingsFormStrings", nb.nbCompanySettingsFormStrings, defaultCompanySettingsFormStrings],
   ["nbAdminUsersPanelStrings", nb.nbAdminUsersPanelStrings, defaultAdminUsersPanelStrings],
   ["nbLegalPagesEditorStrings", nb.nbLegalPagesEditorStrings, defaultLegalPagesEditorStrings],
