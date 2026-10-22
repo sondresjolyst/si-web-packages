@@ -5,6 +5,7 @@ import { useEffect, useId, useRef, useState, useSyncExternalStore } from "react"
 import { Alert } from "../../ui/Alert";
 import { CredentialsForm } from "./CredentialsForm";
 import { SignInRejected, type CredentialsFormStrings } from "./credentialsFormStrings";
+import { fillTemplate } from "../../ui/fillTemplate";
 import { withDefaults, type TextOverrides } from "../../ui/withDefaults";
 import {
   closeSessionPrompt,
@@ -113,7 +114,7 @@ export function SessionExpiryGuard({ loginHref, onRestored, strings, formStrings
     status === "authenticated" &&
     (isTerminalSessionError(sessionInfo?.error) || (remaining != null && remaining <= 0));
 
-  const countdown = (minutes: number | null) => text.expiringSoon.replaceAll("{minutes}", String(minutes));
+  const countdown = (minutes: number | null) => fillTemplate(text.expiringSoon, { minutes: String(minutes) });
 
   // The minutes a screen reader last heard. Every change of a status region is announced, so it
   // changes only when the countdown starts and when it passes one of ANNOUNCE_AT_MINUTES.

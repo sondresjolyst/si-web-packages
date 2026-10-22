@@ -26,8 +26,8 @@ const button = "rounded-lg px-4 py-2 text-sm font-semibold disabled:opacity-50";
 
 /**
  * A modal confirmation. Render it while a confirmation is pending and unmount it in `onClose`. The
- * native dialog traps focus, moves it in on open, closes on Escape and gives focus back to the
- * element that opened it.
+ * native dialog traps focus, moves it in on open and closes on Escape. Focus goes back to the element
+ * that opened it on every way out.
  */
 export function ConfirmDialog({ title, message, confirmLabel, busy = false, confirmDisabled = false, children, onConfirm, onClose, strings }: ConfirmDialogProps) {
   const text = withDefaults(defaultConfirmDialogStrings, strings);
@@ -36,9 +36,13 @@ export function ConfirmDialog({ title, message, confirmLabel, busy = false, conf
 
   useEffect(() => {
     const dialog = ref.current;
+    // Unmounting removes the dialog before this cleanup runs, and the browser then skips its own
+    // focus restoration, so the opener is kept and focused by hand.
+    const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     dialog?.showModal();
     return () => {
       if (dialog?.open) dialog.close();
+      if (opener?.isConnected) opener.focus();
     };
   }, []);
 

@@ -1,3 +1,4 @@
+import { fillTemplate } from "../ui/fillTemplate";
 import { apiErrorCode } from "./apiErrorCode";
 import { apiFieldErrorDetails, type ApiFieldError } from "./apiFieldErrors";
 
@@ -10,7 +11,7 @@ export function fieldErrorText(error: ApiFieldError, validation: object): string
   const template = Object.hasOwn(validation, code) ? (validation as Record<string, string>)[code] : undefined;
   if (template === undefined) return error.message;
   if (!template.includes("{max}")) return template;
-  return error.limit === undefined ? error.message : template.replaceAll("{max}", String(error.limit));
+  return error.limit === undefined ? error.message : fillTemplate(template, { max: error.limit });
 }
 
 /**

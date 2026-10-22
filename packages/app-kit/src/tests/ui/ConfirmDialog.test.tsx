@@ -1,5 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { ConfirmDialog, type ConfirmDialogProps } from "../../ui";
 
@@ -87,5 +88,26 @@ describe("ConfirmDialog", () => {
 
     expect(close).toHaveBeenCalledTimes(1);
     close.mockRestore();
+  });
+
+  it.each(["Cancel", "Confirm"])("gives focus back to the opener after %s unmounts the dialog", async (name) => {
+    function Host() {
+      const [open, setOpen] = useState(false);
+      return (
+        <>
+          <button onClick={() => setOpen(true)}>Open</button>
+          {open && <ConfirmDialog title="t" message="m" onConfirm={() => setOpen(false)} onClose={() => setOpen(false)} />}
+        </>
+      );
+    }
+    render(<Host />);
+    const trigger = screen.getByRole("button", { name: "Open" });
+    await userEvent.click(trigger);
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name }));
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(trigger).toHaveFocus();
   });
 });

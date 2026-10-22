@@ -2,7 +2,7 @@
  * Kroner typed into a form as whole øre. It takes whole kroner, or kroner with one or two decimals
  * after a comma or a dot, and ignores space around it. Anything else gives `null`, such as a minus
  * sign, a thousands separator, or a third decimal. The sum is done on integers, so `0.29` is always
- * 29 øre.
+ * 29 øre. The caller sets the upper limit, since a very long number loses precision above 2^53.
  */
 export function parseKroner(typed: string): number | null {
   const match = /^(\d+)(?:[.,](\d{1,2}))?$/.exec(typed.trim());
