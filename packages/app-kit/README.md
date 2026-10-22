@@ -116,7 +116,7 @@ The components use Tailwind CSS 4. Import the package's stylesheet after Tailwin
 | [`@sjolystinnovation/app-kit/sections`](#sjolystinnovationapp-kitsections) | Page sections with a renderer registry and an editor registry. |
 | [`@sjolystinnovation/app-kit/seo`](#sjolystinnovationapp-kitseo) | Canonical URLs, metadata, sitemaps, `robots.txt`, and structured data. |
 | [`@sjolystinnovation/app-kit/seo/og`](#sjolystinnovationapp-kitseoog) | The default Open Graph share image. |
-| [`@sjolystinnovation/app-kit/payments`](#sjolystinnovationapp-kitpayments) | The page a user returns to from a payment provider. |
+| [`@sjolystinnovation/app-kit/payments`](#sjolystinnovationapp-kitpayments) | The page a user returns to from a payment provider, and the kroner and øre helpers. |
 | [`@sjolystinnovation/app-kit/locales/nb`](#sjolystinnovationapp-kitlocalesnb) | Norwegian (bokmål) text for every component that takes `strings`. Imports no peer dependency. |
 | [`@sjolystinnovation/app-kit/testing`](#sjolystinnovationapp-kittesting) | vitest doubles for next-auth, next/navigation, and sonner. |
 | [`@sjolystinnovation/app-kit/styles.css`](#theming) | The theme variables and styles the components use. |
@@ -1753,6 +1753,18 @@ export function OrderReturn({ orderId }: { orderId: string }) {
 | `className` | `string` | Classes for placing it, on the outer element. |
 
 `formatNok(ore)` formats øre as kroner, such as `NOK 373,75`.
+
+`parseKroner(typed)` reads the kroner a user typed as whole øre. It takes whole kroner, or kroner with
+one or two decimals after a comma or a dot, and gives `null` for anything else. The sum is done on
+integers, so `0.29` is always 29 øre. `kroner(ore)` goes the other way, as an input or an accounting
+system takes it: no grouping, a comma decimal, and two decimals, such as `373,75`.
+
+```ts
+import { kroner, parseKroner } from "@sjolystinnovation/app-kit/payments";
+
+parseKroner("59,5"); // 5950
+kroner(5950); // "59,50"
+```
 
 ## `@sjolystinnovation/app-kit/locales/nb`
 
