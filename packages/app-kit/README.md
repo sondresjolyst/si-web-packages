@@ -106,7 +106,7 @@ The components use Tailwind CSS 4. Import the package's stylesheet after Tailwin
 | [`@sjolystinnovation/app-kit/server`](#sjolystinnovationapp-kitserver) | Cached public GETs and the revalidate route. Server only. |
 | [`@sjolystinnovation/app-kit/forms`](#sjolystinnovationapp-kitforms) | `useFormDraft`, which keeps form values in `localStorage`. |
 | [`@sjolystinnovation/app-kit/toast`](#sjolystinnovationapp-kittoast) | sonner's `toast`, quiet on errors while the re-sign-in prompt is open. |
-| [`@sjolystinnovation/app-kit/validation`](#sjolystinnovationapp-kitvalidation) | The password schema and zod field errors. |
+| [`@sjolystinnovation/app-kit/validation`](#sjolystinnovationapp-kitvalidation) | The password schema, zod field errors, and the Norwegian mobile number check. |
 | [`@sjolystinnovation/app-kit/ui`](#sjolystinnovationapp-kitui) | Form controls, alerts, a confirm dialog, content images, error pages, and the password reset flow. |
 | [`@sjolystinnovation/app-kit/admin`](#sjolystinnovationapp-kitadmin) | The admin frame, company settings, users, legal pages editor, stats chart, and email stats panel. |
 | [`@sjolystinnovation/app-kit/branding`](#sjolystinnovationapp-kitbranding) | The uploaded logo and favicon: provider, hook, and admin form. |
@@ -854,6 +854,19 @@ import { zodFieldErrors } from "@sjolystinnovation/app-kit/validation";
 
 const parsed = contactSchema.safeParse(form);
 if (!parsed.success) setErrors(zodFieldErrors(parsed.error, { message: issue => issueMessage(issue, dict) }));
+```
+
+### `normalizeNoPhone`
+
+`normalizeNoPhone(raw)` turns a Norwegian mobile number into the digits Vipps takes, such as
+`4791234567`, or gives `null` when it is not one. It drops spaces, dashes, brackets, and a leading
+`+`, and adds `47` to an eight-digit number. It follows `VippsPhoneNumber.TryNormalize` in
+SjolystInnovation.AppKit.Vipps, so a form and the API agree on what is valid.
+
+```ts
+import { normalizeNoPhone } from "@sjolystinnovation/app-kit/validation";
+
+const msisdn = normalizeNoPhone("+47 912 34 567"); // "4791234567"
 ```
 
 ## `@sjolystinnovation/app-kit/ui`

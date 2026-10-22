@@ -2,3 +2,4 @@ export { PASSWORD_MIN_LENGTH, defaultPasswordStrings, passwordProblems, password
 export type { PasswordStrings } from "./password";
 export { zodFieldErrors } from "./fieldErrors";
 export type { IssueMessage } from "./fieldErrors";
+export { normalizeNoPhone } from "./phone";
