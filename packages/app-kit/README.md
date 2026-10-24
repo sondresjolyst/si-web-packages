@@ -1799,45 +1799,74 @@ loads without consent, and Advanced Matching stays off.
 
 ```tsx
 // src/app/[locale]/layout.tsx
-import { ConsentBanner, MetaPixel } from "@sjolystinnovation/app-kit/consent";
+import { ConsentBanner, isValidPixelId, MetaPixel } from "@sjolystinnovation/app-kit/consent";
 import { nbConsentBannerStrings } from "@sjolystinnovation/app-kit/locales/nb";
+
+// The rules a stored choice must meet. noticeVersion is the date the cookie page last changed, so a
+// choice made under an older notice is asked for again.
+const consent = { noticeVersion: "2026-10-24", maxAgeDays: 365 };
 
 export default async function Layout({ children }: { children: React.ReactNode }) {
   const pixelId = await getMarketingPixelId(); // null when no pixel is set up
   return (
     <>
       {children}
-      <ConsentBanner enabled={pixelId != null} cookiesHref="/no/informasjonskapsler" strings={nbConsentBannerStrings} />
-      {pixelId && <MetaPixel pixelId={pixelId} />}
+      <ConsentBanner
+        {...consent}
+        enabled={isValidPixelId(pixelId)}
+        cookiesHref="/no/informasjonskapsler"
+        logEndpoint={`${process.env.NEXT_PUBLIC_API_URL}/consent`}
+        strings={nbConsentBannerStrings}
+      />
+      <MetaPixel {...consent} pixelId={pixelId} />
     </>
   );
 }
 ```
 
+Pass `isValidPixelId(pixelId)` as `enabled`, so the banner never asks about a pixel that would not
+load. Pass the same `noticeVersion` and `maxAgeDays` to `ConsentBanner` and `MetaPixel`, and to
+`useConsent` or `getConsent` anywhere else that reads the choice. The type of that object is
+`ConsentOptions`.
+
 ```tsx
 // In the footer
-import { ConsentSettingsLink } from "@sjolystinnovation/app-kit/consent";
+import { ConsentSettingsLink, isValidPixelId } from "@sjolystinnovation/app-kit/consent";
 
-<ConsentSettingsLink enabled={pixelId != null} className="hover:underline" />;
+<ConsentSettingsLink enabled={isValidPixelId(pixelId)} className="hover:underline" />;
 ```
 
 ### The consent store
 
-The choice is stored in `localStorage` under the key `consent`, as `{ marketing, version,
-decidedAt }`, with `decidedAt` an ISO 8601 timestamp. It is not a cookie, since the server never
-needs it and a cookie would travel with every request. It has no expiry and stays until the visitor
-clears the site's data or chooses again. A record of another `version`, a broken
-record, or storage that throws counts as no choice, so nothing loads. When storage cannot be
-written, the choice holds for the page until it reloads. A choice made in another tab applies at
-once.
+The choice is stored in `localStorage` under the key `consent`, as `{ consentId, marketing,
+version, decidedAt, noticeVersion }`, with `decidedAt` an ISO 8601 timestamp. `noticeVersion` is
+there only when the app passes one. `consentId` is a random UUID made on the browser's first choice
+and kept for every later one. It is not derived from anything about the visitor. It is not a cookie, since the server never needs it and a cookie would
+travel with every request. It has no expiry and stays until the visitor clears the site's data or
+chooses again.
 
-- `useConsent()` gives `{ ready, record, marketing, reopened }`. The server and the first render in
-  the browser get `ready: false` and no consent, so the page hydrates cleanly, and storage is read
-  right after. The type is `ConsentState`.
-- `setConsent({ marketing })` stores the choice and closes the banner.
-- `openConsentSettings()` shows the banner again.
-- `getConsent()` reads the same state outside React.
-- `CONSENT_STORAGE_KEY` and `CONSENT_VERSION` are the key and the version. The record type is
+`version` is the version of the record's shape, `CONSENT_VERSION`. `noticeVersion` is the version
+of the notice the visitor agreed to, which the app sets, such as the date its cookie page last
+changed. A record of another `version`, a record made for another `noticeVersion`, a record older
+than `maxAgeDays`, a broken record, or storage that throws counts as no choice, so the banner asks
+and nothing loads. `maxAgeDays` defaults to 365, `DEFAULT_CONSENT_MAX_AGE_DAYS`, so a visitor is
+asked again after twelve months. When storage
+cannot be written, the choice holds for the page until it reloads. A choice made in another tab
+applies at once.
+
+- `useConsent(options?)` gives `{ ready, record, marketing, reopened }`. The server and the
+  first render in the browser get `ready: false` and no consent, so the page hydrates cleanly, and
+  storage is read right after. The type is `ConsentState`.
+- `getConsent(options?)` reads the same state outside React. `options` is the `ConsentOptions`
+  object, `{ noticeVersion?, maxAgeDays? }`.
+- `openConsentSettings()` shows the banner again, and `closeConsentSettings()` hides it again
+  without changing the choice.
+- `setConsent({ marketing, noticeVersion? })` stores a choice, closes the banner, and returns the
+  stored record. It is for a custom banner only. Call it only from the visitor's own action, such
+  as a button press, since consent has to be an active choice.
+- `logConsent(record, { endpoint, source, credentials? })` posts a stored choice to the consent
+  log, as `ConsentBanner` does. It is for a custom banner.
+- `CONSENT_STORAGE_KEY` and `CONSENT_VERSION` are the key and the record version. The record type is
   `ConsentRecord`.
 
 ### `ConsentBanner`
@@ -1846,28 +1875,68 @@ A labelled region at the bottom of the page, with the purpose, a link to the coo
 Reject and Accept buttons. The two buttons share one class, so they have the same size, weight,
 and color. The banner is not a modal. It neither traps focus nor covers the page. It shows while
 there is no choice, and again after `openConsentSettings`, when it takes focus and gives it back to
-the opener once the visitor chooses. It renders nothing on the server.
+the opener once the visitor is done. Reopened over an earlier choice, it also has a Close button,
+and Escape closes it. Both keep that choice. On the first ask there is no way past it but a choice,
+though the page behind it stays usable. It renders nothing on the server.
 
 | Prop | Type | Description |
 | --- | --- | --- |
-| `enabled` | `boolean` | Whether the app uses a marketing tool, such as when it has a pixel ID. When it is false, the banner never shows. |
+| `enabled` | `boolean` | Whether the app uses a marketing tool. Pass `isValidPixelId(pixelId)`. When it is false, the banner never shows. |
 | `cookiesHref` | `string` | The path of the cookie page. |
+| `noticeVersion` | `string` | The version of the notice, stored with the choice. A choice made for another version is asked for again. Use 1 to 64 of `A-Z`, `a-z`, `0-9`, `.`, `_` and `-`. Pass the same value to `MetaPixel`. |
+| `maxAgeDays` | `number` | How many days a choice holds before it is asked for again. Defaults to 365. Pass the same value to `MetaPixel`. |
+| `logEndpoint` | `string` | The URL of the consent log. Every choice is posted there. Leave it out to keep no log. |
+| `logCredentials` | `RequestCredentials` | The `credentials` of the log request. Defaults to `"omit"`. |
 | `className` | `string` | Classes for placing it, on the outer element. |
 | `strings` | `TextOverrides<ConsentBannerStrings>` | The title, the text, the link text, and the button labels. The default text names Meta Pixel and its purpose. |
+
+### The consent log
+
+With `logEndpoint`, the banner posts every choice there as JSON, so the app can show later what a
+browser chose and under which notice:
+
+```json
+{ "consentId": "6f1c1f9e-1c2d-4e5f-8a9b-0c1d2e3f4a5b", "marketing": true, "noticeVersion": "2026-10-24", "schemaVersion": 1, "source": "banner" }
+```
+
+`source` is `banner` on the first ask and `settings` when the visitor reopened the banner.
+`schemaVersion` is the stored record's `version`. The log requires a `noticeVersion` of 1 to 64 of
+the characters `A-Z`, `a-z`, `0-9`, `.`, `_` and `-`, so the payload carries `"1"`,
+`DEFAULT_LOG_NOTICE_VERSION`, when the app sets none. Set your own `noticeVersion` anyway, so the
+log shows which notice each choice was made under. The
+payload holds no IP address and nothing about the visitor, only the random `consentId`. The
+types are `ConsentLogPayload` and `ConsentSource`.
+
+The request is a `fetch` POST with `keepalive`, so it finishes even when the page unloads right
+after. The banner does not wait for it, and a failed request is ignored. The choice stands either
+way. It sends no cookies, `credentials: "omit"`, like the rest of app-kit, which sends a bearer
+token rather than cookies. Pass `logCredentials` to change that. A log on another origin than the
+site needs CORS for a JSON POST, and its origin in `connect-src`.
 
 ### `ConsentSettingsLink`
 
 A button for the footer that calls `openConsentSettings`. It renders nothing when `enabled` is
-false. `className` replaces its default classes, and `strings.label` its text.
+false. `className` replaces its default classes, and `strings.label` its text, which defaults to
+"Cookie settings" and to «Innstillinger for informasjonskapsler» in `locales/nb`.
 
 ### `MetaPixel` and `trackPixel`
 
-`MetaPixel` takes `pixelId`, digits only, and renders nothing for anything else. Once marketing
-consent is true, it adds Meta's base code and `fbevents.js`, calls `fbq('init', pixelId)` with no
-user data, and sends a PageView. It sends one more PageView on each client navigation, read from
-`usePathname`, and never two for the same page. When the visitor withdraws, it calls
-`fbq('consent', 'revoke')`, removes the `_fbp` and `_fbc` cookies, and sends no more events. A new
-Accept grants again without loading the script twice.
+`MetaPixel` takes `pixelId`, digits only, and renders nothing for anything else. It takes the
+same `noticeVersion` and `maxAgeDays` as the banner. Once marketing consent is true, it adds Meta's base code and
+`fbevents.js`, calls `fbq('init', pixelId)` with no user data, and sends a PageView for the page.
+It sends one more PageView each time a client navigation changes the path, read from
+`usePathname`. A navigation that changes only the query string sends none, on purpose, since it
+shows the same page. The pixel remembers the last path it counted, so a rerender or a second
+`MetaPixel` on the page does not count the same path twice in a row.
+
+When the visitor withdraws, it calls `fbq('consent', 'revoke')` and sends no more events. Without
+consent it also removes the `_fbp` and `_fbc` cookies on the host and its parent domains, even
+those left from an earlier visit when the pixel never loaded on this page. A new Accept grants
+again without loading the script twice, and counts the page it happens on.
+
+Meta's pixel cannot drop an ID once it has had `init`. So the first `pixelId` a page starts stays
+until the page reloads. A different ID after that is ignored, with a console warning in
+development.
 
 `trackPixel(event, params?, options?)` sends an event. Meta's standard events, such as `Purchase`,
 go through `track` and any other name through `trackCustom`. `options.eventID` is passed on, so

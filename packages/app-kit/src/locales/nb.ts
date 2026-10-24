@@ -366,6 +366,7 @@ export const nbConsentBannerStrings: ConsentBannerStrings = {
   cookiePolicy: "Les om informasjonskapsler",
   accept: "Godta",
   reject: "Avvis",
+  close: "Lukk",
 };
 
 /** For `ConsentSettingsLink`. */

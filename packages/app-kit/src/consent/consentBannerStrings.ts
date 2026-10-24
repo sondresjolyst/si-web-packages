@@ -9,6 +9,8 @@ export interface ConsentBannerStrings {
   cookiePolicy: string;
   accept: string;
   reject: string;
+  /** Closes a reopened banner and keeps the earlier choice. */
+  close: string;
 }
 
 export const defaultConsentBannerStrings: ConsentBannerStrings = {
@@ -19,6 +21,7 @@ export const defaultConsentBannerStrings: ConsentBannerStrings = {
   cookiePolicy: "Read about cookies",
   accept: "Accept",
   reject: "Reject",
+  close: "Close",
 };
 
 /** The cookie settings button's text. */

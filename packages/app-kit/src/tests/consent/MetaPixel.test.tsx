@@ -1,14 +1,19 @@
 import { act, render, screen } from "@testing-library/react";
+import { hydrateRoot } from "react-dom/client";
 import userEvent from "@testing-library/user-event";
 import { StrictMode } from "react";
 import { renderToString } from "react-dom/server";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ConsentBanner, ConsentSettingsLink, isValidPixelId, META_PIXEL_SCRIPT_SRC, MetaPixel, setConsent, trackPixel } from "../../consent";
+import { CONSENT_STORAGE_KEY } from "../../consent";
 import { resetConsentStore } from "../../consent/consentStore";
+import { clearPixelCookies } from "../../consent/pixel";
 import { navigation } from "../../testing";
 
 vi.mock("next/navigation", async () => (await import("../../testing")).nextNavigationMock());
 
+const CID = "6f1c1f9e-1c2d-4e5f-8a9b-0c1d2e3f4a5b";
+const RECENT = new Date().toISOString();
 const ID = "123456789012345";
 type Fbq = ((...args: unknown[]) => void) & { queue: unknown[][] };
 const pixelWindow = () => window as Window & { fbq?: Fbq; _fbq?: Fbq };
@@ -16,11 +21,11 @@ const scripts = () => document.querySelectorAll(`script[src="${META_PIXEL_SCRIPT
 const calls = () => pixelWindow().fbq?.queue ?? [];
 const pageViews = () => calls().filter(c => c[0] === "track" && c[1] === "PageView");
 
-function App({ pixelId = ID }: { pixelId?: string | null | undefined }) {
+function App({ pixelId = ID, noticeVersion }: { pixelId?: string | null | undefined; noticeVersion?: string }) {
   return (
     <>
-      <MetaPixel pixelId={pixelId} />
-      <ConsentBanner enabled cookiesHref="/cookies" />
+      <MetaPixel pixelId={pixelId} noticeVersion={noticeVersion} />
+      <ConsentBanner enabled cookiesHref="/cookies" noticeVersion={noticeVersion} />
       <ConsentSettingsLink />
     </>
   );
@@ -33,6 +38,12 @@ beforeEach(() => {
   delete pixelWindow()._fbq;
   for (const script of document.querySelectorAll("script")) script.remove();
   navigation.pathname = "/";
+  for (const name of ["_fbp", "_fbc", "own"]) document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`;
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
+  vi.unstubAllEnvs();
 });
 
 describe("MetaPixel", () => {
@@ -111,7 +122,7 @@ describe("MetaPixel", () => {
     expect(calls()).toHaveLength(before);
   });
 
-  it("grants again on a new accept without a second script or init", async () => {
+  it("grants again on a new accept without a second script or init, and counts the page it happens on", async () => {
     setConsent({ marketing: false });
     setConsent({ marketing: true });
     render(<App />);
@@ -121,7 +132,159 @@ describe("MetaPixel", () => {
     expect(scripts()).toHaveLength(1);
     expect(calls().filter(c => c[0] === "consent")).toEqual([["consent", "grant"], ["consent", "revoke"], ["consent", "grant"]]);
     expect(calls().filter(c => c[0] === "init")).toHaveLength(1);
+    expect(pageViews()).toHaveLength(2);
+  });
+
+  it("counts the page a new accept happens on, after navigating while withdrawn", async () => {
+    setConsent({ marketing: true });
+    const { rerender } = render(<App />);
+    await userEvent.click(screen.getByRole("button", { name: "Cookie settings" }));
+    await userEvent.click(screen.getByRole("button", { name: "Reject" }));
+    navigation.pathname = "/after";
+    rerender(<App />);
     expect(pageViews()).toHaveLength(1);
+
+    await userEvent.click(screen.getByRole("button", { name: "Cookie settings" }));
+    await userEvent.click(screen.getByRole("button", { name: "Accept" }));
+    expect(pageViews()).toHaveLength(2);
+  });
+
+  it("tracks under a notice version, and stops when another tab chooses under another one", async () => {
+    render(<App noticeVersion="n1" />);
+    await userEvent.click(screen.getByRole("button", { name: "Accept" }));
+    trackPixel("Purchase", { value: 1 }, { eventID: "A1" });
+    expect(calls().at(-1)).toEqual(["track", "Purchase", { value: 1 }, { eventID: "A1" }]);
+
+    window.localStorage.setItem(
+      CONSENT_STORAGE_KEY,
+      JSON.stringify({ consentId: CID, marketing: true, version: 1, decidedAt: RECENT, noticeVersion: "n2" }),
+    );
+    act(() => window.dispatchEvent(new StorageEvent("storage", { key: CONSENT_STORAGE_KEY })));
+    expect(calls().at(-1)).toEqual(["consent", "revoke"]);
+    expect(screen.getByRole("region")).toBeInTheDocument();
+
+    const before = calls().length;
+    trackPixel("Purchase", { value: 1 }, { eventID: "A2" });
+    expect(calls()).toHaveLength(before);
+  });
+
+  it("sends one PageView per page from two mounts", () => {
+    setConsent({ marketing: true });
+    const twice = () => (
+      <>
+        <MetaPixel pixelId={ID} />
+        <MetaPixel pixelId={ID} />
+      </>
+    );
+    const { rerender } = render(twice());
+    expect(scripts()).toHaveLength(1);
+    expect(calls().filter(c => c[0] === "init")).toHaveLength(1);
+    expect(pageViews()).toHaveLength(1);
+
+    navigation.pathname = "/products";
+    rerender(twice());
+    expect(pageViews()).toHaveLength(2);
+  });
+
+  it("keeps the first pixel ID for the page and warns about another in development", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    setConsent({ marketing: true });
+    const { rerender } = render(<MetaPixel pixelId={ID} />);
+    rerender(<MetaPixel pixelId="999" />);
+    navigation.pathname = "/products";
+    rerender(<MetaPixel pixelId="999" />);
+
+    expect(calls().filter(c => c[0] === "init")).toEqual([["init", ID]]);
+    expect(calls().filter(c => c[0] === "consent")).toEqual([["consent", "grant"]]);
+    expect(pageViews()).toHaveLength(1);
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(warn.mock.calls[0]![0]).toContain("999");
+  });
+
+  it("ignores another pixel ID without a warning in production", () => {
+    vi.stubEnv("NODE_ENV", "production");
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    setConsent({ marketing: true });
+    const { rerender } = render(<MetaPixel pixelId={ID} />);
+    rerender(<MetaPixel pixelId="999" />);
+    expect(calls().filter(c => c[0] === "init")).toEqual([["init", ID]]);
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  it("starts when another tab records consent", () => {
+    render(<App />);
+    expect(scripts()).toHaveLength(0);
+
+    window.localStorage.setItem(CONSENT_STORAGE_KEY, JSON.stringify({ consentId: CID, marketing: true, version: 1, decidedAt: RECENT }));
+    act(() => window.dispatchEvent(new StorageEvent("storage", { key: CONSENT_STORAGE_KEY })));
+    expect(scripts()).toHaveLength(1);
+    expect(pageViews()).toHaveLength(1);
+    expect(screen.queryByRole("region")).not.toBeInTheDocument();
+  });
+
+  it("removes old Meta cookies without consent, even when the pixel never loaded", () => {
+    document.cookie = "_fbp=fb.1.123; path=/";
+    document.cookie = "_fbc=fb.1.456; path=/";
+    document.cookie = "own=1; path=/";
+    setConsent({ marketing: false });
+    render(<MetaPixel pixelId={ID} />);
+
+    expect(document.cookie).not.toMatch(/_fbp|_fbc/);
+    expect(document.cookie).toContain("own=1");
+    expect(pixelWindow().fbq).toBeUndefined();
+    expect(scripts()).toHaveLength(0);
+  });
+
+  it("keeps a consenting visitor's cookies while the page hydrates", async () => {
+    setConsent({ marketing: true });
+    document.cookie = "_fbp=fb.1.123; path=/";
+    const container = document.createElement("div");
+    container.innerHTML = renderToString(<MetaPixel pixelId={ID} />);
+    document.body.appendChild(container);
+    await act(async () => {
+      hydrateRoot(container, <MetaPixel pixelId={ID} />);
+    });
+    expect(document.cookie).toContain("_fbp=fb.1.123");
+    expect(scripts()).toHaveLength(1);
+    container.remove();
+  });
+
+  it("removes the cookies on the host and each parent domain", () => {
+    const writes: string[] = [];
+    vi.spyOn(Document.prototype, "cookie", "set").mockImplementation(value => {
+      writes.push(value);
+    });
+    clearPixelCookies("www.example.co.uk");
+    const expired = "=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/";
+    expect(writes).toEqual(
+      ["_fbp", "_fbc"].flatMap(name => [
+        `${name}${expired}`,
+        `${name}${expired}; domain=.www.example.co.uk`,
+        `${name}${expired}; domain=.example.co.uk`,
+        `${name}${expired}; domain=.co.uk`,
+      ]),
+    );
+  });
+
+  it("loads nothing for a stored acceptance of another record version", () => {
+    window.localStorage.setItem(CONSENT_STORAGE_KEY, JSON.stringify({ consentId: CID, marketing: true, version: 2, decidedAt: RECENT }));
+    render(<App />);
+    expect(scripts()).toHaveLength(0);
+    expect(screen.getByRole("region")).toBeInTheDocument();
+  });
+
+  it("asks again when the notice version changed, and stores the new one", async () => {
+    window.localStorage.setItem(
+      CONSENT_STORAGE_KEY,
+      JSON.stringify({ consentId: CID, marketing: true, version: 1, decidedAt: RECENT, noticeVersion: "2026-01" }),
+    );
+    render(<App noticeVersion="2026-10" />);
+    expect(scripts()).toHaveLength(0);
+    expect(pixelWindow().fbq).toBeUndefined();
+
+    await userEvent.click(screen.getByRole("button", { name: "Accept" }));
+    expect(JSON.parse(window.localStorage.getItem(CONSENT_STORAGE_KEY)!)).toMatchObject({ marketing: true, noticeVersion: "2026-10" });
+    expect(scripts()).toHaveLength(1);
   });
 
   it.each([["abc"], ["12345a"], [" 123"], ["1.5"], [""], [null], [undefined], ["１２３"]])("renders nothing for the pixel ID %j", id => {

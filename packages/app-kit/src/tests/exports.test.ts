@@ -20,6 +20,10 @@ describe("entry points", () => {
     ["consent", consent, "resetConsentStore"],
     ["consent", consent, "startPixel"],
     ["consent", consent, "stopPixel"],
+    ["consent", consent, "trackPageView"],
+    ["consent", consent, "clearPixelCookies"],
+    ["consent", consent, "getStoredConsent"],
+    ["consent", consent, "applyConsentOptions"],
   ])("%s keeps %s internal", (_entry, module, name) => {
     expect(Object.keys(module)).not.toContain(name);
   });
@@ -35,7 +39,7 @@ describe("entry points", () => {
     expect(api.formatOrgNumber).toBe(company.formatOrgNumber);
     expect(api.mergeCompanyInfo).toBe(company.mergeCompanyInfo);
     expect(Object.keys(consent)).toEqual(
-      expect.arrayContaining(["ConsentBanner", "ConsentSettingsLink", "MetaPixel", "openConsentSettings", "setConsent", "trackPixel", "useConsent"]),
+      expect.arrayContaining(["ConsentBanner", "ConsentSettingsLink", "MetaPixel", "openConsentSettings", "setConsent", "closeConsentSettings", "trackPixel", "useConsent"]),
     );
     expect(Object.keys(testing)).toEqual(expect.arrayContaining(["nextAuthMock", "resetTestMocks"]));
   });

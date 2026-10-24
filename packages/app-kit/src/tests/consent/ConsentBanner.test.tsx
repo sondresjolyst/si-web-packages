@@ -2,7 +2,7 @@ import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { renderToString } from "react-dom/server";
 import { beforeEach, describe, expect, it } from "vitest";
-import { CONSENT_STORAGE_KEY, ConsentBanner, ConsentSettingsLink, getConsent, setConsent } from "../../consent";
+import { CONSENT_STORAGE_KEY, ConsentBanner, ConsentSettingsLink, getConsent, openConsentSettings, setConsent } from "../../consent";
 import { resetConsentStore } from "../../consent/consentStore";
 import { nbConsentBannerStrings, nbConsentSettingsLinkStrings } from "../../locales/nb";
 
@@ -76,6 +76,49 @@ describe("ConsentBanner", () => {
     expect(settings).toHaveFocus();
   });
 
+  it("closes when reopened over a choice, by the button or Escape, and keeps the choice", async () => {
+    setConsent({ marketing: true });
+    const before = window.localStorage.getItem(CONSENT_STORAGE_KEY);
+    render(<Page />);
+    const settings = screen.getByRole("button", { name: "Cookie settings" });
+
+    await userEvent.click(settings);
+    await userEvent.click(screen.getByRole("button", { name: "Close" }));
+    expect(banner()).not.toBeInTheDocument();
+    expect(settings).toHaveFocus();
+
+    await userEvent.click(settings);
+    await userEvent.keyboard("{Escape}");
+    expect(banner()).not.toBeInTheDocument();
+    expect(getConsent()).toMatchObject({ marketing: true, reopened: false });
+    expect(window.localStorage.getItem(CONSENT_STORAGE_KEY)).toBe(before);
+  });
+
+  it("cannot be closed without a choice on the first ask, even when reopened", async () => {
+    render(<Page />);
+    expect(screen.queryByRole("button", { name: "Close" })).not.toBeInTheDocument();
+    await userEvent.keyboard("{Escape}");
+    expect(banner()).toBeInTheDocument();
+
+    act(() => openConsentSettings());
+    expect(screen.queryByRole("button", { name: "Close" })).not.toBeInTheDocument();
+    await userEvent.keyboard("{Escape}");
+    expect(banner()).toBeInTheDocument();
+  });
+
+  it("asks again for a new notice version and stores it with the choice", async () => {
+    setConsent({ marketing: false, noticeVersion: "1" });
+    const { rerender } = render(<ConsentBanner enabled cookiesHref="/cookies" noticeVersion="1" />);
+    expect(banner()).not.toBeInTheDocument();
+
+    rerender(<ConsentBanner enabled cookiesHref="/cookies" noticeVersion="2" />);
+    expect(banner()).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Close" })).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Reject" }));
+    expect(JSON.parse(window.localStorage.getItem(CONSENT_STORAGE_KEY)!)).toMatchObject({ marketing: false, noticeVersion: "2" });
+    expect(banner()).not.toBeInTheDocument();
+  });
+
   it("does not take focus on its own the first time it shows", () => {
     render(<Page />);
     expect(banner()).not.toHaveFocus();
@@ -127,6 +170,7 @@ describe("ConsentBanner", () => {
     expect(screen.getByRole("region", { name: "Informasjonskapsler for markedsføring" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Godta" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Avvis" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Lukk" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Les om informasjonskapsler" })).toHaveAttribute("href", "/informasjonskapsler");
   });
 

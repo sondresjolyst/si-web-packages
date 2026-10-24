@@ -1,9 +1,12 @@
 import { act, render, screen } from "@testing-library/react";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { CONSENT_STORAGE_KEY, CONSENT_VERSION, getConsent, openConsentSettings, setConsent, useConsent } from "../../consent";
-import { getServerConsent, resetConsentStore, subscribeConsent } from "../../consent/consentStore";
+import { CONSENT_STORAGE_KEY, CONSENT_VERSION, closeConsentSettings, getConsent, openConsentSettings, setConsent, useConsent } from "../../consent";
+import { getServerConsent, getStoredConsent, resetConsentStore, subscribeConsent } from "../../consent/consentStore";
 
+const CID = "6f1c1f9e-1c2d-4e5f-8a9b-0c1d2e3f4a5b";
+const RECENT = new Date().toISOString();
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 const store = (value: unknown) => window.localStorage.setItem(CONSENT_STORAGE_KEY, typeof value === "string" ? value : JSON.stringify(value));
 const stored = () => JSON.parse(window.localStorage.getItem(CONSENT_STORAGE_KEY) ?? "null");
 
@@ -29,7 +32,7 @@ describe("the consent store", () => {
     setConsent({ marketing: true });
     vi.useRealTimers();
 
-    const record = { marketing: true, version: CONSENT_VERSION, decidedAt: "2026-10-24T12:00:00.000Z" };
+    const record = { consentId: expect.stringMatching(UUID), marketing: true, version: CONSENT_VERSION, decidedAt: "2026-10-24T12:00:00.000Z" };
     expect(CONSENT_STORAGE_KEY).toBe("consent");
     expect(CONSENT_VERSION).toBe(1);
     expect(stored()).toEqual(record);
@@ -41,14 +44,14 @@ describe("the consent store", () => {
   });
 
   it("reads a stored record", () => {
-    store({ marketing: true, version: 1, decidedAt: "2026-01-01T00:00:00.000Z" });
-    expect(getConsent()).toMatchObject({ marketing: true, record: { decidedAt: "2026-01-01T00:00:00.000Z" } });
+    store({ consentId: CID, marketing: true, version: 1, decidedAt: RECENT });
+    expect(getConsent()).toMatchObject({ marketing: true, record: { decidedAt: RECENT } });
   });
 
   it.each([
-    ["another version", { marketing: true, version: 2, decidedAt: "2026-01-01T00:00:00.000Z" }],
-    ["no version", { marketing: true, decidedAt: "2026-01-01T00:00:00.000Z" }],
-    ["a string for marketing", { marketing: "true", version: 1, decidedAt: "2026-01-01T00:00:00.000Z" }],
+    ["another version", { consentId: CID, marketing: true, version: 2, decidedAt: RECENT }],
+    ["no version", { consentId: CID, marketing: true, decidedAt: RECENT }],
+    ["a string for marketing", { consentId: CID, marketing: "true", version: 1, decidedAt: RECENT }],
     ["no time", { marketing: true, version: 1 }],
     ["null", null],
     ["a number", 1],
@@ -89,8 +92,41 @@ describe("the consent store", () => {
     expect(listener).toHaveBeenCalledTimes(3);
   });
 
+  it("stores the notice version and treats a choice for another one as no choice", () => {
+    setConsent({ marketing: true, noticeVersion: "2026-10" });
+    expect(stored()).toMatchObject({ marketing: true, version: 1, noticeVersion: "2026-10" });
+    expect(getConsent({ noticeVersion: "2026-10" })).toMatchObject({ marketing: true, record: { noticeVersion: "2026-10" } });
+    expect(getConsent({ noticeVersion: "2026-11" })).toMatchObject({ ready: true, marketing: false, record: null });
+    expect(getConsent()).toMatchObject({ marketing: false, record: null });
+
+    setConsent({ marketing: true });
+    expect(stored()).not.toHaveProperty("noticeVersion");
+    expect(getConsent()).toMatchObject({ marketing: true });
+    expect(getConsent({ noticeVersion: "2026-10" })).toMatchObject({ marketing: false, record: null });
+  });
+
+  it("reads a stored notice version, and refuses one that is not a string", () => {
+    store({ consentId: CID, marketing: true, version: 1, decidedAt: RECENT, noticeVersion: "a" });
+    expect(getConsent({ noticeVersion: "a" }).record).toEqual({ consentId: CID, marketing: true, version: 1, decidedAt: RECENT, noticeVersion: "a" });
+    resetConsentStore();
+    store({ consentId: CID, marketing: true, version: 1, decidedAt: RECENT, noticeVersion: 2 });
+    expect(getStoredConsent().record).toBeNull();
+  });
+
+  it("closes a reopened choice and keeps it", () => {
+    const listener = vi.fn();
+    subscribeConsent(listener);
+    closeConsentSettings();
+    expect(listener).not.toHaveBeenCalled();
+    setConsent({ marketing: true });
+    openConsentSettings();
+    closeConsentSettings();
+    expect(getConsent()).toMatchObject({ reopened: false, marketing: true });
+    expect(listener).toHaveBeenCalledTimes(3);
+  });
+
   it("is never ready on the server", () => {
-    store({ marketing: true, version: 1, decidedAt: "2026-01-01T00:00:00.000Z" });
+    store({ consentId: CID, marketing: true, version: 1, decidedAt: RECENT });
     expect(getServerConsent()).toEqual({ ready: false, record: null, marketing: false, reopened: false });
     expect(renderToString(<Probe />)).toBe("<p>false false false none</p>");
   });
@@ -98,7 +134,7 @@ describe("the consent store", () => {
 
 describe("useConsent", () => {
   it("reads storage in the browser and follows changes", () => {
-    store({ marketing: true, version: 1, decidedAt: "2026-01-01T00:00:00.000Z" });
+    store({ consentId: CID, marketing: true, version: 1, decidedAt: RECENT });
     render(<Probe />);
     expect(screen.getByText("true true false true")).toBeInTheDocument();
 
@@ -108,11 +144,27 @@ describe("useConsent", () => {
     expect(screen.getByText("true false false false")).toBeInTheDocument();
   });
 
+  it("reads the choice for its notice version", () => {
+    store({ consentId: CID, marketing: true, version: 1, decidedAt: RECENT, noticeVersion: "a" });
+    function Notice({ v }: { v: string }) {
+      const c = useConsent({ noticeVersion: v });
+      return <p>{`${v} ${c.marketing} ${c.record ? "record" : "none"}`}</p>;
+    }
+    render(
+      <>
+        <Notice v="a" />
+        <Notice v="b" />
+      </>,
+    );
+    expect(screen.getByText("a true record")).toBeInTheDocument();
+    expect(screen.getByText("b false none")).toBeInTheDocument();
+  });
+
   it("follows a choice made in another tab, and ignores other keys", () => {
     render(<Probe />);
     expect(screen.getByText("true false false none")).toBeInTheDocument();
 
-    store({ marketing: true, version: 1, decidedAt: "2026-01-01T00:00:00.000Z" });
+    store({ consentId: CID, marketing: true, version: 1, decidedAt: RECENT });
     act(() => window.dispatchEvent(new StorageEvent("storage", { key: "other" })));
     expect(screen.getByText("true false false none")).toBeInTheDocument();
 
