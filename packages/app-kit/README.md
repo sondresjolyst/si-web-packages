@@ -1913,7 +1913,8 @@ browser chose and under which notice:
 the characters `A-Z`, `a-z`, `0-9`, `.`, `_` and `-`, so the payload carries `"1"`,
 `DEFAULT_LOG_NOTICE_VERSION`, when the app sets none. A choice with an invalid `noticeVersion`,
 which only production lets through, is stored but not posted, so the log never names a notice the
-visitor did not see. Set your own `noticeVersion` anyway, so the
+visitor did not see. Those choices are missing from the log on purpose, since development throws on
+the same value first. Set your own `noticeVersion` anyway, so the
 log shows which notice each choice was made under. The
 payload holds no IP address and nothing about the visitor, only the random `consentId`. The
 types are `ConsentLogPayload` and `ConsentSource`.
@@ -1957,8 +1958,10 @@ Events are sent only while a `MetaPixel` runs the pixel. Once the last one unmou
 stored choice is for another notice, before any navigation or focus has rechecked it.
 
 Meta's pixel cannot drop an ID once it has had `init`. So the first `pixelId` a page starts stays
-until the page reloads. A different ID after that is ignored, with a console warning in
-development.
+until the page reloads, and so do its `noticeVersion` and `maxAgeDays`. A `MetaPixel` with a
+different ID or different rules after that is ignored, neither starting nor stopping the pixel,
+with a console warning in development. A new notice version therefore takes effect from the next
+page load.
 
 `trackPixel(event, params?, options?)` sends an event. Meta's standard events, such as `Purchase`,
 go through `track` and any other name through `trackCustom`. `options.eventID` is passed on, so

@@ -7,7 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ConsentBanner, ConsentSettingsLink, isValidPixelId, META_PIXEL_SCRIPT_SRC, MetaPixel, setConsent, trackPixel } from "../../consent";
 import { CONSENT_STORAGE_KEY, getConsent } from "../../consent";
 import { resetConsentStore } from "../../consent/consentStore";
-import { clearPixelCookies, stopPixel } from "../../consent/pixel";
+import { clearPixelCookies, startPixel, stopPixel, trackPageView } from "../../consent/pixel";
 import { navigation } from "../../testing";
 
 vi.mock("next/navigation", async () => (await import("../../testing")).nextNavigationMock());
@@ -229,14 +229,116 @@ describe("MetaPixel", () => {
     expect(calls()).toHaveLength(before);
   });
 
-  it("tracks under a new notice version once the visitor accepts it", async () => {
+  it("keeps the first rules for the page and ignores a mount with other ones", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    render(<App noticeVersion="n1" />);
+    await userEvent.click(screen.getByRole("button", { name: "Accept" }));
+    render(<MetaPixel pixelId={ID} noticeVersion="n2" />);
+    render(<MetaPixel pixelId={ID} noticeVersion="n1" maxAgeDays={30} />);
+
+    expect(warn).toHaveBeenCalledTimes(2);
+    expect(calls().filter(c => c[0] === "consent")).toEqual([["consent", "grant"]]);
+    trackPixel("Lead");
+    expect(calls().at(-1)).toEqual(["track", "Lead"]);
+  });
+
+  it("keeps the first rules when a mount's rules change, until the page reloads", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
     const { rerender } = render(<App noticeVersion="n1" />);
     await userEvent.click(screen.getByRole("button", { name: "Accept" }));
     rerender(<App noticeVersion="n2" />);
-    expect(calls().at(-1)).toEqual(["consent", "revoke"]);
-    await userEvent.click(screen.getByRole("button", { name: "Accept" }));
+    expect(calls().at(-1)).not.toEqual(["consent", "revoke"]);
+    const before = calls().length;
+    trackPixel("Lead");
+    expect(calls()).toHaveLength(before);
+  });
+
+  it("counts StrictMode's double effects as one mount", () => {
+    setConsent({ marketing: true });
+    const { unmount } = render(
+      <StrictMode>
+        <MetaPixel pixelId={ID} />
+      </StrictMode>,
+    );
     trackPixel("Lead");
     expect(calls().at(-1)).toEqual(["track", "Lead"]);
+    unmount();
+    const before = calls().length;
+    trackPixel("Lead");
+    expect(calls()).toHaveLength(before);
+  });
+
+  it("keeps a consenting visitor's _fbp through a remount", () => {
+    setConsent({ marketing: true });
+    document.cookie = "_fbp=fb.1.123; path=/";
+    const first = render(<MetaPixel pixelId={ID} />);
+    first.unmount();
+    render(<MetaPixel pixelId={ID} />);
+    expect(document.cookie).toContain("_fbp=fb.1.123");
+    expect(calls().filter(c => c[0] === "consent")).toEqual([["consent", "grant"], ["consent", "grant"]]);
+    trackPixel("Lead");
+    expect(calls().at(-1)).toEqual(["track", "Lead"]);
+  });
+
+  it("lets go of its own start even after window.fbq was replaced", () => {
+    setConsent({ marketing: true });
+    const { unmount } = render(<MetaPixel pixelId={ID} />);
+    const original = pixelWindow().fbq!;
+    pixelWindow().fbq = (() => {}) as unknown as Fbq;
+    unmount();
+    pixelWindow().fbq = original;
+    const before = calls().length;
+    trackPixel("Lead");
+    expect(calls()).toHaveLength(before);
+  });
+
+  it("does not let a release from before a stop let go of a later start", () => {
+    setConsent({ marketing: true });
+    const old = startPixel(ID)!;
+    stopPixel();
+    startPixel(ID);
+    old();
+    trackPixel("Lead");
+    expect(calls().at(-1)).toEqual(["track", "Lead"]);
+  });
+
+  it("refuses a direct start with another ID or other rules", () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    setConsent({ marketing: true });
+    expect(startPixel(ID)).toBeTypeOf("function");
+    expect(startPixel("999")).toBeNull();
+    expect(startPixel(ID, { maxAgeDays: 30 })).toBeNull();
+    expect(calls().filter(c => c[0] === "init")).toEqual([["init", ID]]);
+    expect(calls().filter(c => c[0] === "consent")).toHaveLength(1);
+  });
+
+  it("treats a left-out maxAgeDays as the default of 365", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    setConsent({ marketing: true });
+    render(<MetaPixel pixelId={ID} />);
+    render(<MetaPixel pixelId={ID} maxAgeDays={365} />);
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  it("lets go of a start only once", () => {
+    setConsent({ marketing: true });
+    startPixel(ID);
+    const second = startPixel(ID)!;
+    second();
+    second();
+    trackPixel("Lead");
+    expect(calls().at(-1)).toEqual(["track", "Lead"]);
+  });
+
+  it("sends a blocked PageView once sending resumes on the same path", () => {
+    setConsent({ marketing: true });
+    startPixel(ID)!();
+    trackPageView(ID, "/same");
+    expect(pageViews()).toHaveLength(0);
+    startPixel(ID);
+    trackPageView(ID, "/same");
+    trackPageView(ID, "/same");
+    expect(pageViews()).toHaveLength(1);
   });
 
   it("sends nothing after stopPixel while consent still holds", () => {
