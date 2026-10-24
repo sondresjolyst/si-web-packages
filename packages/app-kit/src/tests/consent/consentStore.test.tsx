@@ -68,11 +68,36 @@ describe("the consent store", () => {
     expect(getConsent()).toEqual({ ready: true, record: null, marketing: false, reopened: false });
   });
 
-  it("keeps a choice for the page when storage cannot be written", () => {
+  it("keeps a choice for the page when storage cannot be written, also through a recheck", () => {
     vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
       throw new Error("full");
     });
     setConsent({ marketing: true });
+    expect(getConsent().marketing).toBe(true);
+    window.dispatchEvent(new Event("focus"));
+    expect(getConsent().marketing).toBe(true);
+  });
+
+  it("follows another tab without any subscriber", () => {
+    expect(getConsent().record).toBeNull();
+    store({ consentId: CID, marketing: true, version: 1, decidedAt: RECENT });
+    expect(getConsent().record).toBeNull();
+    window.dispatchEvent(new StorageEvent("storage", { key: CONSENT_STORAGE_KEY }));
+    expect(getConsent().marketing).toBe(true);
+
+    window.localStorage.clear();
+    window.dispatchEvent(new Event("focus"));
+    expect(getConsent().record).toBeNull();
+  });
+
+  it("rereads storage when the page becomes visible, not when it is hidden", () => {
+    getConsent();
+    store({ consentId: CID, marketing: true, version: 1, decidedAt: RECENT });
+    const visibility = vi.spyOn(document, "visibilityState", "get").mockReturnValue("hidden");
+    document.dispatchEvent(new Event("visibilitychange"));
+    expect(getConsent().record).toBeNull();
+    visibility.mockReturnValue("visible");
+    document.dispatchEvent(new Event("visibilitychange"));
     expect(getConsent().marketing).toBe(true);
   });
 

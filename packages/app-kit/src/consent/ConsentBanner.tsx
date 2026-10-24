@@ -5,8 +5,7 @@ import { useEffect, useId, useRef } from "react";
 import { cx } from "../ui/cx";
 import { withDefaults, type TextOverrides } from "../ui/withDefaults";
 import { defaultConsentBannerStrings, type ConsentBannerStrings } from "./consentBannerStrings";
-import { logConsent } from "./consentLog";
-import { closeConsentSettings, setConsent } from "./consentStore";
+import { assertNoticeVersion, closeConsentSettings, setConsent } from "./consentStore";
 import { useConsent } from "./useConsent";
 
 /** Props for `ConsentBanner`. */
@@ -63,6 +62,7 @@ export function ConsentBanner({
   className,
   strings,
 }: ConsentBannerProps) {
+  assertNoticeVersion(noticeVersion);
   const text = withDefaults(defaultConsentBannerStrings, strings);
   const { ready, record, reopened } = useConsent({ noticeVersion, maxAgeDays });
   const headingId = useId();
@@ -92,8 +92,8 @@ export function ConsentBanner({
   }, [closable]);
 
   const choose = (marketing: boolean) => {
-    const saved = setConsent({ marketing, noticeVersion });
-    if (logEndpoint) logConsent(saved, { endpoint: logEndpoint, source: reopened ? "settings" : "banner", credentials: logCredentials });
+    const log = logEndpoint ? { endpoint: logEndpoint, source: reopened ? ("settings" as const) : ("banner" as const), credentials: logCredentials } : undefined;
+    setConsent({ marketing, noticeVersion, log });
   };
 
   if (!show) return null;

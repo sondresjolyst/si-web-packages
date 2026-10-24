@@ -7,6 +7,7 @@ import {
   ConsentSettingsLink,
   DEFAULT_CONSENT_MAX_AGE_DAYS,
   DEFAULT_LOG_NOTICE_VERSION,
+  isValidNoticeVersion,
   getConsent,
   logConsent,
   MetaPixel,
@@ -45,6 +46,7 @@ beforeEach(() => {
 afterEach(() => {
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
+  vi.unstubAllEnvs();
 });
 
 describe("consentId", () => {
@@ -90,6 +92,25 @@ describe("consentId", () => {
   it("is required in a stored record", () => {
     store({ marketing: true, version: 1, decidedAt: daysAgo(1) });
     expect(getConsent().record).toBeNull();
+  });
+
+  it.each([["abc"], ["6f1c1f9e1c2d4e5f8a9b0c1d2e3f4a5b"], ["00000000-0000-0000-0000-000000000000"], ["6f1c1f9e-1c2d-4e5f-8a9b-0c1d2e3f4a5g"]])(
+    "makes a record with the consentId %j invalid",
+    consentId => {
+      store({ consentId, marketing: true, version: 1, decidedAt: daysAgo(1) });
+      expect(getConsent().record).toBeNull();
+    },
+  );
+
+  it("takes a UUID in capitals", () => {
+    store({ consentId: CID.toUpperCase(), marketing: true, version: 1, decidedAt: daysAgo(1) });
+    expect(getConsent().marketing).toBe(true);
+  });
+
+  it("stays the same when another tab chose first, with no subscriber and no storage event", () => {
+    expect(getConsent().record).toBeNull();
+    store({ consentId: CID, marketing: false, version: 1, decidedAt: daysAgo(0) });
+    expect(setConsent({ marketing: true }).consentId).toBe(CID);
   });
 });
 
@@ -140,6 +161,33 @@ describe("the age of a choice", () => {
     store({ consentId: CID, marketing: true, version: 1, decidedAt: daysAgo(10) });
     render(<MetaPixel pixelId="123456789012345" maxAgeDays={5} />);
     expect(document.querySelector(`script[src="${META_PIXEL_SCRIPT_SRC}"]`)).toBeNull();
+  });
+});
+
+describe("noticeVersion", () => {
+  const long = "a".repeat(65);
+
+  it.each([[""], ["2026/10"], [long]])("throws for %j in development", value => {
+    expect(() => setConsent({ marketing: true, noticeVersion: value })).toThrow(/noticeVersion/);
+    expect(window.localStorage.getItem(CONSENT_STORAGE_KEY)).toBeNull();
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    expect(() => render(<ConsentBanner enabled cookiesHref="/c" noticeVersion={value} />)).toThrow(/noticeVersion/);
+  });
+
+  it("takes 64 of the allowed characters", () => {
+    const value = "Aa0._-".repeat(10) + "abcd";
+    expect(value).toHaveLength(64);
+    expect(() => setConsent({ marketing: true, noticeVersion: value })).not.toThrow();
+    expect(() => render(<ConsentBanner enabled cookiesHref="/c" noticeVersion={value} />)).not.toThrow();
+  });
+
+  it.each([[""], ["2026/10"], [long]])("never reaches the log as %j, which gets 1", value => {
+    vi.stubEnv("NODE_ENV", "production");
+    const fetch = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(null, { status: 204 }));
+    const record = setConsent({ marketing: true, noticeVersion: value, log: { endpoint: "/consent", source: "banner" } });
+    expect(record.noticeVersion).toBe(value);
+    expect(body(fetch.mock.calls[0]!).noticeVersion).toBe("1");
+    expect(isValidNoticeVersion(value)).toBe(false);
   });
 });
 
@@ -218,12 +266,27 @@ describe("the consent log", () => {
     expect(fetch).not.toHaveBeenCalled();
   });
 
-  it("handles a failed request itself, so no rejection goes unhandled", () => {
-    const failed = Promise.reject(new TypeError("Failed to fetch"));
-    const handled = vi.spyOn(failed, "catch");
-    vi.spyOn(globalThis, "fetch").mockReturnValue(failed);
-    logConsent({ consentId: CID, marketing: true, version: 1, decidedAt: daysAgo(0) }, { endpoint: "/consent", source: "banner" });
-    expect(handled).toHaveBeenCalledTimes(1);
+  it.each([
+    ["rejects", () => Promise.reject(new TypeError("Failed to fetch"))],
+    ["answers 500", () => Promise.resolve(new Response(null, { status: 500 }))],
+    ["throws", () => {
+      throw new TypeError("Invalid URL");
+    }],
+  ])("resolves, and never rejects, when the request %s", async (_name, impl) => {
+    vi.spyOn(globalThis, "fetch").mockImplementation(impl as typeof fetch);
+    await expect(logConsent({ consentId: CID, marketing: true, version: 1, decidedAt: daysAgo(0) }, { endpoint: "/consent", source: "banner" }))
+      .resolves.toBeUndefined();
+  });
+
+  it("logs from setConsent in the same call, for a custom banner", () => {
+    const fetch = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(null, { status: 204 }));
+    const record = setConsent({ marketing: true, noticeVersion: "v3", log: { endpoint: "/consent", source: "settings", credentials: "include" } });
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(fetch.mock.calls[0]![0]).toBe("/consent");
+    expect(fetch.mock.calls[0]![1]).toMatchObject({ credentials: "include", keepalive: true });
+    expect(body(fetch.mock.calls[0]!)).toEqual({ consentId: record.consentId, marketing: true, noticeVersion: "v3", schemaVersion: 1, source: "settings" });
+    setConsent({ marketing: false });
+    expect(fetch).toHaveBeenCalledTimes(1);
   });
 
   it("does not wait for the log", async () => {

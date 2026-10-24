@@ -21,11 +21,11 @@ const scripts = () => document.querySelectorAll(`script[src="${META_PIXEL_SCRIPT
 const calls = () => pixelWindow().fbq?.queue ?? [];
 const pageViews = () => calls().filter(c => c[0] === "track" && c[1] === "PageView");
 
-function App({ pixelId = ID, noticeVersion }: { pixelId?: string | null | undefined; noticeVersion?: string }) {
+function App({ pixelId = ID, noticeVersion, maxAgeDays }: { pixelId?: string | null | undefined; noticeVersion?: string; maxAgeDays?: number }) {
   return (
     <>
-      <MetaPixel pixelId={pixelId} noticeVersion={noticeVersion} />
-      <ConsentBanner enabled cookiesHref="/cookies" noticeVersion={noticeVersion} />
+      <MetaPixel pixelId={pixelId} noticeVersion={noticeVersion} maxAgeDays={maxAgeDays} />
+      <ConsentBanner enabled cookiesHref="/cookies" noticeVersion={noticeVersion} maxAgeDays={maxAgeDays} />
       <ConsentSettingsLink />
     </>
   );
@@ -166,6 +166,77 @@ describe("MetaPixel", () => {
     const before = calls().length;
     trackPixel("Purchase", { value: 1 }, { eventID: "A2" });
     expect(calls()).toHaveLength(before);
+  });
+
+  describe("a choice that expires in an open tab", () => {
+    const DAY = 24 * 60 * 60 * 1000;
+    const start = new Date("2026-10-24T12:00:00Z");
+    const later = () => vi.setSystemTime(new Date(start.getTime() + 2 * DAY));
+
+    beforeEach(() => {
+      vi.useFakeTimers({ now: start, toFake: ["Date"] });
+      setConsent({ marketing: true });
+    });
+
+    afterEach(() => vi.useRealTimers());
+
+    const expired = () => {
+      expect(calls().at(-1)).toEqual(["consent", "revoke"]);
+      expect(screen.getByRole("region")).toBeInTheDocument();
+    };
+
+    it.each([
+      ["the window gets focus", () => window.dispatchEvent(new Event("focus"))],
+      ["the page becomes visible", () => document.dispatchEvent(new Event("visibilitychange"))],
+    ])("turns the pixel off and asks again when %s", (_name, event) => {
+      render(<App maxAgeDays={1} />);
+      expect(scripts()).toHaveLength(1);
+      later();
+      act(event);
+      expired();
+    });
+
+    it("turns the pixel off on the next navigation, with no PageView for it", () => {
+      const { rerender } = render(<App maxAgeDays={1} />);
+      later();
+      navigation.pathname = "/later";
+      rerender(<App maxAgeDays={1} />);
+      expired();
+      expect(pageViews()).toHaveLength(1);
+    });
+
+    it("stops a custom event the moment the choice expires, before any recheck", () => {
+      render(<App maxAgeDays={1} />);
+      trackPixel("Lead");
+      expect(calls().at(-1)).toEqual(["track", "Lead"]);
+      later();
+      const before = calls().length;
+      trackPixel("Lead");
+      expect(calls()).toHaveLength(before);
+    });
+  });
+
+  it("stops a custom event when the stored choice is for another notice, before any recheck", async () => {
+    render(<App noticeVersion="n1" />);
+    await userEvent.click(screen.getByRole("button", { name: "Accept" }));
+    window.localStorage.setItem(
+      CONSENT_STORAGE_KEY,
+      JSON.stringify({ consentId: CID, marketing: true, version: 1, decidedAt: RECENT, noticeVersion: "n2" }),
+    );
+    resetConsentStore();
+    const before = calls().length;
+    trackPixel("Lead");
+    expect(calls()).toHaveLength(before);
+  });
+
+  it("tracks under a new notice version once the visitor accepts it", async () => {
+    const { rerender } = render(<App noticeVersion="n1" />);
+    await userEvent.click(screen.getByRole("button", { name: "Accept" }));
+    rerender(<App noticeVersion="n2" />);
+    expect(calls().at(-1)).toEqual(["consent", "revoke"]);
+    await userEvent.click(screen.getByRole("button", { name: "Accept" }));
+    trackPixel("Lead");
+    expect(calls().at(-1)).toEqual(["track", "Lead"]);
   });
 
   it("sends one PageView per page from two mounts", () => {

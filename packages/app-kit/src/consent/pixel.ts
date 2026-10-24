@@ -1,6 +1,6 @@
 // The Meta Pixel calls, as plain functions with no "use client", so code outside React can track an
 // event. Nothing here loads Meta's script unless MetaPixel asks for it after consent.
-import { getStoredConsent } from "./consentStore";
+import { getConsent, getStoredConsent, type ConsentOptions } from "./consentStore";
 
 /** The script Meta's base code loads. */
 export const META_PIXEL_SCRIPT_SRC = "https://connect.facebook.net/en_US/fbevents.js";
@@ -26,10 +26,10 @@ type PixelWindow = Window & { fbq?: Fbq; _fbq?: Fbq };
 interface PixelState {
   /** The ID the pixel was started with. fbq cannot drop an ID once it has had `init`. */
   pixelId: string;
-  /** Whether consent holds, so events may be sent. */
-  sending: boolean;
   /** The path of the last PageView, so two mounts or a rerender do not count a page twice. */
   lastPath: string | null;
+  /** The rules the choice was checked against at start, so every event checks them again. */
+  options: ConsentOptions;
 }
 
 const states = new WeakMap<Fbq, PixelState>();
@@ -65,7 +65,7 @@ function installFbq(w: PixelWindow): Fbq {
  * ID a page starts stays for the rest of the page, so another ID is ignored with a warning. Returns
  * whether the pixel runs for `pixelId`.
  */
-export function startPixel(pixelId: string): boolean {
+export function startPixel(pixelId: string, options: ConsentOptions = {}): boolean {
   const w = window as PixelWindow;
   const existing = w.fbq ? states.get(w.fbq) : undefined;
   if (existing && existing.pixelId !== pixelId) {
@@ -77,10 +77,10 @@ export function startPixel(pixelId: string): boolean {
   const fbq = installFbq(w);
   fbq("consent", "grant");
   if (existing) {
-    existing.sending = true;
+    existing.options = options;
     return true;
   }
-  states.set(fbq, { pixelId, sending: true, lastPath: null });
+  states.set(fbq, { pixelId, lastPath: null, options });
   // No user data in init, so Advanced Matching stays off.
   fbq("init", pixelId);
   return true;
@@ -106,11 +106,8 @@ export function stopPixel(): void {
   if (typeof fbq !== "function") return;
   fbq("consent", "revoke");
   const state = states.get(fbq);
-  if (state) {
-    state.sending = false;
-    // The next grant counts the page it happens on.
-    state.lastPath = null;
-  }
+  // The next grant counts the page it happens on.
+  if (state) state.lastPath = null;
 }
 
 /** Sends a PageView for `path`, once per page, while the pixel runs for `pixelId`. */
@@ -135,9 +132,12 @@ export interface TrackPixelOptions {
 export function trackPixel(event: string, params?: Record<string, unknown>, options?: TrackPixelOptions): void {
   if (typeof window === "undefined") return;
   const fbq = (window as PixelWindow).fbq;
-  // The stored choice covers an fbq this module did not start. For its own, MetaPixel has already
-  // weighed the notice version, so `sending` decides.
-  if (typeof fbq !== "function" || !getStoredConsent().marketing || states.get(fbq)?.sending === false) return;
+  if (typeof fbq !== "function") return;
+  // The pixel this module started checks the choice under its own notice version and age, now, so an
+  // event stops the moment the choice expires. Another fbq goes by the stored choice.
+  const state = states.get(fbq);
+  const consents = state ? getConsent(state.options).marketing : getStoredConsent().marketing;
+  if (!consents) return;
   const args: unknown[] = [STANDARD_EVENTS.has(event) ? "track" : "trackCustom", event];
   if (params || options?.eventID) args.push(params ?? {});
   if (options?.eventID) args.push({ eventID: options.eventID });

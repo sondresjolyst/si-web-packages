@@ -5,6 +5,8 @@
 // cookie would go to the server with every request. The state sits on globalThis under a registered
 // symbol, so two copies of this module share one choice.
 
+import { isValidNoticeVersion, logConsent, type ConsentLogOptions } from "./consentLog";
+
 /** The localStorage key that holds the choice. */
 export const CONSENT_STORAGE_KEY = "consent";
 
@@ -62,6 +64,10 @@ interface Store {
   /** The state, read from storage on first use in the browser. */
   state: ConsentState | null;
   listeners: Set<() => void>;
+  /** Whether the page listens for other tabs, focus, and visibility. It does for the page's lifetime. */
+  watching?: boolean;
+  /** A choice storage would not take, kept for the rest of the page. */
+  unsaved?: ConsentRecord | null;
 }
 
 // The shape of Store is a contract between releases. A release that changes it must also change
@@ -77,6 +83,8 @@ function isRecord(value: unknown): value is ConsentRecord {
   const r = value as Record<string, unknown>;
   return (
     typeof r.consentId === "string" &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(r.consentId) &&
+    !/^[0-]+$/.test(r.consentId) &&
     typeof r.marketing === "boolean" &&
     r.version === CONSENT_VERSION &&
     typeof r.decidedAt === "string" &&
@@ -108,9 +116,36 @@ function update(next: ConsentState): void {
   for (const listener of [...store.listeners]) listener();
 }
 
+/**
+ * Reads storage again and tells every subscriber, so a choice that has grown too old in an open tab,
+ * or one another tab made, applies at once. MetaPixel calls it on each navigation.
+ */
+export function recheckConsent(): void {
+  if (typeof window === "undefined") return;
+  update(stateOf(readRecord() ?? store.unsaved ?? null, store.state?.reopened ?? false));
+}
+
+function onStorage(event: StorageEvent): void {
+  if (event.key === CONSENT_STORAGE_KEY || event.key === null) recheckConsent();
+}
+
+function onVisibility(): void {
+  if (document.visibilityState === "visible") recheckConsent();
+}
+
+/** Listens for the rest of the page, so the choice stays current with or without a subscriber. */
+function watch(): void {
+  if (store.watching) return;
+  store.watching = true;
+  window.addEventListener("storage", onStorage);
+  window.addEventListener("focus", recheckConsent);
+  document.addEventListener("visibilitychange", onVisibility);
+}
+
 /** Gives the stored choice, whatever notice it was made for. useConsent reads it as its snapshot. */
 export function getStoredConsent(): ConsentState {
   if (typeof window === "undefined") return SERVER_STATE;
+  watch();
   return (store.state ??= stateOf(readRecord(), false));
 }
 
@@ -140,20 +175,27 @@ export function getServerConsent(): ConsentState {
   return SERVER_STATE;
 }
 
-/** Rereads storage after another tab changed the choice. */
-function onStorage(event: StorageEvent): void {
-  if (event.key !== CONSENT_STORAGE_KEY && event.key !== null) return;
-  update(stateOf(readRecord(), getStoredConsent().reopened));
-}
-
 /** Subscribes to the choice changing, here or in another tab. Returns a function that unsubscribes. */
 export function subscribeConsent(listener: () => void): () => void {
-  if (store.listeners.size === 0) window.addEventListener("storage", onStorage);
   store.listeners.add(listener);
   return () => {
     store.listeners.delete(listener);
-    if (store.listeners.size === 0) window.removeEventListener("storage", onStorage);
   };
+}
+
+/** Throws in development for a notice version the consent log would refuse, so the app notices. */
+export function assertNoticeVersion(noticeVersion: string | undefined): void {
+  if (noticeVersion === undefined || isValidNoticeVersion(noticeVersion) || process.env.NODE_ENV === "production") return;
+  throw new Error(`noticeVersion "${noticeVersion}" is invalid. Use 1 to 64 of A-Z, a-z, 0-9, dot, underscore and hyphen.`);
+}
+
+/** What `setConsent` takes. */
+export interface ConsentChoice {
+  marketing: boolean;
+  /** The notice version the choice is made for. */
+  noticeVersion?: string | undefined;
+  /** Posts the choice to the consent log as well, without waiting for it. */
+  log?: ConsentLogOptions | undefined;
 }
 
 /** A random version 4 UUID. getRandomValues also works where randomUUID does not, outside HTTPS. */
@@ -167,25 +209,29 @@ function newConsentId(): string {
 }
 
 /**
- * Stores the visitor's choice, closes the banner, and returns the stored record. It keeps the
- * browser's `consentId` from an earlier choice. If storage cannot be written, the choice holds for
- * this page until it reloads, and the banner asks again on the next visit. For a custom banner only,
- * and only from the visitor's own action.
+ * Stores the visitor's choice, closes the banner, posts it to `choice.log` if given, and returns the
+ * stored record. It keeps the browser's `consentId` from an earlier choice, also one another tab
+ * made. If storage cannot be written, the choice holds for this page until it reloads, and the banner
+ * asks again on the next visit. For a custom banner only, and only from the visitor's own action.
  */
-export function setConsent(choice: { marketing: boolean; noticeVersion?: string | undefined }): ConsentRecord {
+export function setConsent(choice: ConsentChoice): ConsentRecord {
+  assertNoticeVersion(choice.noticeVersion);
   const record: ConsentRecord = {
-    consentId: getStoredConsent().record?.consentId ?? newConsentId(),
+    consentId: readRecord()?.consentId ?? getStoredConsent().record?.consentId ?? newConsentId(),
     marketing: choice.marketing,
     version: CONSENT_VERSION,
     decidedAt: new Date().toISOString(),
     ...(choice.noticeVersion !== undefined && { noticeVersion: choice.noticeVersion }),
   };
+  store.unsaved = null;
   try {
     window.localStorage.setItem(CONSENT_STORAGE_KEY, JSON.stringify(record));
   } catch {
     // Storage is full or blocked. The choice still holds in memory.
+    store.unsaved = record;
   }
   update(stateOf(record, false));
+  if (choice.log) void logConsent(record, choice.log);
   return record;
 }
 
@@ -206,6 +252,6 @@ export function closeConsentSettings(): void {
 /** Forgets the state read from storage. For tests. */
 export function resetConsentStore(): void {
   store.state = null;
+  store.unsaved = null;
   store.listeners.clear();
-  window.removeEventListener("storage", onStorage);
 }

@@ -1850,7 +1850,14 @@ of the notice the visitor agreed to, which the app sets, such as the date its co
 changed. A record of another `version`, a record made for another `noticeVersion`, a record older
 than `maxAgeDays`, a broken record, or storage that throws counts as no choice, so the banner asks
 and nothing loads. `maxAgeDays` defaults to 365, `DEFAULT_CONSENT_MAX_AGE_DAYS`, so a visitor is
-asked again after twelve months. When storage
+asked again after twelve months. The page checks again on each navigation, when the window gets
+focus, and when the tab becomes visible, so a choice that grows too old in an open tab turns the
+pixel off and brings the banner back. It also rereads storage then, and whenever another tab
+changes the choice, with or without a component on the page.
+
+`noticeVersion` must be 1 to 64 of the characters `A-Z`, `a-z`, `0-9`, `.`, `_` and `-`, which the
+consent log accepts. `ConsentBanner` and `setConsent` throw for anything else in development, so the
+mistake shows at once. `isValidNoticeVersion` is the check. When storage
 cannot be written, the choice holds for the page until it reloads. A choice made in another tab
 applies at once.
 
@@ -1861,11 +1868,13 @@ applies at once.
   object, `{ noticeVersion?, maxAgeDays? }`.
 - `openConsentSettings()` shows the banner again, and `closeConsentSettings()` hides it again
   without changing the choice.
-- `setConsent({ marketing, noticeVersion? })` stores a choice, closes the banner, and returns the
-  stored record. It is for a custom banner only. Call it only from the visitor's own action, such
-  as a button press, since consent has to be an active choice.
-- `logConsent(record, { endpoint, source, credentials? })` posts a stored choice to the consent
-  log, as `ConsentBanner` does. It is for a custom banner.
+- `setConsent({ marketing, noticeVersion?, log? })` stores a choice, closes the banner, and
+  returns the stored record. With `log: { endpoint, source, credentials? }` it also posts the
+  choice to the consent log, as `ConsentBanner` does. The type is `ConsentChoice`. It is for a
+  custom banner only. Call it only from the visitor's own action, such as a button press, since
+  consent has to be an active choice.
+- `logConsent(record, { endpoint, source, credentials? })` posts a stored record to the consent
+  log on its own. Its promise always resolves, also when the request fails.
 - `CONSENT_STORAGE_KEY` and `CONSENT_VERSION` are the key and the record version. The record type is
   `ConsentRecord`.
 
@@ -1902,7 +1911,7 @@ browser chose and under which notice:
 `source` is `banner` on the first ask and `settings` when the visitor reopened the banner.
 `schemaVersion` is the stored record's `version`. The log requires a `noticeVersion` of 1 to 64 of
 the characters `A-Z`, `a-z`, `0-9`, `.`, `_` and `-`, so the payload carries `"1"`,
-`DEFAULT_LOG_NOTICE_VERSION`, when the app sets none. Set your own `noticeVersion` anyway, so the
+`DEFAULT_LOG_NOTICE_VERSION`, when the app sets none or an invalid one. Set your own `noticeVersion` anyway, so the
 log shows which notice each choice was made under. The
 payload holds no IP address and nothing about the visitor, only the random `consentId`. The
 types are `ConsentLogPayload` and `ConsentSource`.
@@ -1933,6 +1942,15 @@ When the visitor withdraws, it calls `fbq('consent', 'revoke')` and sends no mor
 consent it also removes the `_fbp` and `_fbc` cookies on the host and its parent domains, even
 those left from an earlier visit when the pixel never loaded on this page. A new Accept grants
 again without loading the script twice, and counts the page it happens on.
+
+Meta sets `_fbp` on the site's registrable domain, such as `example.com`, which is why the
+cookies are removed on the parent domains too. So apps on subdomains of one domain, such as
+`shop.example.com` and `blog.example.com`, must share one consent setup. Otherwise a reject in one
+app deletes the cookie the other app's pixel uses.
+
+Every event, `trackPixel` included, checks the choice again under the `noticeVersion` and
+`maxAgeDays` the pixel was started with. A custom event stops the moment the choice expires or the
+stored choice is for another notice, before any navigation or focus has rechecked it.
 
 Meta's pixel cannot drop an ID once it has had `init`. So the first `pixelId` a page starts stays
 until the page reloads. A different ID after that is ignored, with a console warning in
