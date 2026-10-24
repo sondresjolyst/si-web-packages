@@ -67,7 +67,7 @@ describe("MetaPixel", () => {
     expect(scripts()).toHaveLength(1);
     expect((scripts()[0] as HTMLScriptElement).async).toBe(true);
     expect(META_PIXEL_SCRIPT_SRC).toBe("https://connect.facebook.net/en_US/fbevents.js");
-    expect(calls()).toEqual([["consent", "grant"], ["init", ID], ["track", "PageView"]]);
+    expect(calls()).toEqual([["consent", "grant"], ["set", "autoConfig", false, ID], ["init", ID], ["track", "PageView"]]);
     expect(pixelWindow()._fbq).toBe(pixelWindow().fbq);
     expect(document.querySelector("noscript, img")).toBeNull();
   });
@@ -236,7 +236,9 @@ describe("MetaPixel", () => {
     render(<MetaPixel pixelId={ID} noticeVersion="n2" />);
     render(<MetaPixel pixelId={ID} noticeVersion="n1" maxAgeDays={30} />);
 
-    expect(warn).toHaveBeenCalledTimes(2);
+    // The n2 mount has no consent under its own rules, so it never tries to start. The n1 mount with
+    // another maxAgeDays does, and is turned away with a warning.
+    expect(warn).toHaveBeenCalledTimes(1);
     expect(calls().filter(c => c[0] === "consent")).toEqual([["consent", "grant"]]);
     trackPixel("Lead");
     expect(calls().at(-1)).toEqual(["track", "Lead"]);
@@ -306,8 +308,8 @@ describe("MetaPixel", () => {
     vi.spyOn(console, "warn").mockImplementation(() => {});
     setConsent({ marketing: true });
     expect(startPixel(ID)).toBeTypeOf("function");
-    expect(startPixel("999")).toBeNull();
-    expect(startPixel(ID, { maxAgeDays: 30 })).toBeNull();
+    expect(startPixel("999")).toBeUndefined();
+    expect(startPixel(ID, { maxAgeDays: 30 })).toBeUndefined();
     expect(calls().filter(c => c[0] === "init")).toEqual([["init", ID]]);
     expect(calls().filter(c => c[0] === "consent")).toHaveLength(1);
   });
@@ -318,6 +320,79 @@ describe("MetaPixel", () => {
     render(<MetaPixel pixelId={ID} />);
     render(<MetaPixel pixelId={ID} maxAgeDays={365} />);
     expect(warn).not.toHaveBeenCalled();
+  });
+
+  it("turns off automatic events before init, and leaves fbevents' own history PageViews on", () => {
+    let atInstall: { disablePushState?: boolean | undefined; queued: number } | undefined;
+    let installed: Fbq | undefined;
+    Object.defineProperty(window, "fbq", {
+      configurable: true,
+      get: () => installed,
+      set: (value: Fbq & { disablePushState?: boolean }) => {
+        installed = value;
+        atInstall ??= { disablePushState: value.disablePushState, queued: value.queue.length };
+      },
+    });
+    try {
+      setConsent({ marketing: true });
+      render(<MetaPixel pixelId={ID} />);
+      // Real fbevents.js drops a second hand-tracked PageView in one page load, so it has to count
+      // client navigations itself.
+      expect(atInstall).toEqual({ disablePushState: undefined, queued: 0 });
+      const queue = calls();
+      const autoConfig = queue.findIndex(c => c[0] === "set" && c[1] === "autoConfig");
+      expect(queue[autoConfig]).toEqual(["set", "autoConfig", false, ID]);
+      expect(autoConfig).toBeLessThan(queue.findIndex(c => c[0] === "init"));
+    } finally {
+      delete (window as { fbq?: unknown }).fbq;
+    }
+  });
+
+  it("withdraws from a mount with other rules too, under the page's rules", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const first = render(<App noticeVersion="n1" />);
+    await userEvent.click(screen.getByRole("button", { name: "Accept" }));
+    render(<MetaPixel pixelId={ID} noticeVersion="n2" />);
+    first.unmount();
+    document.cookie = "_fbp=fb.1.123; path=/";
+
+    act(() => setConsent({ marketing: false, noticeVersion: "n1" }));
+    expect(calls().at(-1)).toEqual(["consent", "revoke"]);
+    expect(document.cookie).not.toContain("_fbp");
+  });
+
+  it("revokes again after a new grant", () => {
+    setConsent({ marketing: true });
+    render(<App />);
+    act(() => setConsent({ marketing: false }));
+    act(() => setConsent({ marketing: true }));
+    act(() => setConsent({ marketing: false }));
+    expect(calls().filter(c => c[0] === "consent").map(c => c[1])).toEqual(["grant", "revoke", "grant", "revoke"]);
+  });
+
+  it("revokes once, however often a withdrawn page rechecks", () => {
+    setConsent({ marketing: true });
+    render(<App />);
+    act(() => setConsent({ marketing: false }));
+    act(() => window.dispatchEvent(new Event("focus")));
+    act(() => window.dispatchEvent(new Event("focus")));
+    expect(calls().filter(c => c[0] === "consent")).toEqual([["consent", "grant"], ["consent", "revoke"]]);
+  });
+
+  it("tells whether trackPixel handed the event to fbq", () => {
+    expect(trackPixel("Purchase")).toBe(false);
+    setConsent({ marketing: true });
+    expect(trackPixel("Purchase")).toBe(false);
+    const { unmount } = render(<MetaPixel pixelId={ID} />);
+    expect(trackPixel("Purchase", { value: 1 }, { eventID: "O1" })).toBe(true);
+    expect(calls().at(-1)).toEqual(["track", "Purchase", { value: 1 }, { eventID: "O1" }]);
+
+    unmount();
+    expect(trackPixel("Purchase")).toBe(false);
+    render(<MetaPixel pixelId={ID} />);
+    expect(trackPixel("Purchase")).toBe(true);
+    act(() => setConsent({ marketing: false }));
+    expect(trackPixel("Purchase")).toBe(false);
   });
 
   it("lets go of a start only once", () => {

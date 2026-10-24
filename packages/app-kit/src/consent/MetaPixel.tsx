@@ -2,8 +2,8 @@
 
 import { usePathname } from "next/navigation";
 import { useEffect } from "react";
-import { recheckConsent } from "./consentStore";
-import { conflictsWithPage, isValidPixelId, startPixel, stopPixel, trackPageView } from "./pixel";
+import { getConsent, recheckConsent } from "./consentStore";
+import { isValidPixelId, pageRules, startPixel, stopPixel, trackPageView } from "./pixel";
 import { useConsent } from "./useConsent";
 
 /** Props for `MetaPixel`. */
@@ -22,7 +22,8 @@ export interface MetaPixelProps {
  * removes the pixel's cookies, revokes consent in the pixel, and sends nothing more. It renders nothing.
  */
 export function MetaPixel({ pixelId, noticeVersion, maxAgeDays }: MetaPixelProps) {
-  const { ready, marketing } = useConsent({ noticeVersion, maxAgeDays });
+  const consent = useConsent({ noticeVersion, maxAgeDays });
+  const { ready, marketing } = consent;
   const pathname = usePathname();
   const id = isValidPixelId(pixelId) ? pixelId : null;
 
@@ -32,17 +33,17 @@ export function MetaPixel({ pixelId, noticeVersion, maxAgeDays }: MetaPixelProps
   }, [pathname]);
 
   useEffect(() => {
-    // Before storage is read there is no choice yet, and a consenting visitor's cookies must stay.
-    if (!id || !ready) return;
-    const rules = { noticeVersion, maxAgeDays };
-    // The first mount's ID and rules hold for the page. A mount that disagrees neither starts nor stops it.
-    if (conflictsWithPage(id, rules)) return;
-    if (!marketing) {
-      stopPixel();
-      return;
-    }
-    // On unmount, a cleared ID, or a change of rules, this mount lets go, so no event is sent for it.
-    return startPixel(id, rules) ?? undefined;
+    if (!id) return;
+    // Every mount withdraws, under the rules of the page's first start, whatever its own rules are.
+    // getConsent reads storage itself, so a consenting visitor's cookies stay while the page hydrates.
+    if (!getConsent(pageRules() ?? { noticeVersion, maxAgeDays }).marketing) stopPixel();
+  }, [id, consent, noticeVersion, maxAgeDays]);
+
+  useEffect(() => {
+    if (!id || !ready || !marketing) return;
+    // The first start's ID and rules hold for the page, so a mount that disagrees does not start. On
+    // unmount, a cleared ID, or a change of rules, this mount lets go, so no event is sent for it.
+    return startPixel(id, { noticeVersion, maxAgeDays });
   }, [id, ready, marketing, noticeVersion, maxAgeDays]);
 
   useEffect(() => {

@@ -9,6 +9,6 @@ describe("consent on the server", () => {
   });
 
   it("tracks nothing", () => {
-    expect(() => trackPixel("PageView")).not.toThrow();
+    expect(trackPixel("PageView")).toBe(false);
   });
 });

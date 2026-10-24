@@ -34,6 +34,8 @@ interface PixelState {
   holders: number;
   /** Counts the stops, so a release from before a stop does not let go of a later start. */
   generation: number;
+  /** Whether consent is revoked in fbq now, so a repeated stop does not revoke again. */
+  revoked: boolean;
 }
 
 const states = new WeakMap<Fbq, PixelState>();
@@ -48,6 +50,11 @@ function pageState(): PixelState | undefined {
   return fbq ? states.get(fbq) : undefined;
 }
 
+/** The rules of the page's first start, which decide consent for every mount, or undefined before it. */
+export function pageRules(): ConsentOptions | undefined {
+  return pageState()?.options;
+}
+
 const sameRules = (a: ConsentOptions, b: ConsentOptions) =>
   a.noticeVersion === b.noticeVersion && (a.maxAgeDays ?? DEFAULT_CONSENT_MAX_AGE_DAYS) === (b.maxAgeDays ?? DEFAULT_CONSENT_MAX_AGE_DAYS);
 
@@ -56,7 +63,7 @@ const sameRules = (a: ConsentOptions, b: ConsentOptions) =>
  * for the rest of the page, since fbq cannot drop an ID, and a mount that disagrees is ignored with a
  * warning in development.
  */
-export function conflictsWithPage(pixelId: string, options: ConsentOptions): boolean {
+function conflictsWithPage(pixelId: string, options: ConsentOptions): boolean {
   const state = pageState();
   if (!state || (state.pixelId === pixelId && sameRules(state.options, options))) return false;
   if (process.env.NODE_ENV !== "production") {
@@ -79,6 +86,8 @@ function installFbq(w: PixelWindow): Fbq {
   fbq.loaded = true;
   fbq.version = "2.0";
   fbq.queue = [];
+  // fbq.disablePushState stays unset on purpose. fbevents.js counts each history change as a PageView
+  // itself, and drops a second PageView tracked by hand in the same page load.
   w.fbq = fbq;
   if (!w._fbq) w._fbq = fbq;
 
@@ -91,20 +100,24 @@ function installFbq(w: PixelWindow): Fbq {
 
 /**
  * Loads the pixel and starts it for `pixelId`. Call it only once the visitor has consented. Returns a
- * function that lets go of this start, such as when the mount goes away, or null when the pixel
+ * function that lets go of this start, such as when the mount goes away, or undefined when the pixel
  * already runs with another ID or other rules. Once every start is let go, no event is sent.
  */
-export function startPixel(pixelId: string, options: ConsentOptions = {}): (() => void) | null {
-  if (conflictsWithPage(pixelId, options)) return null;
+export function startPixel(pixelId: string, options: ConsentOptions = {}): (() => void) | undefined {
+  if (conflictsWithPage(pixelId, options)) return undefined;
   const fbq = installFbq(window as PixelWindow);
   fbq("consent", "grant");
   let state = states.get(fbq);
   if (!state) {
-    state = { pixelId, options, lastPath: null, holders: 0, generation: 0 };
+    state = { pixelId, options, lastPath: null, holders: 0, generation: 0, revoked: false };
     states.set(fbq, state);
+    // No automatic events, such as button clicks and page metadata. The pixel sends page views and the
+    // events the app tracks, as the cookie page says, and nothing more.
+    fbq("set", "autoConfig", false, pixelId);
     // No user data in init, so Advanced Matching stays off.
     fbq("init", pixelId);
   }
+  state.revoked = false;
   state.holders++;
   const held = state;
   const generation = held.generation;
@@ -134,9 +147,10 @@ export function stopPixel(): void {
   clearPixelCookies();
   const fbq = (window as PixelWindow).fbq;
   if (typeof fbq !== "function") return;
-  fbq("consent", "revoke");
   const state = states.get(fbq);
+  if (!state?.revoked) fbq("consent", "revoke");
   if (state) {
+    state.revoked = true;
     state.holders = 0;
     state.generation++;
     // The next grant counts the page it happens on.
@@ -178,8 +192,9 @@ function send(event: string, params?: Record<string, unknown>, options?: TrackPi
 
 /**
  * Sends an event to the Meta Pixel. It does nothing on the server, before the pixel has loaded, and
- * without marketing consent, so it is safe to call anywhere.
+ * without marketing consent, so it is safe to call anywhere. Returns true only when the event was
+ * handed to fbq, such as for recording that a Purchase went out.
  */
-export function trackPixel(event: string, params?: Record<string, unknown>, options?: TrackPixelOptions): void {
-  send(event, params, options);
+export function trackPixel(event: string, params?: Record<string, unknown>, options?: TrackPixelOptions): boolean {
+  return send(event, params, options);
 }
