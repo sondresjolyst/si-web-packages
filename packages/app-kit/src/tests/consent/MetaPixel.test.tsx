@@ -5,9 +5,9 @@ import { StrictMode } from "react";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ConsentBanner, ConsentSettingsLink, isValidPixelId, META_PIXEL_SCRIPT_SRC, MetaPixel, setConsent, trackPixel } from "../../consent";
-import { CONSENT_STORAGE_KEY } from "../../consent";
+import { CONSENT_STORAGE_KEY, getConsent } from "../../consent";
 import { resetConsentStore } from "../../consent/consentStore";
-import { clearPixelCookies } from "../../consent/pixel";
+import { clearPixelCookies, stopPixel } from "../../consent/pixel";
 import { navigation } from "../../testing";
 
 vi.mock("next/navigation", async () => (await import("../../testing")).nextNavigationMock());
@@ -235,6 +235,51 @@ describe("MetaPixel", () => {
     rerender(<App noticeVersion="n2" />);
     expect(calls().at(-1)).toEqual(["consent", "revoke"]);
     await userEvent.click(screen.getByRole("button", { name: "Accept" }));
+    trackPixel("Lead");
+    expect(calls().at(-1)).toEqual(["track", "Lead"]);
+  });
+
+  it("sends nothing after stopPixel while consent still holds", () => {
+    setConsent({ marketing: true });
+    render(<MetaPixel pixelId={ID} />);
+    trackPixel("Lead");
+    expect(calls().at(-1)).toEqual(["track", "Lead"]);
+
+    act(() => stopPixel());
+    const before = calls().length;
+    trackPixel("Lead");
+    expect(calls()).toHaveLength(before);
+    expect(getConsent().marketing).toBe(true);
+  });
+
+  it("sends nothing once MetaPixel unmounts or loses its ID, while consent still holds", () => {
+    setConsent({ marketing: true });
+    const { rerender, unmount } = render(<MetaPixel pixelId={ID} />);
+    rerender(<MetaPixel pixelId={null} />);
+    let before = calls().length;
+    trackPixel("Lead");
+    expect(calls()).toHaveLength(before);
+
+    rerender(<MetaPixel pixelId={ID} />);
+    trackPixel("Lead");
+    expect(calls().at(-1)).toEqual(["track", "Lead"]);
+
+    unmount();
+    before = calls().length;
+    trackPixel("Lead");
+    expect(calls()).toHaveLength(before);
+  });
+
+  it("keeps sending while another MetaPixel still runs the pixel", () => {
+    setConsent({ marketing: true });
+    const both = (second: boolean) => (
+      <>
+        <MetaPixel pixelId={ID} />
+        {second && <MetaPixel pixelId={ID} />}
+      </>
+    );
+    const { rerender } = render(both(true));
+    rerender(both(false));
     trackPixel("Lead");
     expect(calls().at(-1)).toEqual(["track", "Lead"]);
   });

@@ -3,7 +3,7 @@
 import { usePathname } from "next/navigation";
 import { useEffect } from "react";
 import { recheckConsent } from "./consentStore";
-import { isValidPixelId, startPixel, stopPixel, trackPageView } from "./pixel";
+import { isValidPixelId, releasePixel, startPixel, stopPixel, trackPageView } from "./pixel";
 import { useConsent } from "./useConsent";
 
 /** Props for `MetaPixel`. */
@@ -34,8 +34,12 @@ export function MetaPixel({ pixelId, noticeVersion, maxAgeDays }: MetaPixelProps
   useEffect(() => {
     // Before storage is read there is no choice yet, and a consenting visitor's cookies must stay.
     if (!id || !ready) return;
-    if (marketing) startPixel(id, { noticeVersion, maxAgeDays });
-    else stopPixel();
+    if (!marketing) {
+      stopPixel();
+      return;
+    }
+    // On unmount, a cleared ID, or a change of rules, this mount lets go, so no event is sent for it.
+    if (startPixel(id, { noticeVersion, maxAgeDays })) return releasePixel;
   }, [id, ready, marketing, noticeVersion, maxAgeDays]);
 
   useEffect(() => {

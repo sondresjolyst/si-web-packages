@@ -181,13 +181,22 @@ describe("noticeVersion", () => {
     expect(() => render(<ConsentBanner enabled cookiesHref="/c" noticeVersion={value} />)).not.toThrow();
   });
 
-  it.each([[""], ["2026/10"], [long]])("never reaches the log as %j, which gets 1", value => {
+  it.each([[""], ["2026/10"], [long]])("is stored as %j in production, but never posted to the log", async value => {
     vi.stubEnv("NODE_ENV", "production");
     const fetch = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(null, { status: 204 }));
     const record = setConsent({ marketing: true, noticeVersion: value, log: { endpoint: "/consent", source: "banner" } });
     expect(record.noticeVersion).toBe(value);
-    expect(body(fetch.mock.calls[0]!).noticeVersion).toBe("1");
+    expect(stored()).toMatchObject({ marketing: true, noticeVersion: value });
+    await expect(logConsent(record, { endpoint: "/consent", source: "settings" })).resolves.toBeUndefined();
+    expect(fetch).not.toHaveBeenCalled();
     expect(isValidNoticeVersion(value)).toBe(false);
+  });
+
+  it("posts 1 only when no notice version is set at all", () => {
+    vi.stubEnv("NODE_ENV", "production");
+    const fetch = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(null, { status: 204 }));
+    setConsent({ marketing: true, log: { endpoint: "/consent", source: "banner" } });
+    expect(body(fetch.mock.calls[0]!).noticeVersion).toBe("1");
   });
 });
 

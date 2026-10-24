@@ -25,6 +25,7 @@ describe("entry points", () => {
     ["consent", consent, "getStoredConsent"],
     ["consent", consent, "applyConsentOptions"],
     ["consent", consent, "recheckConsent"],
+    ["consent", consent, "releasePixel"],
     ["consent", consent, "assertNoticeVersion"],
   ])("%s keeps %s internal", (_entry, module, name) => {
     expect(Object.keys(module)).not.toContain(name);

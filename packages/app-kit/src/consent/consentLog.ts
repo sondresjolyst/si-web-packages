@@ -2,7 +2,7 @@
 // functions with no "use client", so a custom banner can log too.
 import type { ConsentRecord } from "./consentStore";
 
-/** The notice version the log gets when the app sets none, or an invalid one, since the log requires one. */
+/** The notice version the log gets when the app sets none, since the log requires one. */
 export const DEFAULT_LOG_NOTICE_VERSION = "1";
 
 /** Checks a notice version against what the consent log accepts: 1 to 64 of `A-Z`, `a-z`, `0-9`, `.`, `_` and `-`. */
@@ -17,7 +17,7 @@ export type ConsentSource = "banner" | "settings";
 export interface ConsentLogPayload {
   consentId: string;
   marketing: boolean;
-  /** The notice version the choice was made for, or `"1"` when the app sets none or an invalid one. */
+  /** The notice version the choice was made for, or `"1"` when the app sets none. */
   noticeVersion: string;
   /** The stored record's `version`. */
   schemaVersion: number;
@@ -36,13 +36,15 @@ export interface ConsentLogOptions {
 /**
  * Posts a stored choice to the consent log. Nobody has to wait for it: `keepalive` lets the request
  * finish after the page unloads, and the returned promise always resolves, also when the request
- * fails. The choice stands either way.
+ * fails. The choice stands either way. A record with an invalid notice version is not posted, so the
+ * log never names a notice the visitor did not see.
  */
 export function logConsent(record: ConsentRecord, { endpoint, source, credentials = "omit" }: ConsentLogOptions): Promise<void> {
+  if (record.noticeVersion !== undefined && !isValidNoticeVersion(record.noticeVersion)) return Promise.resolve();
   const payload: ConsentLogPayload = {
     consentId: record.consentId,
     marketing: record.marketing,
-    noticeVersion: isValidNoticeVersion(record.noticeVersion) ? record.noticeVersion : DEFAULT_LOG_NOTICE_VERSION,
+    noticeVersion: record.noticeVersion ?? DEFAULT_LOG_NOTICE_VERSION,
     schemaVersion: record.version,
     source,
   };

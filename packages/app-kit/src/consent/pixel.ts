@@ -30,6 +30,8 @@ interface PixelState {
   lastPath: string | null;
   /** The rules the choice was checked against at start, so every event checks them again. */
   options: ConsentOptions;
+  /** How many MetaPixel mounts run the pixel now. Events are sent only while one does. */
+  holders: number;
 }
 
 const states = new WeakMap<Fbq, PixelState>();
@@ -78,12 +80,20 @@ export function startPixel(pixelId: string, options: ConsentOptions = {}): boole
   fbq("consent", "grant");
   if (existing) {
     existing.options = options;
+    existing.holders++;
     return true;
   }
-  states.set(fbq, { pixelId, lastPath: null, options });
+  states.set(fbq, { pixelId, lastPath: null, options, holders: 1 });
   // No user data in init, so Advanced Matching stays off.
   fbq("init", pixelId);
   return true;
+}
+
+/** Lets go of one `startPixel`, such as when a MetaPixel unmounts or loses its ID. The last one stops events. */
+export function releasePixel(): void {
+  const fbq = (window as PixelWindow).fbq;
+  const state = fbq ? states.get(fbq) : undefined;
+  if (state && state.holders > 0) state.holders--;
 }
 
 /** Removes the cookies the pixel sets on this site, on the host and each parent domain. */
@@ -106,8 +116,11 @@ export function stopPixel(): void {
   if (typeof fbq !== "function") return;
   fbq("consent", "revoke");
   const state = states.get(fbq);
-  // The next grant counts the page it happens on.
-  if (state) state.lastPath = null;
+  if (state) {
+    state.holders = 0;
+    // The next grant counts the page it happens on.
+    state.lastPath = null;
+  }
 }
 
 /** Sends a PageView for `path`, once per page, while the pixel runs for `pixelId`. */
@@ -133,10 +146,11 @@ export function trackPixel(event: string, params?: Record<string, unknown>, opti
   if (typeof window === "undefined") return;
   const fbq = (window as PixelWindow).fbq;
   if (typeof fbq !== "function") return;
-  // The pixel this module started checks the choice under its own notice version and age, now, so an
-  // event stops the moment the choice expires. Another fbq goes by the stored choice.
+  // The pixel this module started sends only while a MetaPixel runs it, and checks the choice under
+  // its own notice version and age, now, so an event stops the moment the choice expires. Another fbq
+  // goes by the stored choice.
   const state = states.get(fbq);
-  const consents = state ? getConsent(state.options).marketing : getStoredConsent().marketing;
+  const consents = state ? state.holders > 0 && getConsent(state.options).marketing : getStoredConsent().marketing;
   if (!consents) return;
   const args: unknown[] = [STANDARD_EVENTS.has(event) ? "track" : "trackCustom", event];
   if (params || options?.eventID) args.push(params ?? {});

@@ -1911,7 +1911,9 @@ browser chose and under which notice:
 `source` is `banner` on the first ask and `settings` when the visitor reopened the banner.
 `schemaVersion` is the stored record's `version`. The log requires a `noticeVersion` of 1 to 64 of
 the characters `A-Z`, `a-z`, `0-9`, `.`, `_` and `-`, so the payload carries `"1"`,
-`DEFAULT_LOG_NOTICE_VERSION`, when the app sets none or an invalid one. Set your own `noticeVersion` anyway, so the
+`DEFAULT_LOG_NOTICE_VERSION`, when the app sets none. A choice with an invalid `noticeVersion`,
+which only production lets through, is stored but not posted, so the log never names a notice the
+visitor did not see. Set your own `noticeVersion` anyway, so the
 log shows which notice each choice was made under. The
 payload holds no IP address and nothing about the visitor, only the random `consentId`. The
 types are `ConsentLogPayload` and `ConsentSource`.
@@ -1948,7 +1950,9 @@ cookies are removed on the parent domains too. So apps on subdomains of one doma
 `shop.example.com` and `blog.example.com`, must share one consent setup. Otherwise a reject in one
 app deletes the cookie the other app's pixel uses.
 
-Every event, `trackPixel` included, checks the choice again under the `noticeVersion` and
+Events are sent only while a `MetaPixel` runs the pixel. Once the last one unmounts, loses its
+`pixelId`, or the pixel is stopped, nothing more is sent, even while consent holds. Every event,
+`trackPixel` included, also checks the choice again under the `noticeVersion` and
 `maxAgeDays` the pixel was started with. A custom event stops the moment the choice expires or the
 stored choice is for another notice, before any navigation or focus has rechecked it.
 
