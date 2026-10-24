@@ -34,6 +34,8 @@ export interface CspOptions {
   websocket?: boolean | undefined;
   /** Whether to also allow images from the API origin. You do not need it when images go through the content images rewrite. */
   imgFromApi?: boolean | undefined;
+  /** The extra sources for `script-src`, such as a script an app loads after consent. */
+  scriptSrc?: readonly string[] | undefined;
   /** The extra sources for `connect-src`. */
   connectSrc?: readonly string[] | undefined;
   /** The extra sources for `img-src`. */
@@ -55,7 +57,7 @@ export function contentSecurityPolicy(o: CspOptions): string {
   const wsOrigin = o.websocket ? origin.replace(/^https:/, "wss:").replace(/^http:/, "ws:") : "";
   return [
     "default-src 'self'",
-    o.dev ? "script-src 'self' 'unsafe-eval' 'unsafe-inline'" : "script-src 'self' 'unsafe-inline'",
+    `script-src ${sources(["'self'", o.dev && "'unsafe-eval'", "'unsafe-inline'", ...(o.scriptSrc ?? [])])}`,
     "style-src 'self' 'unsafe-inline'",
     `img-src ${sources(["'self'", o.imgFromApi && origin, "data:", "blob:", ...(o.imgSrc ?? [])])}`,
     `connect-src ${sources(["'self'", origin, wsOrigin, ...(o.connectSrc ?? [])])}`,

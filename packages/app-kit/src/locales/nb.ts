@@ -12,6 +12,7 @@ import type { EmailStatsPanelStrings } from "../admin/emailStatsPanelStrings";
 import type { LegalPagesEditorStrings } from "../admin/legalPagesEditorStrings";
 import type { StatHistoryChartStrings } from "../admin/statHistoryChartStrings";
 import type { BrandingManagerStrings } from "../branding/brandingManagerStrings";
+import type { ConsentBannerStrings, ConsentSettingsLinkStrings } from "../consent/consentBannerStrings";
 import type { DefaultLegalPageKey } from "../legal/keys";
 import type { LegalPageViewStrings } from "../legal/legalPageViewStrings";
 import type { SectionsEditorStrings } from "../sections/sectionsEditorStrings";
@@ -354,4 +355,20 @@ export const nbSectionTypeLabels: Record<SharedSectionType, string> = {
   cta: "Handlingsfelt",
   stats: "Tallrad",
   image: "Bilde",
+};
+
+/** For `ConsentBanner`. */
+export const nbConsentBannerStrings: ConsentBannerStrings = {
+  title: "Informasjonskapsler for markedsføring",
+  body:
+    "Vi vil gjerne bruke Meta Pixel til å måle annonsene våre og vise deg markedsføring på Metas tjenester. Den setter " +
+    "informasjonskapsler og sender Meta opplysninger om besøket ditt. Ingenting lastes inn før du godtar, og du kan endre valget når som helst.",
+  cookiePolicy: "Les om informasjonskapsler",
+  accept: "Godta",
+  reject: "Avvis",
+};
+
+/** For `ConsentSettingsLink`. */
+export const nbConsentSettingsLinkStrings: ConsentSettingsLinkStrings = {
+  label: "Innstillinger for informasjonskapsler",
 };
