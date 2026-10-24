@@ -1939,13 +1939,13 @@ same `noticeVersion` and `maxAgeDays` as the banner. Once marketing consent is t
 Before `init` it calls `fbq('set', 'autoConfig', false, pixelId)`, which turns off Meta's automatic
 events, such as button clicks and page metadata. The pixel sends page views and the events the app tracks,
 which is what a cookie page can promise, and nothing more.
-It also tracks a PageView each time a client navigation changes the path, read from
-`usePathname`, and never twice for the same path in a row, also with a second `MetaPixel` on the
-page. Meta's real `fbevents.js` counts client navigations by itself, from each `pushState`,
-`replaceState` and `popstate`, and drops a second PageView tracked by hand in the same page load.
-So with the real script, each navigation counts once, from `fbevents.js`, and that includes a
-navigation that changes only the query string. `fbq.disablePushState` is left unset on purpose,
-since setting it would leave client navigations uncounted.
+That PageView is for the page where the pixel starts: the first page load with consent, or the page
+where the visitor accepts. A new Accept after a withdrawal sends one more. `MetaPixel` tracks no
+PageView of its own on client navigation. Meta's `fbevents.js` counts each client navigation as a
+PageView itself, from `pushState`, `replaceState` and `popstate`, and that includes a navigation
+that changes only the query string. It also drops a second PageView tracked by hand in the same
+page load, so tracking navigations here as well would gain nothing. `fbq.disablePushState` is left
+unset on purpose, since setting it would leave client navigations uncounted.
 
 When the visitor withdraws, it calls `fbq('consent', 'revoke')` once and sends no more events.
 Every `MetaPixel` on the page withdraws, judged under the rules of the page's first start, also

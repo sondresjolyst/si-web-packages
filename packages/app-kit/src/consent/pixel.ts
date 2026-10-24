@@ -28,8 +28,6 @@ interface PixelState {
   pixelId: string;
   /** The rules of the first start. Every event checks the choice against them again. */
   options: ConsentOptions;
-  /** The path of the last PageView sent, so two mounts or a rerender do not count a page twice. */
-  lastPath: string | null;
   /** How many MetaPixel mounts run the pixel now. Events are sent only while one does. */
   holders: number;
   /** Counts the stops, so a release from before a stop does not let go of a later start. */
@@ -86,8 +84,8 @@ function installFbq(w: PixelWindow): Fbq {
   fbq.loaded = true;
   fbq.version = "2.0";
   fbq.queue = [];
-  // fbq.disablePushState stays unset on purpose. fbevents.js counts each history change as a PageView
-  // itself, and drops a second PageView tracked by hand in the same page load.
+  // fbq.disablePushState stays unset on purpose. fbevents.js counts each client navigation as a
+  // PageView itself, from the history API, and drops a second PageView tracked by hand in one page load.
   w.fbq = fbq;
   if (!w._fbq) w._fbq = fbq;
 
@@ -99,9 +97,10 @@ function installFbq(w: PixelWindow): Fbq {
 }
 
 /**
- * Loads the pixel and starts it for `pixelId`. Call it only once the visitor has consented. Returns a
- * function that lets go of this start, such as when the mount goes away, or undefined when the pixel
- * already runs with another ID or other rules. Once every start is let go, no event is sent.
+ * Loads the pixel and starts it for `pixelId`. Call it only once the visitor has consented. The first
+ * start, and the first after a stop, sends a PageView for the page it happens on. Returns a function
+ * that lets go of this start, such as when the mount goes away, or undefined when the pixel already
+ * runs with another ID or other rules. Once every start is let go, no event is sent.
  */
 export function startPixel(pixelId: string, options: ConsentOptions = {}): (() => void) | undefined {
   if (conflictsWithPage(pixelId, options)) return undefined;
@@ -109,7 +108,7 @@ export function startPixel(pixelId: string, options: ConsentOptions = {}): (() =
   fbq("consent", "grant");
   let state = states.get(fbq);
   if (!state) {
-    state = { pixelId, options, lastPath: null, holders: 0, generation: 0, revoked: false };
+    state = { pixelId, options, holders: 0, generation: 0, revoked: true };
     states.set(fbq, state);
     // No automatic events, such as button clicks and page metadata. The pixel sends page views and the
     // events the app tracks, as the cookie page says, and nothing more.
@@ -117,8 +116,11 @@ export function startPixel(pixelId: string, options: ConsentOptions = {}): (() =
     // No user data in init, so Advanced Matching stays off.
     fbq("init", pixelId);
   }
+  const resumed = state.revoked;
   state.revoked = false;
   state.holders++;
+  // fbevents.js counts later client navigations itself, so only the page of a start is tracked here.
+  if (resumed) send("PageView");
   const held = state;
   const generation = held.generation;
   let released = false;
@@ -153,17 +155,7 @@ export function stopPixel(): void {
     state.revoked = true;
     state.holders = 0;
     state.generation++;
-    // The next grant counts the page it happens on.
-    state.lastPath = null;
   }
-}
-
-/** Sends a PageView for `path`, once per page, while the pixel runs for `pixelId`. */
-export function trackPageView(pixelId: string, path: string): void {
-  const state = pageState();
-  if (!state || state.pixelId !== pixelId || state.lastPath === path) return;
-  // Only a PageView that went out counts, so a blocked one is sent once sending resumes.
-  if (send("PageView")) state.lastPath = path;
 }
 
 /** Options for `trackPixel`. */

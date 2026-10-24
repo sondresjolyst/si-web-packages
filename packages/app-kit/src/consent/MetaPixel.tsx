@@ -3,7 +3,7 @@
 import { usePathname } from "next/navigation";
 import { useEffect } from "react";
 import { getConsent, recheckConsent } from "./consentStore";
-import { isValidPixelId, pageRules, startPixel, stopPixel, trackPageView } from "./pixel";
+import { isValidPixelId, pageRules, startPixel, stopPixel } from "./pixel";
 import { useConsent } from "./useConsent";
 
 /** Props for `MetaPixel`. */
@@ -17,8 +17,9 @@ export interface MetaPixelProps {
 }
 
 /**
- * Loads the Meta Pixel once the visitor accepts marketing, and sends a PageView for the page and each
- * client navigation to a new path. Before consent, nothing from Meta is loaded. On withdrawal it
+ * Loads the Meta Pixel once the visitor accepts marketing, and sends a PageView for the page where it
+ * starts. fbevents.js counts later client navigations itself. Before consent, nothing from Meta is
+ * loaded. On withdrawal it
  * removes the pixel's cookies, revokes consent in the pixel, and sends nothing more. It renders nothing.
  */
 export function MetaPixel({ pixelId, noticeVersion, maxAgeDays }: MetaPixelProps) {
@@ -45,10 +46,6 @@ export function MetaPixel({ pixelId, noticeVersion, maxAgeDays }: MetaPixelProps
     // unmount, a cleared ID, or a change of rules, this mount lets go, so no event is sent for it.
     return startPixel(id, { noticeVersion, maxAgeDays });
   }, [id, ready, marketing, noticeVersion, maxAgeDays]);
-
-  useEffect(() => {
-    if (id && marketing) trackPageView(id, pathname);
-  }, [id, marketing, pathname]);
 
   return null;
 }

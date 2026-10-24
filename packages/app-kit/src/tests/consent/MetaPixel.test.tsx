@@ -7,7 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ConsentBanner, ConsentSettingsLink, isValidPixelId, META_PIXEL_SCRIPT_SRC, MetaPixel, setConsent, trackPixel } from "../../consent";
 import { CONSENT_STORAGE_KEY, getConsent } from "../../consent";
 import { resetConsentStore } from "../../consent/consentStore";
-import { clearPixelCookies, startPixel, stopPixel, trackPageView } from "../../consent/pixel";
+import { clearPixelCookies, startPixel, stopPixel } from "../../consent/pixel";
 import { navigation } from "../../testing";
 
 vi.mock("next/navigation", async () => (await import("../../testing")).nextNavigationMock());
@@ -84,21 +84,16 @@ describe("MetaPixel", () => {
     expect(pageViews()).toHaveLength(1);
   });
 
-  it("sends exactly one PageView per client navigation", () => {
+  it("tracks no PageView of its own on a client navigation, which fbevents.js counts itself", () => {
     setConsent({ marketing: true });
     const { rerender } = render(<App />);
     expect(pageViews()).toHaveLength(1);
 
     navigation.pathname = "/products";
     rerender(<App />);
-    expect(pageViews()).toHaveLength(2);
-
-    rerender(<App />);
-    expect(pageViews()).toHaveLength(2);
-
     navigation.pathname = "/checkout";
     rerender(<App />);
-    expect(pageViews()).toHaveLength(3);
+    expect(pageViews()).toHaveLength(1);
     expect(scripts()).toHaveLength(1);
   });
 
@@ -135,7 +130,7 @@ describe("MetaPixel", () => {
     expect(pageViews()).toHaveLength(2);
   });
 
-  it("counts the page a new accept happens on, after navigating while withdrawn", async () => {
+  it("sends one PageView for a new grant after a withdrawal, on the page it happens on", async () => {
     setConsent({ marketing: true });
     const { rerender } = render(<App />);
     await userEvent.click(screen.getByRole("button", { name: "Cookie settings" }));
@@ -146,6 +141,9 @@ describe("MetaPixel", () => {
 
     await userEvent.click(screen.getByRole("button", { name: "Cookie settings" }));
     await userEvent.click(screen.getByRole("button", { name: "Accept" }));
+    expect(pageViews()).toHaveLength(2);
+    navigation.pathname = "/later";
+    rerender(<App />);
     expect(pageViews()).toHaveLength(2);
   });
 
@@ -405,15 +403,17 @@ describe("MetaPixel", () => {
     expect(calls().at(-1)).toEqual(["track", "Lead"]);
   });
 
-  it("sends a blocked PageView once sending resumes on the same path", () => {
+  it("sends one PageView per start, not per mount or remount", () => {
     setConsent({ marketing: true });
-    startPixel(ID)!();
-    trackPageView(ID, "/same");
-    expect(pageViews()).toHaveLength(0);
+    const first = startPixel(ID)!;
     startPixel(ID);
-    trackPageView(ID, "/same");
-    trackPageView(ID, "/same");
+    first();
+    startPixel(ID);
     expect(pageViews()).toHaveLength(1);
+    stopPixel();
+    startPixel(ID);
+    startPixel(ID);
+    expect(pageViews()).toHaveLength(2);
   });
 
   it("sends nothing after stopPixel while consent still holds", () => {
@@ -461,7 +461,7 @@ describe("MetaPixel", () => {
     expect(calls().at(-1)).toEqual(["track", "Lead"]);
   });
 
-  it("sends one PageView per page from two mounts", () => {
+  it("sends one PageView from two mounts", () => {
     setConsent({ marketing: true });
     const twice = () => (
       <>
@@ -476,7 +476,7 @@ describe("MetaPixel", () => {
 
     navigation.pathname = "/products";
     rerender(twice());
-    expect(pageViews()).toHaveLength(2);
+    expect(pageViews()).toHaveLength(1);
   });
 
   it("keeps the first pixel ID for the page and warns about another in development", () => {
