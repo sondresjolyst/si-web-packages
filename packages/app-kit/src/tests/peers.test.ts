@@ -29,3 +29,10 @@ describe("./company", () => {
     expect([...packagesImportedBy("company/index.ts")]).toEqual([]);
   });
 });
+
+describe("./consent", () => {
+  it("imports only React and Next, so any site can ask for consent", () => {
+    expect(pkg.exports["./consent"]).toBe("./src/consent/index.ts");
+    expect([...packagesImportedBy("consent/index.ts")].sort()).toEqual(["next", "react"]);
+  });
+});

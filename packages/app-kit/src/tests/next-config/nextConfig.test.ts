@@ -75,6 +75,20 @@ describe("contentSecurityPolicy", () => {
       .toContain("connect-src 'self' http://localhost:5000 ws://localhost:5000;");
   });
 
+  it("adds extra script sources after the defaults, in development too", () => {
+    const scriptSrc = ["https://connect.facebook.net"];
+    expect(contentSecurityPolicy({ apiUrl: API, dev: false, scriptSrc }))
+      .toContain("; script-src 'self' 'unsafe-inline' https://connect.facebook.net; style-src");
+    expect(contentSecurityPolicy({ apiUrl: API, dev: true, scriptSrc }))
+      .toContain("; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://connect.facebook.net; style-src");
+  });
+
+  it("passes the extra script sources through defineAppConfig", async () => {
+    const config = defineAppConfig({ apiUrl: API, dev: false, scriptSrc: ["https://connect.facebook.net"] });
+    const csp = (await config.headers!())[0]!.headers.find(h => h.key === "Content-Security-Policy")?.value;
+    expect(csp).toContain("script-src 'self' 'unsafe-inline' https://connect.facebook.net;");
+  });
+
   it("allows eval in development only", () => {
     expect(contentSecurityPolicy({ apiUrl: API, dev: true })).toContain("script-src 'self' 'unsafe-eval' 'unsafe-inline';");
     expect(contentSecurityPolicy({ apiUrl: API, dev: false })).not.toContain("unsafe-eval");
@@ -88,11 +102,12 @@ describe("contentSecurityPolicy", () => {
 
   it("takes extra sources, and frames or objects only when asked", () => {
     const csp = contentSecurityPolicy({
-      apiUrl: API, dev: false, connectSrc: ["https://vitals.example"], imgSrc: ["https://cdn.example"],
+      apiUrl: API, dev: false, connectSrc: ["https://vitals.example"], imgSrc: ["https://cdn.example"], scriptSrc: ["https://js.example"],
       frameSrc: ["https://www.youtube-nocookie.com"], objectSrc: ["'self'"],
     });
     expect(csp).toContain(`connect-src 'self' ${ORIGIN} https://vitals.example;`);
     expect(csp).toContain("img-src 'self' data: blob: https://cdn.example;");
+    expect(csp).toContain("script-src 'self' 'unsafe-inline' https://js.example;");
     expect(csp).toContain("frame-src https://www.youtube-nocookie.com;");
     expect(csp).toContain("object-src 'self';");
   });

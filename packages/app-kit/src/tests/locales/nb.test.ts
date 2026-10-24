@@ -9,6 +9,7 @@ import {
   defaultStatHistoryChartStrings,
 } from "../../admin";
 import { defaultBrandingManagerStrings } from "../../branding";
+import { defaultConsentBannerStrings, defaultConsentSettingsLinkStrings } from "../../consent";
 import { defaultLegalPageViewStrings } from "../../legal";
 import * as nb from "../../locales/nb";
 import { defaultSectionTypeLabels, defaultSectionsEditorStrings } from "../../sections";
@@ -38,6 +39,8 @@ const pairs: [string, object, object][] = [
   ["nbSectionsEditorStrings", nb.nbSectionsEditorStrings, defaultSectionsEditorStrings],
   ["nbSectionTypeLabels", nb.nbSectionTypeLabels, defaultSectionTypeLabels],
   ["nbLegalPageKeyLabels", nb.nbLegalPageKeyLabels, defaultLegalPageKeyLabels],
+  ["nbConsentBannerStrings", nb.nbConsentBannerStrings, defaultConsentBannerStrings],
+  ["nbConsentSettingsLinkStrings", nb.nbConsentSettingsLinkStrings, defaultConsentSettingsLinkStrings],
 ];
 
 /** Every text of a set with its path, such as `validation.tooLong`, so nested codes count too. */
