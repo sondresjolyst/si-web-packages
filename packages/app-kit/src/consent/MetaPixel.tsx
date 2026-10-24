@@ -19,8 +19,9 @@ export interface MetaPixelProps {
 /**
  * Loads the Meta Pixel once the visitor accepts marketing, and sends a PageView for the page where it
  * starts. fbevents.js counts later client navigations itself. Before consent, nothing from Meta is
- * loaded. On withdrawal it
- * removes the pixel's cookies, revokes consent in the pixel, and sends nothing more. It renders nothing.
+ * loaded. On withdrawal it removes the pixel's cookies, revokes consent in the pixel, and sends
+ * nothing more. When the last MetaPixel goes away, it revokes in the pixel and keeps the cookies. It
+ * renders nothing.
  */
 export function MetaPixel({ pixelId, noticeVersion, maxAgeDays }: MetaPixelProps) {
   const consent = useConsent({ noticeVersion, maxAgeDays });

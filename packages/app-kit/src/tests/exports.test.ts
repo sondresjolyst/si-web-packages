@@ -20,7 +20,6 @@ describe("entry points", () => {
     ["consent", consent, "resetConsentStore"],
     ["consent", consent, "startPixel"],
     ["consent", consent, "stopPixel"],
-    ["consent", consent, "trackPageView"],
     ["consent", consent, "clearPixelCookies"],
     ["consent", consent, "getStoredConsent"],
     ["consent", consent, "applyConsentOptions"],

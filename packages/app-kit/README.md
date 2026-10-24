@@ -1934,18 +1934,22 @@ false. `className` replaces its default classes, and `strings.label` its text, w
 ### `MetaPixel` and `trackPixel`
 
 `MetaPixel` takes `pixelId`, digits only, and renders nothing for anything else. It takes the
-same `noticeVersion` and `maxAgeDays` as the banner. Once marketing consent is true, it adds Meta's base code and
-`fbevents.js`, calls `fbq('init', pixelId)` with no user data, and sends a PageView for the page.
-Before `init` it calls `fbq('set', 'autoConfig', false, pixelId)`, which turns off Meta's automatic
-events, such as button clicks and page metadata. The pixel sends page views and the events the app tracks,
-which is what a cookie page can promise, and nothing more.
-That PageView is for the page where the pixel starts: the first page load with consent, or the page
-where the visitor accepts. A new Accept after a withdrawal sends one more. `MetaPixel` tracks no
-PageView of its own on client navigation. Meta's `fbevents.js` counts each client navigation as a
-PageView itself, from `pushState`, `replaceState` and `popstate`, and that includes a navigation
-that changes only the query string. It also drops a second PageView tracked by hand in the same
+same `noticeVersion` and `maxAgeDays` as the banner. Once marketing consent is true, it adds
+Meta's base code and `fbevents.js`, calls `fbq('init', pixelId)` with no user data, and sends a
+PageView for the page. Before `init` it calls `fbq('set', 'autoConfig', false, pixelId)`, which
+turns off Meta's automatic events, such as button clicks and page metadata. The pixel sends page
+views and the events the app tracks, which is what a cookie page can promise, and nothing more.
+
+That PageView is for the page where the pixel starts: the first page load with consent, or the
+page where the visitor accepts. A new Accept after a withdrawal sends one more. `MetaPixel` tracks
+no PageView of its own on client navigation. Meta's `fbevents.js` counts each client navigation as
+a PageView itself, from `pushState`, `replaceState` and `popstate`. A check against the real
+script, version 2.9.427, confirmed one PageView per navigation, including a navigation that
+changes only the query string. The script also drops a second PageView tracked by hand in the same
 page load, so tracking navigations here as well would gain nothing. `fbq.disablePushState` is left
-unset on purpose, since setting it would leave client navigations uncounted.
+unset on purpose, since setting it would leave client navigations uncounted. When the last
+`MetaPixel` goes away, it revokes consent in the pixel, so that history tracking stops too, and
+keeps the cookies. The next start grants again and sends one PageView.
 
 When the visitor withdraws, it calls `fbq('consent', 'revoke')` once and sends no more events.
 Every `MetaPixel` on the page withdraws, judged under the rules of the page's first start, also
@@ -1971,8 +1975,9 @@ different ID or different rules after that does not start or hold the pixel, and
 development when it tries to. It still withdraws, as above. A new notice version therefore takes effect from the next
 page load.
 
-`trackPixel(event, params?, options?)` sends an event and returns true only when it handed the
-event to `fbq`, so an app can record that a Purchase went out. Meta's standard events, such as `Purchase`,
+`trackPixel(event, params?, options?)` sends an event. It returns true when it handed the event to
+`fbq`, such as for recording that a Purchase was tracked, and false when it sent nothing. True is
+not proof of delivery, since the request to Meta can still fail or be blocked. Meta's standard events, such as `Purchase`,
 go through `track` and any other name through `trackCustom`. `options.eventID` is passed on, so
 Meta drops a duplicate of the same event. It does nothing on the server, before the pixel has
 loaded, and without consent, so it is safe to call from any click handler.

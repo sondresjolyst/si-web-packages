@@ -403,6 +403,66 @@ describe("MetaPixel", () => {
     expect(calls().at(-1)).toEqual(["track", "Lead"]);
   });
 
+  it("revokes, keeping the cookies, once the last MetaPixel goes away, and resumes with one PageView", async () => {
+    setConsent({ marketing: true });
+    document.cookie = "_fbp=fb.1.123; path=/";
+    const both = (second: boolean) => (
+      <>
+        <MetaPixel pixelId={ID} />
+        {second && <MetaPixel pixelId={ID} />}
+      </>
+    );
+    const { rerender, unmount } = render(both(true));
+    rerender(both(false));
+    await act(async () => {});
+    expect(calls().filter(c => c[0] === "consent").map(c => c[1])).toEqual(["grant", "grant"]);
+
+    unmount();
+    await act(async () => {});
+    expect(calls().at(-1)).toEqual(["consent", "revoke"]);
+    expect(document.cookie).toContain("_fbp=fb.1.123");
+    navigation.pathname = "/elsewhere";
+    expect(pageViews()).toHaveLength(1);
+
+    render(<MetaPixel pixelId={ID} />);
+    expect(calls().slice(-2)).toEqual([["consent", "grant"], ["track", "PageView"]]);
+    expect(pageViews()).toHaveLength(2);
+  });
+
+  it("does not revoke when a mount comes back in the same task, as StrictMode does", async () => {
+    setConsent({ marketing: true });
+    render(
+      <StrictMode>
+        <MetaPixel pixelId={ID} />
+      </StrictMode>,
+    );
+    await act(async () => {});
+    expect(calls().filter(c => c[0] === "consent")).toEqual([["consent", "grant"], ["consent", "grant"]]);
+    expect(pageViews()).toHaveLength(1);
+  });
+
+  it("revokes once when two mounts go away together", async () => {
+    setConsent({ marketing: true });
+    const { unmount } = render(
+      <>
+        <MetaPixel pixelId={ID} />
+        <MetaPixel pixelId={ID} />
+      </>,
+    );
+    unmount();
+    await act(async () => {});
+    expect(calls().filter(c => c[0] === "consent").map(c => c[1])).toEqual(["grant", "grant", "revoke"]);
+  });
+
+  it("does not revoke twice after a stop", async () => {
+    setConsent({ marketing: true });
+    const release = startPixel(ID)!;
+    stopPixel();
+    release();
+    await act(async () => {});
+    expect(calls().filter(c => c[0] === "consent").map(c => c[1])).toEqual(["grant", "revoke"]);
+  });
+
   it("sends one PageView per start, not per mount or remount", () => {
     setConsent({ marketing: true });
     const first = startPixel(ID)!;

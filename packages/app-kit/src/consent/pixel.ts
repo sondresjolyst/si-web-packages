@@ -128,6 +128,13 @@ export function startPixel(pixelId: string, options: ConsentOptions = {}): (() =
     if (released || held.generation !== generation) return;
     released = true;
     held.holders--;
+    // With no MetaPixel left, revoke in fbq, so its own history tracking stops too. The cookies stay,
+    // since consent holds. A microtask lets a StrictMode or same-commit remount start again first.
+    queueMicrotask(() => {
+      if (held.holders > 0 || held.revoked) return;
+      held.revoked = true;
+      fbq("consent", "revoke");
+    });
   };
 }
 
