@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.5.0](https://github.com/sondresjolyst/si-web-packages/compare/app-kit-v1.4.0...app-kit-v1.5.0) (2026-10-24)
+
+
+### Features
+
+* **consent:** add a consent banner, consent store and Meta Pixel loader ([#125](https://github.com/sondresjolyst/si-web-packages/issues/125)) ([3d2f01f](https://github.com/sondresjolyst/si-web-packages/commit/3d2f01f3ae4c99fc8fbd761bcd0e0fffd3a26113))
+
 ## [1.4.0](https://github.com/sondresjolyst/si-web-packages/compare/app-kit-v1.3.0...app-kit-v1.4.0) (2026-10-22)
 
 
