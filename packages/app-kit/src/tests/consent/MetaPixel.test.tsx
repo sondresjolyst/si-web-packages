@@ -454,6 +454,27 @@ describe("MetaPixel", () => {
     expect(calls().filter(c => c[0] === "consent").map(c => c[1])).toEqual(["grant", "grant", "revoke"]);
   });
 
+  it("neither revokes nor sends a PageView for a release then a start in the same task", async () => {
+    setConsent({ marketing: true });
+    const release = startPixel(ID)!;
+    release();
+    startPixel(ID);
+    await act(async () => {});
+    expect(calls().filter(c => c[0] === "consent").map(c => c[1])).toEqual(["grant", "grant"]);
+    expect(pageViews()).toHaveLength(1);
+  });
+
+  it("revokes, then grants with one PageView call, for a release then a start in a later task", async () => {
+    setConsent({ marketing: true });
+    const release = startPixel(ID)!;
+    release();
+    await act(async () => {});
+    startPixel(ID);
+    expect(calls().filter(c => c[0] === "consent").map(c => c[1])).toEqual(["grant", "revoke", "grant"]);
+    expect(calls().slice(-2)).toEqual([["consent", "grant"], ["track", "PageView"]]);
+    expect(pageViews()).toHaveLength(2);
+  });
+
   it("does not revoke twice after a stop", async () => {
     setConsent({ marketing: true });
     const release = startPixel(ID)!;

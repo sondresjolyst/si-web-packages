@@ -1838,12 +1838,12 @@ import { ConsentSettingsLink, isValidPixelId } from "@sjolystinnovation/app-kit/
 
 ### The consent store
 
-The choice is stored in `localStorage` under the key `consent`, as `{ consentId, marketing,
-version, decidedAt, noticeVersion }`, with `decidedAt` an ISO 8601 timestamp. `noticeVersion` is
-there only when the app passes one. `consentId` is a random UUID made on the browser's first choice
-and kept for every later one. It is not derived from anything about the visitor. It is not a cookie, since the server never needs it and a cookie would
-travel with every request. It has no expiry and stays until the visitor clears the site's data or
-chooses again.
+The choice is stored in `localStorage` under the key `consent`, as `{ consentId, marketing, version,
+decidedAt, noticeVersion }`, with `decidedAt` an ISO 8601 timestamp. `noticeVersion` is there only
+when the app passes one. `consentId` is a random UUID made on the browser's first choice and kept
+for every later one. It is not derived from anything about the visitor. It is not a cookie, since
+the server never needs it and a cookie would travel with every request. It has no expiry and stays
+until the visitor clears the site's data or chooses again.
 
 `version` is the version of the record's shape, `CONSENT_VERSION`. `noticeVersion` is the version
 of the notice the visitor agreed to, which the app sets, such as the date its cookie page last
@@ -1905,7 +1905,13 @@ With `logEndpoint`, the banner posts every choice there as JSON, so the app can 
 browser chose and under which notice:
 
 ```json
-{ "consentId": "6f1c1f9e-1c2d-4e5f-8a9b-0c1d2e3f4a5b", "marketing": true, "noticeVersion": "2026-10-24", "schemaVersion": 1, "source": "banner" }
+{
+  "consentId": "6f1c1f9e-1c2d-4e5f-8a9b-0c1d2e3f4a5b",
+  "marketing": true,
+  "noticeVersion": "2026-10-24",
+  "schemaVersion": 1,
+  "source": "banner"
+}
 ```
 
 `source` is `banner` on the first ask and `settings` when the visitor reopened the banner.
@@ -1951,12 +1957,20 @@ unset on purpose, since setting it would leave client navigations uncounted. Whe
 `MetaPixel` goes away, it revokes consent in the pixel, so that history tracking stops too, and
 keeps the cookies. The next start grants again and sends one PageView.
 
-When the visitor withdraws, it calls `fbq('consent', 'revoke')` once and sends no more events.
-Every `MetaPixel` on the page withdraws, judged under the rules of the page's first start, also
-one whose own rules differ. Without
-consent it also removes the `_fbp` and `_fbc` cookies on the host and its parent domains, even
-those left from an earlier visit when the pixel never loaded on this page. A new Accept grants
-again without loading the script twice, and counts the page it happens on.
+The revoke waits for the current task to finish, so a StrictMode re-run or a remount in the same
+task neither revokes nor sends another PageView. Two edges follow from that, and both are accepted.
+The client navigation that unmounts the last `MetaPixel` still gets one PageView from Meta's script,
+because its `pushState` runs before the deferred revoke. An unmount and a remount in separate tasks,
+such as across a transition or a Suspense boundary, revoke and then start again, with one more
+PageView call for the same URL. Meta does not count that one twice. The check against the real
+script, version 2.9.427, showed that `fbevents.js` drops a repeated PageView tracked by hand within
+one page load.
+
+When the visitor withdraws, it calls `fbq('consent', 'revoke')` once and sends no more events. Every
+`MetaPixel` on the page withdraws, judged under the rules of the page's first start, also one whose
+own rules differ. Without consent it also removes the `_fbp` and `_fbc` cookies on the host and its
+parent domains, even those left from an earlier visit when the pixel never loaded on this page. A
+new Accept grants again without loading the script twice, and counts the page it happens on.
 
 Meta sets `_fbp` on the site's registrable domain, such as `example.com`, which is why the
 cookies are removed on the parent domains too. So apps on subdomains of one domain, such as
@@ -1972,20 +1986,25 @@ stored choice is for another notice, before any navigation or focus has rechecke
 Meta's pixel cannot drop an ID once it has had `init`. So the first `pixelId` a page starts stays
 until the page reloads, and so do its `noticeVersion` and `maxAgeDays`. A `MetaPixel` with a
 different ID or different rules after that does not start or hold the pixel, and warns in
-development when it tries to. It still withdraws, as above. A new notice version therefore takes effect from the next
-page load.
+development when it tries to. It still withdraws, as above. A new notice version therefore takes
+effect from the next page load.
 
 `trackPixel(event, params?, options?)` sends an event. It returns true when it handed the event to
 `fbq`, such as for recording that a Purchase was tracked, and false when it sent nothing. True is
-not proof of delivery, since the request to Meta can still fail or be blocked. Meta's standard events, such as `Purchase`,
-go through `track` and any other name through `trackCustom`. `options.eventID` is passed on, so
-Meta drops a duplicate of the same event. It does nothing on the server, before the pixel has
-loaded, and without consent, so it is safe to call from any click handler.
+not proof of delivery, since the request to Meta can still fail or be blocked. Meta's standard
+events, such as `Purchase`, go through `track` and any other name through `trackCustom`.
+`options.eventID` is passed on, so Meta drops a duplicate of the same event. It does nothing on the
+server, before the pixel has loaded, and without consent, so it is safe to call from any click
+handler.
 
 ```ts
 import { trackPixel } from "@sjolystinnovation/app-kit/consent";
 
-trackPixel("Purchase", { content_ids: [slug], content_type: "product", num_items: 1, value: 499, currency: "NOK" }, { eventID: orderReference });
+trackPixel(
+  "Purchase",
+  { content_ids: [slug], content_type: "product", num_items: 1, value: 499, currency: "NOK" },
+  { eventID: orderReference },
+);
 ```
 
 `isValidPixelId(id)` is the check `MetaPixel` uses. `META_PIXEL_SCRIPT_SRC` is the script's URL.
