@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import * as admin from "../admin";
 import * as api from "../api";
 import * as company from "../company";
+import * as consent from "../consent";
 import * as session from "../session";
 import * as sessionReact from "../session/react";
 import * as testing from "../testing";
@@ -16,6 +17,15 @@ describe("entry points", () => {
     ["ui", ui, "CONTENT_IMAGE_WIDTHS"],
     ["testing", testing, "axiosSpies"],
     ["testing", testing, "axiosInstanceMock"],
+    ["consent", consent, "resetConsentStore"],
+    ["consent", consent, "startPixel"],
+    ["consent", consent, "stopPixel"],
+    ["consent", consent, "clearPixelCookies"],
+    ["consent", consent, "getStoredConsent"],
+    ["consent", consent, "applyConsentOptions"],
+    ["consent", consent, "recheckConsent"],
+    ["consent", consent, "pageRules"],
+    ["consent", consent, "assertNoticeVersion"],
   ])("%s keeps %s internal", (_entry, module, name) => {
     expect(Object.keys(module)).not.toContain(name);
   });
@@ -30,6 +40,9 @@ describe("entry points", () => {
     );
     expect(api.formatOrgNumber).toBe(company.formatOrgNumber);
     expect(api.mergeCompanyInfo).toBe(company.mergeCompanyInfo);
+    expect(Object.keys(consent)).toEqual(
+      expect.arrayContaining(["ConsentBanner", "ConsentSettingsLink", "MetaPixel", "openConsentSettings", "setConsent", "closeConsentSettings", "trackPixel", "useConsent"]),
+    );
     expect(Object.keys(testing)).toEqual(expect.arrayContaining(["nextAuthMock", "resetTestMocks"]));
   });
 });

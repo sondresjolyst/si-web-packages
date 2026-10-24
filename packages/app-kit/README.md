@@ -28,6 +28,7 @@ security headers. Each part is a separate entry point, so an app imports only wh
 - [`markdown`](#sjolystinnovationapp-kitmarkdown), [`legal`](#sjolystinnovationapp-kitlegal), and [`sections`](#sjolystinnovationapp-kitsections)
 - [`seo`](#sjolystinnovationapp-kitseo) and [`seo/og`](#sjolystinnovationapp-kitseoog)
 - [`payments`](#sjolystinnovationapp-kitpayments)
+- [`consent`](#sjolystinnovationapp-kitconsent)
 - [`locales/nb`](#sjolystinnovationapp-kitlocalesnb)
 - [`testing`](#sjolystinnovationapp-kittesting)
 - [Theming](#theming)
@@ -53,7 +54,7 @@ ones the entry points you import need:
 | `vitest` 5 | `testing` |
 
 Every other entry point, such as the root entry, `next-config`, `seo`, `forms`, `legal`, `company`,
-or `locales/nb`, works without `@heroicons/react`. Install a single copy of `sonner`, because two
+`consent`, or `locales/nb`, works without `@heroicons/react`. Install a single copy of `sonner`, because two
 copies keep two separate toast stores. `jsonwebtoken` comes with the package.
 
 For a site without sign-in, which uses only entries such as the root entry, `ui`, `seo`, `company`,
@@ -117,6 +118,7 @@ The components use Tailwind CSS 4. Import the package's stylesheet after Tailwin
 | [`@sjolystinnovation/app-kit/seo`](#sjolystinnovationapp-kitseo) | Canonical URLs, metadata, sitemaps, `robots.txt`, and structured data. |
 | [`@sjolystinnovation/app-kit/seo/og`](#sjolystinnovationapp-kitseoog) | The default Open Graph share image. |
 | [`@sjolystinnovation/app-kit/payments`](#sjolystinnovationapp-kitpayments) | The page a user returns to from a payment provider, and the kroner and øre helpers. |
+| [`@sjolystinnovation/app-kit/consent`](#sjolystinnovationapp-kitconsent) | The consent banner, the consent store, and the Meta Pixel loaded only after consent. |
 | [`@sjolystinnovation/app-kit/locales/nb`](#sjolystinnovationapp-kitlocalesnb) | Norwegian (bokmål) text for every component that takes `strings`. Imports no peer dependency. |
 | [`@sjolystinnovation/app-kit/testing`](#sjolystinnovationapp-kittesting) | vitest doubles for next-auth, next/navigation, and sonner. |
 | [`@sjolystinnovation/app-kit/styles.css`](#theming) | The theme variables and styles the components use. |
@@ -187,7 +189,7 @@ export default defineAppConfig({
 | `websocket` | `boolean` | Whether to allow `ws:` and `wss:` to the API origin, for SignalR. |
 | `imgFromApi` | `boolean` | Whether to allow images from the API origin. Not needed with `contentImages`. |
 | `contentImages` | `boolean` | Whether to proxy `/content-images/*` to the API's `/content-images/*`, so the browser never contacts the API host. |
-| `connectSrc`, `imgSrc` | `string[]` | Extra sources for those directives. |
+| `scriptSrc`, `connectSrc`, `imgSrc` | `string[]` | Extra sources for those directives. |
 | `frameSrc`, `objectSrc` | `string[]` | Sources for those directives. Both default to `'none'`. |
 | `pathHeaders` | `{ source, headers }[]` | Headers for particular paths, such as a file download. They come after the page headers and replace a page header of the same name. Every path keeps the rest. |
 | `permissionsPolicy` | `string` | Replaces `camera=(), microphone=(), geolocation=()`. |
@@ -1783,6 +1785,246 @@ parseKroner("59,5"); // 5950
 kroner(5950); // "59,50"
 ```
 
+## `@sjolystinnovation/app-kit/consent`
+
+Consent to marketing tools, and the Meta Pixel loaded only after it. The entry point needs no
+optional peer, only Next and React.
+
+The legal ground is the Norwegian Electronic Communications Act (ekomloven) § 3-15 and the EDPB
+guidelines 2/2023. A tracking pixel and its script may not be stored on or read from the visitor's
+device before they consent. So `MetaPixel` injects nothing from Meta, not even `fbevents.js`,
+until the visitor has pressed Accept. Rejecting is one press, as easy as accepting, and the footer
+link makes withdrawing as easy too. The noscript image of Meta's base code is left out, since it
+loads without consent, and Advanced Matching stays off.
+
+```tsx
+// src/app/[locale]/layout.tsx
+import { ConsentBanner, isValidPixelId, MetaPixel } from "@sjolystinnovation/app-kit/consent";
+import { nbConsentBannerStrings } from "@sjolystinnovation/app-kit/locales/nb";
+
+// The rules a stored choice must meet. noticeVersion is the date the cookie page last changed, so a
+// choice made under an older notice is asked for again.
+const consent = { noticeVersion: "2026-10-24", maxAgeDays: 365 };
+
+export default async function Layout({ children }: { children: React.ReactNode }) {
+  const pixelId = await getMarketingPixelId(); // null when no pixel is set up
+  return (
+    <>
+      {children}
+      <ConsentBanner
+        {...consent}
+        enabled={isValidPixelId(pixelId)}
+        cookiesHref="/no/informasjonskapsler"
+        logEndpoint={`${process.env.NEXT_PUBLIC_API_URL}/consent`}
+        strings={nbConsentBannerStrings}
+      />
+      <MetaPixel {...consent} pixelId={pixelId} />
+    </>
+  );
+}
+```
+
+Pass `isValidPixelId(pixelId)` as `enabled`, so the banner never asks about a pixel that would not
+load. Pass the same `noticeVersion` and `maxAgeDays` to `ConsentBanner` and `MetaPixel`, and to
+`useConsent` or `getConsent` anywhere else that reads the choice. The type of that object is
+`ConsentOptions`.
+
+```tsx
+// In the footer
+import { ConsentSettingsLink, isValidPixelId } from "@sjolystinnovation/app-kit/consent";
+
+<ConsentSettingsLink enabled={isValidPixelId(pixelId)} className="hover:underline" />;
+```
+
+### The consent store
+
+The choice is stored in `localStorage` under the key `consent`, as `{ consentId, marketing, version,
+decidedAt, noticeVersion }`, with `decidedAt` an ISO 8601 timestamp. `noticeVersion` is there only
+when the app passes one. `consentId` is a random UUID made on the browser's first choice and kept
+for every later one. It is not derived from anything about the visitor. It is not a cookie, since
+the server never needs it and a cookie would travel with every request. It has no expiry and stays
+until the visitor clears the site's data or chooses again.
+
+`version` is the version of the record's shape, `CONSENT_VERSION`. `noticeVersion` is the version
+of the notice the visitor agreed to, which the app sets, such as the date its cookie page last
+changed. A record of another `version`, a record made for another `noticeVersion`, a record older
+than `maxAgeDays`, a broken record, or storage that throws counts as no choice, so the banner asks
+and nothing loads. `maxAgeDays` defaults to 365, `DEFAULT_CONSENT_MAX_AGE_DAYS`, so a visitor is
+asked again after twelve months. The page checks again on each navigation, when the window gets
+focus, and when the tab becomes visible, so a choice that grows too old in an open tab turns the
+pixel off and brings the banner back. It also rereads storage then, and whenever another tab
+changes the choice, with or without a component on the page.
+
+`noticeVersion` must be 1 to 64 of the characters `A-Z`, `a-z`, `0-9`, `.`, `_` and `-`, which the
+consent log accepts. `ConsentBanner` and `setConsent` throw for anything else in development, so the
+mistake shows at once. `isValidNoticeVersion` is the check. When storage
+cannot be written, the choice holds for the page until it reloads. A choice made in another tab
+applies at once.
+
+- `useConsent(options?)` gives `{ ready, record, marketing, reopened }`. The server and the
+  first render in the browser get `ready: false` and no consent, so the page hydrates cleanly, and
+  storage is read right after. The type is `ConsentState`.
+- `getConsent(options?)` reads the same state outside React. `options` is the `ConsentOptions`
+  object, `{ noticeVersion?, maxAgeDays? }`.
+- `openConsentSettings()` shows the banner again, and `closeConsentSettings()` hides it again
+  without changing the choice.
+- `setConsent({ marketing, noticeVersion?, log? })` stores a choice, closes the banner, and
+  returns the stored record. With `log: { endpoint, source, credentials? }` it also posts the
+  choice to the consent log, as `ConsentBanner` does. The type is `ConsentChoice`. It is for a
+  custom banner only. Call it only from the visitor's own action, such as a button press, since
+  consent has to be an active choice.
+- `logConsent(record, { endpoint, source, credentials? })` posts a stored record to the consent
+  log on its own. Its promise always resolves, also when the request fails.
+- `CONSENT_STORAGE_KEY` and `CONSENT_VERSION` are the key and the record version. The record type is
+  `ConsentRecord`.
+
+### `ConsentBanner`
+
+A labelled region at the bottom of the page, with the purpose, a link to the cookie page, and
+Reject and Accept buttons. The two buttons share one class, so they have the same size, weight,
+and color. The banner is not a modal. It neither traps focus nor covers the page. It shows while
+there is no choice, and again after `openConsentSettings`, when it takes focus and gives it back to
+the opener once the visitor is done. Reopened over an earlier choice, it also has a Close button,
+and Escape closes it. Both keep that choice. On the first ask there is no way past it but a choice,
+though the page behind it stays usable. It renders nothing on the server.
+
+| Prop | Type | Description |
+| --- | --- | --- |
+| `enabled` | `boolean` | Whether the app uses a marketing tool. Pass `isValidPixelId(pixelId)`. When it is false, the banner never shows. |
+| `cookiesHref` | `string` | The path of the cookie page. |
+| `noticeVersion` | `string` | The version of the notice, stored with the choice. A choice made for another version is asked for again. Use 1 to 64 of `A-Z`, `a-z`, `0-9`, `.`, `_` and `-`. Pass the same value to `MetaPixel`. |
+| `maxAgeDays` | `number` | How many days a choice holds before it is asked for again. Defaults to 365. Pass the same value to `MetaPixel`. |
+| `logEndpoint` | `string` | The URL of the consent log. Every choice is posted there. Leave it out to keep no log. |
+| `logCredentials` | `RequestCredentials` | The `credentials` of the log request. Defaults to `"omit"`. |
+| `className` | `string` | Classes for placing it, on the outer element. |
+| `strings` | `TextOverrides<ConsentBannerStrings>` | The title, the text, the link text, and the button labels. The default text names Meta Pixel and its purpose. |
+
+### The consent log
+
+With `logEndpoint`, the banner posts every choice there as JSON, so the app can show later what a
+browser chose and under which notice:
+
+```json
+{
+  "consentId": "6f1c1f9e-1c2d-4e5f-8a9b-0c1d2e3f4a5b",
+  "marketing": true,
+  "noticeVersion": "2026-10-24",
+  "schemaVersion": 1,
+  "source": "banner"
+}
+```
+
+`source` is `banner` on the first ask and `settings` when the visitor reopened the banner.
+`schemaVersion` is the stored record's `version`. The log requires a `noticeVersion` of 1 to 64 of
+the characters `A-Z`, `a-z`, `0-9`, `.`, `_` and `-`, so the payload carries `"1"`,
+`DEFAULT_LOG_NOTICE_VERSION`, when the app sets none. A choice with an invalid `noticeVersion`,
+which only production lets through, is stored but not posted, so the log never names a notice the
+visitor did not see. Those choices are missing from the log on purpose, since development throws on
+the same value first. Set your own `noticeVersion` anyway, so the
+log shows which notice each choice was made under. The
+payload holds no IP address and nothing about the visitor, only the random `consentId`. The
+types are `ConsentLogPayload` and `ConsentSource`.
+
+The request is a `fetch` POST with `keepalive`, so it finishes even when the page unloads right
+after. The banner does not wait for it, and a failed request is ignored. The choice stands either
+way. It sends no cookies, `credentials: "omit"`, like the rest of app-kit, which sends a bearer
+token rather than cookies. Pass `logCredentials` to change that. A log on another origin than the
+site needs CORS for a JSON POST, and its origin in `connect-src`.
+
+### `ConsentSettingsLink`
+
+A button for the footer that calls `openConsentSettings`. It renders nothing when `enabled` is
+false. `className` replaces its default classes, and `strings.label` its text, which defaults to
+"Cookie settings" and to «Innstillinger for informasjonskapsler» in `locales/nb`.
+
+### `MetaPixel` and `trackPixel`
+
+`MetaPixel` takes `pixelId`, digits only, and renders nothing for anything else. It takes the
+same `noticeVersion` and `maxAgeDays` as the banner. Once marketing consent is true, it adds
+Meta's base code and `fbevents.js`, calls `fbq('init', pixelId)` with no user data, and sends a
+PageView for the page. Before `init` it calls `fbq('set', 'autoConfig', false, pixelId)`, which
+turns off Meta's automatic events, such as button clicks and page metadata. The pixel sends page
+views and the events the app tracks, which is what a cookie page can promise, and nothing more.
+
+That PageView is for the page where the pixel starts: the first page load with consent, or the
+page where the visitor accepts. A new Accept after a withdrawal sends one more. `MetaPixel` tracks
+no PageView of its own on client navigation. Meta's `fbevents.js` counts each client navigation as
+a PageView itself, from `pushState`, `replaceState` and `popstate`. A check against the real
+script, version 2.9.427, confirmed one PageView per navigation, including a navigation that
+changes only the query string. The script also drops a second PageView tracked by hand in the same
+page load, so tracking navigations here as well would gain nothing. `fbq.disablePushState` is left
+unset on purpose, since setting it would leave client navigations uncounted. When the last
+`MetaPixel` goes away, it revokes consent in the pixel, so that history tracking stops too, and
+keeps the cookies. The next start grants again and sends one PageView.
+
+The revoke waits for the current task to finish, so a StrictMode re-run or a remount in the same
+task neither revokes nor sends another PageView. Two edges follow from that, and both are accepted.
+The client navigation that unmounts the last `MetaPixel` still gets one PageView from Meta's script,
+because its `pushState` runs before the deferred revoke. An unmount and a remount in separate tasks,
+such as across a transition or a Suspense boundary, revoke and then start again, with one more
+PageView call for the same URL. Meta does not count that one twice. The check against the real
+script, version 2.9.427, showed that `fbevents.js` drops a repeated PageView tracked by hand within
+one page load.
+
+When the visitor withdraws, it calls `fbq('consent', 'revoke')` once and sends no more events. Every
+`MetaPixel` on the page withdraws, judged under the rules of the page's first start, also one whose
+own rules differ. Without consent it also removes the `_fbp` and `_fbc` cookies on the host and its
+parent domains, even those left from an earlier visit when the pixel never loaded on this page. A
+new Accept grants again without loading the script twice, and counts the page it happens on.
+
+Meta sets `_fbp` on the site's registrable domain, such as `example.com`, which is why the
+cookies are removed on the parent domains too. So apps on subdomains of one domain, such as
+`shop.example.com` and `blog.example.com`, must share one consent setup. Otherwise a reject in one
+app deletes the cookie the other app's pixel uses.
+
+Events are sent only while a `MetaPixel` runs the pixel. Once the last one unmounts, loses its
+`pixelId`, or the pixel is stopped, nothing more is sent, even while consent holds. Every event,
+`trackPixel` included, also checks the choice again under the `noticeVersion` and
+`maxAgeDays` the pixel was started with. A custom event stops the moment the choice expires or the
+stored choice is for another notice, before any navigation or focus has rechecked it.
+
+Meta's pixel cannot drop an ID once it has had `init`. So the first `pixelId` a page starts stays
+until the page reloads, and so do its `noticeVersion` and `maxAgeDays`. A `MetaPixel` with a
+different ID or different rules after that does not start or hold the pixel, and warns in
+development when it tries to. It still withdraws, as above. A new notice version therefore takes
+effect from the next page load.
+
+`trackPixel(event, params?, options?)` sends an event. It returns true when it handed the event to
+`fbq`, such as for recording that a Purchase was tracked, and false when it sent nothing. True is
+not proof of delivery, since the request to Meta can still fail or be blocked. Meta's standard
+events, such as `Purchase`, go through `track` and any other name through `trackCustom`.
+`options.eventID` is passed on, so Meta drops a duplicate of the same event. It does nothing on the
+server, before the pixel has loaded, and without consent, so it is safe to call from any click
+handler.
+
+```ts
+import { trackPixel } from "@sjolystinnovation/app-kit/consent";
+
+trackPixel(
+  "Purchase",
+  { content_ids: [slug], content_type: "product", num_items: 1, value: 499, currency: "NOK" },
+  { eventID: orderReference },
+);
+```
+
+`isValidPixelId(id)` is the check `MetaPixel` uses. `META_PIXEL_SCRIPT_SRC` is the script's URL.
+
+The pixel needs these sources in the Content-Security-Policy. With
+[`defineAppConfig`](#sjolystinnovationapp-kitnext-config):
+
+```ts
+defineAppConfig({
+  apiUrl: process.env.NEXT_PUBLIC_API_URL,
+  dev: process.env.NODE_ENV !== "production",
+  scriptSrc: ["https://connect.facebook.net"],
+  imgSrc: ["https://www.facebook.com"],
+  connectSrc: ["https://www.facebook.com", "https://connect.facebook.net"],
+});
+```
+
+The app's cookie and privacy pages still have to describe the pixel, the cookies it sets, and how
+to withdraw. The banner and the loader only make sure that nothing reaches Meta before consent.
+
 ## `@sjolystinnovation/app-kit/locales/nb`
 
 Norwegian (bokmål) text for every component that takes `strings`, one complete object per
@@ -1810,6 +2052,7 @@ it.
 | `nbBrandingManagerStrings` | `BrandingManager`, with its refusal codes |
 | `nbLegalPageViewStrings` | `LegalPageView` |
 | `nbSectionsEditorStrings`, `nbSectionTypeLabels` | `SectionsEditor` and its `typeLabels` |
+| `nbConsentBannerStrings`, `nbConsentSettingsLinkStrings` | `ConsentBanner` and `ConsentSettingsLink` |
 
 ```tsx
 import { CompanySettingsForm } from "@sjolystinnovation/app-kit/admin";
