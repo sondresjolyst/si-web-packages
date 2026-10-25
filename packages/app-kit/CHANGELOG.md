@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.6.0](https://github.com/sondresjolyst/si-web-packages/compare/app-kit-v1.5.1...app-kit-v1.6.0) (2026-10-25)
+
+
+### Features
+
+* **app-kit:** type the legal page version ([#134](https://github.com/sondresjolyst/si-web-packages/issues/134)) ([ecfcde4](https://github.com/sondresjolyst/si-web-packages/commit/ecfcde4776f3af916fcafe7ca406e3488b7e5a71))
+
 ## [1.5.1](https://github.com/sondresjolyst/si-web-packages/compare/app-kit-v1.5.0...app-kit-v1.5.1) (2026-10-25)
 
 
