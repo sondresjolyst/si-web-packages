@@ -2,12 +2,18 @@ import { signIn, type SignInResponse } from "next-auth/react";
 
 /**
  * Tells whether next-auth refused a sign-in for a stale CSRF token. next-auth answers that with its
- * own sign-in page and ?csrf=true, and reports it as ok.
+ * own sign-in page and ?csrf=true, and reports it as ok. A malformed address is not a refusal.
  */
 export function refusedForCsrf(url: string | null | undefined): boolean {
   if (!url) return false;
-  const parsed = new URL(url, window.location.origin);
-  return parsed.pathname.endsWith("/signin") && parsed.searchParams.get("csrf") === "true";
+  // Only the path and the query matter, so any base works outside a browser.
+  const base = typeof window === "undefined" ? "http://localhost" : window.location.origin;
+  try {
+    const parsed = new URL(url, base);
+    return parsed.pathname.endsWith("/signin") && parsed.searchParams.get("csrf") === "true";
+  } catch {
+    return false;
+  }
 }
 
 /**

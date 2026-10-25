@@ -22,6 +22,22 @@ describe("refusedForCsrf", () => {
     expect(refusedForCsrf(null)).toBe(false);
     expect(refusedForCsrf(undefined)).toBe(false);
   });
+
+  it("is false for a malformed address", () => {
+    expect(refusedForCsrf("http://[not-a-host/api/auth/signin?csrf=true")).toBe(false);
+  });
+
+  it("works without window, as on the server", () => {
+    vi.stubGlobal("window", undefined);
+    try {
+      expect(refusedForCsrf("/api/auth/signin?csrf=true")).toBe(true);
+      expect(refusedForCsrf(CSRF_REFUSAL.url)).toBe(true);
+      expect(refusedForCsrf("/login?csrf=true")).toBe(false);
+      expect(refusedForCsrf("http://[not-a-host/api/auth/signin?csrf=true")).toBe(false);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
 });
 
 describe("signInWithCredentials", () => {
@@ -60,6 +76,20 @@ describe("signInWithCredentials", () => {
 
     await expect(signInWithCredentials({ email: "a@b.no", password: "pw" })).resolves.toEqual(failed);
     expect(signIn).toHaveBeenCalledTimes(1);
+  });
+
+  it("rejects after one call when the first signIn throws", async () => {
+    signIn.mockRejectedValue(new Error("Network down"));
+
+    await expect(signInWithCredentials({ email: "a@b.no", password: "pw" })).rejects.toThrow("Network down");
+    expect(signIn).toHaveBeenCalledTimes(1);
+  });
+
+  it("passes a throw on the retry to the caller", async () => {
+    signIn.mockResolvedValueOnce(CSRF_REFUSAL).mockRejectedValueOnce(new Error("Network down"));
+
+    await expect(signInWithCredentials({ email: "a@b.no", password: "pw" })).rejects.toThrow("Network down");
+    expect(signIn).toHaveBeenCalledTimes(2);
   });
 
   it("does not retry a request refused without an address", async () => {
