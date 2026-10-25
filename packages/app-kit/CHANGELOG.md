@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.5.1](https://github.com/sondresjolyst/si-web-packages/compare/app-kit-v1.5.0...app-kit-v1.5.1) (2026-10-25)
+
+
+### Dependencies
+
+* **npm:** bump `zod` from 4.6.5 to 4.6.7 ([#132](https://github.com/sondresjolyst/si-web-packages/issues/132)) ([71d2379](https://github.com/sondresjolyst/si-web-packages/commit/71d2379cda685f01bfe1556e7c2ab103a0c442ab))
+* **npm:** bump the react group with 2 updates ([#129](https://github.com/sondresjolyst/si-web-packages/issues/129)) ([cf1cdba](https://github.com/sondresjolyst/si-web-packages/commit/cf1cdba37d37c52d208a697a2f22176e8c9fc265))
+* **npm:** bump the testing group across 1 directory with 3 updates ([#131](https://github.com/sondresjolyst/si-web-packages/issues/131)) ([74d2034](https://github.com/sondresjolyst/si-web-packages/commit/74d2034737e8c1f444cbfd0788546deb0c97445e))
+
 ## [1.5.0](https://github.com/sondresjolyst/si-web-packages/compare/app-kit-v1.4.0...app-kit-v1.5.0) (2026-10-24)
 
 
