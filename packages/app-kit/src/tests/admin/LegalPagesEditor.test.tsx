@@ -12,8 +12,8 @@ type Key = "terms" | "privacy";
 type Locale = "no" | "en";
 
 const pages: LegalPage<Key>[] = [
-  { key: "terms", locale: "no", title: "Vilkår", bodyMarkdown: "# Vilkår", updatedAt: "2026-01-01" },
-  { key: "privacy", locale: "en", title: "Privacy", bodyMarkdown: "We keep little.", updatedAt: "2026-01-02" },
+  { key: "terms", locale: "no", title: "Vilkår", bodyMarkdown: "# Vilkår", updatedAt: "2026-01-01", version: "2026-01-01T00:00:00.000000Z" },
+  { key: "privacy", locale: "en", title: "Privacy", bodyMarkdown: "We keep little.", updatedAt: "2026-01-02", version: "2026-01-02T00:00:00.000000Z" },
 ];
 
 const service = { listAll: vi.fn(), save: vi.fn() };

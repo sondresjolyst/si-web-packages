@@ -7,6 +7,8 @@ export interface LegalPage<Key extends string = string> {
   title: string;
   bodyMarkdown: string;
   updatedAt: string;
+  /** The version of this text, to send back when the user accepts the page. */
+  version: string;
 }
 
 /** A saved version of a legal page in the list of versions, as the revisions endpoint returns it. */

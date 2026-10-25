@@ -1451,6 +1451,11 @@ The entry point also exports the `LegalPage` type, the same one as `api` exports
 sign-in can type the page without that entry. `LEGAL_PAGE_KEYS` and its `DefaultLegalPageKey` type
 are the default pages of the API and of `createLegalService`.
 
+A `LegalPage` has `key`, `locale`, `title`, `bodyMarkdown`, `updatedAt`, and `version`. `version`
+names the exact text, such as `2026-10-15T12:00:00.000000Z`. When a user accepts the page, such as
+the terms at sign-up or checkout, the app sends `version` back, so the API stores which text the user
+accepted. It needs SjolystInnovation.AppKit.SiteSettings with legal page versions.
+
 ```tsx
 // src/app/[locale]/terms/page.tsx
 import { LegalPageView, type LegalPage } from "@sjolystinnovation/app-kit/legal";

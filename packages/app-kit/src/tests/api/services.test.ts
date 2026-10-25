@@ -188,7 +188,7 @@ describe("createBrandingService", () => {
 });
 
 describe("createLegalService", () => {
-  const page = { key: "terms", locale: "no", title: "Vilkår", bodyMarkdown: "## Vilkår", updatedAt: "2026-10-15T12:00:00Z" };
+  const page = { key: "terms", locale: "no", title: "Vilkår", bodyMarkdown: "## Vilkår", updatedAt: "2026-10-15T12:00:00Z", version: "2026-10-15T12:00:00.000000Z" };
 
   it("reads a page in a language anonymously", async () => {
     const service = createLegalService(fakeClient("api", sent), fakeClient("public", sent, () => page));

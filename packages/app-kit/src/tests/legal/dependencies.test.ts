@@ -13,7 +13,7 @@ describe("the legal entry point", () => {
   });
 
   it("exports the same LegalPage type as the api entry point", () => {
-    const page: LegalPage<"terms"> = { key: "terms", locale: "nb", title: "Vilkår", bodyMarkdown: "", updatedAt: "" };
+    const page: LegalPage<"terms"> = { key: "terms", locale: "nb", title: "Vilkår", bodyMarkdown: "", updatedAt: "", version: "" };
     const same: ApiLegalPage<"terms"> = page;
     expect(same.key).toBe("terms");
   });
