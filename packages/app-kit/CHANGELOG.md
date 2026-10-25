@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.6.1](https://github.com/sondresjolyst/si-web-packages/compare/app-kit-v1.6.0...app-kit-v1.6.1) (2026-10-25)
+
+
+### Bug Fixes
+
+* **app-kit:** retry a sign-in that next-auth refused for CSRF ([#137](https://github.com/sondresjolyst/si-web-packages/issues/137)) ([1162d8e](https://github.com/sondresjolyst/si-web-packages/commit/1162d8ee6b355016f35db2943d33087be6916ea5)), closes [#136](https://github.com/sondresjolyst/si-web-packages/issues/136)
+
 ## [1.6.0](https://github.com/sondresjolyst/si-web-packages/compare/app-kit-v1.5.1...app-kit-v1.6.0) (2026-10-25)
 
 
