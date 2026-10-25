@@ -10,6 +10,8 @@ vi.mock("next-auth/react", () => ({
   signIn: (...args: unknown[]) => signIn(...args),
 }));
 
+const CSRF_REFUSAL = { error: null, ok: true, status: 200, url: "http://localhost:3000/api/auth/signin?csrf=true" };
+
 const passwordField = () => screen.getByLabelText(new RegExp(`^${text.password}`));
 
 async function submit(password = "pw", name = text.signIn) {
@@ -186,7 +188,7 @@ describe("CredentialsForm", () => {
   });
 
   it("does not treat a stale CSRF token as a sign-in, though next-auth reports it as ok", async () => {
-    signIn.mockResolvedValue({ error: null, ok: true, status: 200, url: "http://localhost:3000/api/auth/signin?csrf=true" });
+    signIn.mockResolvedValue(CSRF_REFUSAL);
     const onSignedIn = vi.fn();
     render(<CredentialsForm initialEmail="a@b.no" onSignedIn={onSignedIn} />);
 
@@ -195,6 +197,28 @@ describe("CredentialsForm", () => {
 
     expect(await screen.findByText(text.somethingWentWrong)).toBeInTheDocument();
     expect(onSignedIn).not.toHaveBeenCalled();
+    // One retry, never a loop.
+    expect(signIn).toHaveBeenCalledTimes(2);
+  });
+
+  it("signs in when the retry after a CSRF refusal succeeds", async () => {
+    signIn.mockResolvedValueOnce(CSRF_REFUSAL).mockResolvedValueOnce({ error: null, ok: true, status: 200, url: "http://localhost:3000/login" });
+    const onSignedIn = vi.fn();
+    render(<CredentialsForm initialEmail="a@b.no" onSignedIn={onSignedIn} />);
+
+    await submit("Password1");
+
+    await vi.waitFor(() => expect(onSignedIn).toHaveBeenCalledTimes(1));
+    expect(signIn).toHaveBeenCalledTimes(2);
+    expect(signIn).toHaveBeenLastCalledWith("credentials", { email: "a@b.no", password: "Password1", redirect: false });
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("does not retry a sign-in that failed for any other reason", async () => {
+    await submitWith("InvalidCredentials");
+
+    expect(await screen.findByText(text.invalidCredentials)).toBeInTheDocument();
+    expect(signIn).toHaveBeenCalledTimes(1);
   });
 
   it("accepts a sign-in on a page whose own address has csrf=true", async () => {
