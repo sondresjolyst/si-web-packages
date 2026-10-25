@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { LegalPageView } from "../../legal";
 
-const page = { key: "terms", locale: "no", title: "Vilkår for bruk", bodyMarkdown: "## Kjøp\n\nAlt er **lov**.", updatedAt: "2026-03-05T10:00:00Z" };
+const page = { key: "terms", locale: "no", title: "Vilkår for bruk", bodyMarkdown: "## Kjøp\n\nAlt er **lov**.", updatedAt: "2026-03-05T10:00:00Z", version: "2026-03-05T10:00:00.000000Z" };
 
 describe("LegalPageView", () => {
   it("shows the page's title, its date in the locale, the Markdown body and a link home", () => {
