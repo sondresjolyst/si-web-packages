@@ -452,7 +452,32 @@ page stays where it is. Use it on the login page and in the prompt.
 
 A failed sign-in shows `signInUnavailable` for `SIGN_IN_ERRORS.unavailable`, `lockedOut` for
 `SIGN_IN_ERRORS.lockedOut`, and `invalidCredentials` for any other error code. A request that next-auth refuses without an error
-code, or one that throws, shows `somethingWentWrong`.
+code, or one that throws, shows `somethingWentWrong`. The form signs in through
+[`signInWithCredentials`](#signinwithcredentials-and-refusedforcsrf), so a sign-in that next-auth
+refused for CSRF is sent once more before the form shows `somethingWentWrong`.
+
+### `signInWithCredentials` and `refusedForCsrf`
+
+next-auth gives a new CSRF cookie to each auth request that arrives without one. On a first visit,
+a session read that runs while `signIn` fetches its token can replace the cookie that token belongs
+to. next-auth then refuses the sign-in and answers with its own sign-in page and `?csrf=true`, but
+reports `ok: true`.
+
+`signInWithCredentials(credentials)` calls `signIn("credentials", { ...credentials, redirect: false })`
+and returns its result. When next-auth refused the sign-in for CSRF, it calls `signIn` once more,
+which fetches a token for the cookie now set. next-auth checks the token before it calls
+`authorize`, so the API sees the credentials only once. A second refusal is returned as it is.
+
+`refusedForCsrf(url)` tells whether a result's `url` is that refusal. Check it on the result, since
+next-auth reports the refusal as a success.
+
+```tsx
+const result = await signInWithCredentials({ email, password });
+if (result?.error || !result?.ok || refusedForCsrf(result.url)) {
+  router.push("/login");
+  return;
+}
+```
 
 ### `LoginPage`
 

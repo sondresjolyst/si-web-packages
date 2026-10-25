@@ -1,6 +1,5 @@
 "use client";
 
-import { signIn } from "next-auth/react";
 import { useState, type FormEvent, type ReactNode } from "react";
 import { SIGN_IN_ERRORS } from "../expiry";
 import { Alert } from "../../ui/Alert";
@@ -12,6 +11,7 @@ import {
 } from "./credentialsFormStrings";
 import { TextInput } from "../../ui/TextInput";
 import { withDefaults, type TextOverrides } from "../../ui/withDefaults";
+import { refusedForCsrf, signInWithCredentials } from "./signInWithCredentials";
 
 
 /** Props for `CredentialsForm`. */
@@ -30,13 +30,6 @@ export interface CredentialsFormProps {
 function signInErrorText(error: string, text: CredentialsFormStrings): string {
   if (error === SIGN_IN_ERRORS.unavailable) return text.signInUnavailable;
   return error === SIGN_IN_ERRORS.lockedOut ? text.lockedOut : text.invalidCredentials;
-}
-
-// next-auth answers a stale CSRF token with its own sign-in page and ?csrf=true.
-function refusedForCsrf(url: string | null | undefined): boolean {
-  if (!url) return false;
-  const parsed = new URL(url, window.location.origin);
-  return parsed.pathname.endsWith("/signin") && parsed.searchParams.get("csrf") === "true";
 }
 
 /** Renders email and password sign-in through next-auth's credentials provider. */
@@ -62,12 +55,12 @@ export function CredentialsForm({
     setSubmitting(true);
     onPendingChange?.(true);
     try {
-      const result = await signIn("credentials", { email, password, redirect: false });
+      const result = await signInWithCredentials({ email, password });
       if (result?.error) {
         setError(signInErrorText(result.error, text));
         return;
       }
-      // next-auth reports a stale CSRF token as a success, see refusedForCsrf.
+      // next-auth reports a stale CSRF token as a success. The sign-in was already sent again once.
       if (!result?.ok || refusedForCsrf(result.url)) {
         setError(text.somethingWentWrong);
         return;
