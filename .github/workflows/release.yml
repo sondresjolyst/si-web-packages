@@ -22,7 +22,7 @@ concurrency:
 jobs:
   release-please:
     name: Release Please
-    uses: equinor/ops-actions/.github/workflows/release-please-manifest.yml@def1359ccd977da6f0720b22328ba6ac02b380ae # v9.43.2
+    uses: equinor/ops-actions/.github/workflows/release-please-manifest.yml@dae4f55b517888e44a342a5f7d3dfac40580a127 # v9.44.0
     permissions:
       contents: write
       pull-requests: write
@@ -50,7 +50,7 @@ jobs:
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           # The npm bundled with 26.10.0 has the stage command, which arrived in npm 11.15.
-          node-version: '26.10.0'
+          node-version: '26.12.1'
 
       - name: Stage ${{ matrix.path }}
         working-directory: ${{ matrix.path }}
