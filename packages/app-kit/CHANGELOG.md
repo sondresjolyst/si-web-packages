@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.7.0](https://github.com/sondresjolyst/si-web-packages/compare/app-kit-v1.6.1...app-kit-v1.7.0) (2026-11-14)
+
+
+### Features
+
+* **consent:** add a TikTok Pixel loader and a Meta autoConfig option ([#147](https://github.com/sondresjolyst/si-web-packages/issues/147)) ([5401336](https://github.com/sondresjolyst/si-web-packages/commit/540133647067c38df70f921033316d840639716b))
+
 ## [1.6.1](https://github.com/sondresjolyst/si-web-packages/compare/app-kit-v1.6.0...app-kit-v1.6.1) (2026-10-25)
 
 
