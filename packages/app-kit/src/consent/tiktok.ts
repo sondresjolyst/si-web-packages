@@ -46,6 +46,11 @@ interface TikTokPixelState {
   granted: boolean;
   /** Whether consent is revoked in ttq now, so a repeated stop does not revoke again. */
   revoked: boolean;
+  /**
+   * When the choice in force at the last hold was made, or undefined when the pixel is not held. A
+   * start under another choice drops the held queue first.
+   */
+  heldDecidedAt?: string | undefined;
 }
 
 const states = new WeakMap<Ttq, TikTokPixelState>();
@@ -190,6 +195,13 @@ export function startTikTokPixel(pixelId: string, options: ConsentOptions = {}):
     // the server says, so the cookie page has to describe them, or the owner turns them off there.
     if (!ttq._i?.[pixelId]) ttq.load(pixelId);
   }
+  // A held pixel cached page views since the hold. If the visitor chose again since then, such as
+  // after the old choice expired unnoticed, those views fall outside this choice, so a revoke drops
+  // them before the grant. A remount under the same choice keeps them.
+  if (state.heldDecidedAt !== undefined && getStoredConsent().record?.decidedAt !== state.heldDecidedAt) {
+    call(ttq, "revokeConsent");
+  }
+  state.heldDecidedAt = undefined;
   call(ttq, "grantConsent");
   const resumed = !state.granted;
   state.granted = true;
@@ -211,6 +223,7 @@ export function startTikTokPixel(pixelId: string, options: ConsentOptions = {}):
     queueMicrotask(() => {
       if (held.holders > 0 || !held.granted) return;
       held.granted = false;
+      held.heldDecidedAt = getStoredConsent().record?.decidedAt ?? "";
       call(ttq, "holdConsent");
     });
   };
@@ -248,6 +261,7 @@ export function stopTikTokPixel(): void {
   if (state) {
     state.revoked = true;
     state.granted = false;
+    state.heldDecidedAt = undefined;
     state.holders = 0;
     state.generation++;
   }

@@ -305,6 +305,36 @@ describe("TikTokPixel", () => {
     }
   });
 
+  it("drops the held queue when the choice expired unnoticed and was made again before a new mount", async () => {
+    const start = new Date("2026-10-24T12:00:00Z");
+    vi.useFakeTimers({ now: start, toFake: ["Date"] });
+    try {
+      setConsent({ marketing: true });
+      const { unmount } = render(<TikTokPixel pixelId={ID} maxAgeDays={1} />);
+      unmount();
+      await act(async () => {});
+      vi.setSystemTime(new Date(start.getTime() + 2 * 24 * 60 * 60 * 1000));
+      act(() => setConsent({ marketing: true }));
+      expect(consentCalls()).toEqual(["holdConsent", "grantConsent", "holdConsent"]);
+
+      render(<TikTokPixel pixelId={ID} maxAgeDays={1} />);
+      expect(consentCalls()).toEqual(["holdConsent", "grantConsent", "holdConsent", "revokeConsent", "grantConsent"]);
+      expect(calls().slice(-3)).toEqual([["revokeConsent"], ["grantConsent"], ["page"]]);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("keeps the held queue, with no revoke, for a remount under the same choice", async () => {
+    setConsent({ marketing: true });
+    const { unmount } = render(<TikTokPixel pixelId={ID} />);
+    unmount();
+    await act(async () => {});
+    render(<TikTokPixel pixelId={ID} />);
+    expect(consentCalls()).toEqual(["holdConsent", "grantConsent", "holdConsent", "grantConsent"]);
+    expect(pages()).toHaveLength(2);
+  });
+
   it("revokes on a withdrawal after the last TikTokPixel has gone away", async () => {
     setConsent({ marketing: true });
     const { unmount } = render(<App />);
