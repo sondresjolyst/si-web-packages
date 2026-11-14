@@ -30,7 +30,8 @@ const scripts = () => document.querySelectorAll(`script[src^="${TIKTOK_PIXEL_SCR
 const calls = (): unknown[][] => [...(ttWindow().ttq ?? [])];
 const pages = () => calls().filter(c => c[0] === "page");
 const consentCalls = () => calls().filter(c => /Consent$/.test(String(c[0]))).map(c => c[0]);
-const COOKIES = ["_ttp", "ttclid", "ttcsid", "ttcsid_ABC", "own"];
+const COOKIES = ["_ttp", "_tt_enable_cookie", "ttclid", "ttcsid", "ttcsid_ABC", "own"];
+const TIKTOK_COOKIES = /_ttp|_tt_enable_cookie|ttclid|ttcsid/;
 
 function App({ pixelId = ID, noticeVersion, maxAgeDays }: { pixelId?: string | null | undefined; noticeVersion?: string; maxAgeDays?: number }) {
   return (
@@ -44,6 +45,7 @@ function App({ pixelId = ID, noticeVersion, maxAgeDays }: { pixelId?: string | n
 
 function setTikTokCookies() {
   document.cookie = "_ttp=abc; path=/";
+  document.cookie = "_tt_enable_cookie=1; path=/";
   document.cookie = "ttclid=def; path=/";
   document.cookie = "ttcsid=1; path=/";
   document.cookie = "ttcsid_ABC=2; path=/";
@@ -140,7 +142,7 @@ describe("TikTokPixel", () => {
     await userEvent.click(screen.getByRole("button", { name: "Cookie settings" }));
     await userEvent.click(screen.getByRole("button", { name: "Reject" }));
     expect(calls().at(-1)).toEqual(["revokeConsent"]);
-    expect(document.cookie).not.toMatch(/_ttp|ttclid|ttcsid/);
+    expect(document.cookie).not.toMatch(TIKTOK_COOKIES);
     expect(document.cookie).toContain("own=1");
 
     const before = calls().length;
@@ -160,7 +162,7 @@ describe("TikTokPixel", () => {
     clearTikTokPixelCookies("www.example.co.uk");
     const expired = "=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/";
     expect(writes).toEqual(
-      ["_ttp", "ttclid", "ttcsid", "ttcsid_ABC"].flatMap(name => [
+      ["_ttp", "_tt_enable_cookie", "ttclid", "ttcsid", "ttcsid_ABC"].flatMap(name => [
         `${name}${expired}`,
         `${name}${expired}; domain=.www.example.co.uk`,
         `${name}${expired}; domain=.example.co.uk`,
@@ -169,11 +171,32 @@ describe("TikTokPixel", () => {
     );
   });
 
+  it.each([
+    ["localhost", [""]],
+    ["127.0.0.1", ["", "; domain=.127.0.0.1", "; domain=.0.0.1", "; domain=.0.1"]],
+  ])("removes the cookies on %s", (host, domains) => {
+    const writes: string[] = [];
+    vi.spyOn(Document.prototype, "cookie", "set").mockImplementation(value => {
+      writes.push(value);
+    });
+    clearTikTokPixelCookies(host);
+    const expired = "=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/";
+    expect(writes).toEqual(["_ttp", "_tt_enable_cookie", "ttclid", "ttcsid"].flatMap(name => domains.map(d => `${name}${expired}${d}`)));
+  });
+
+  it("clears _tt_enable_cookie on withdrawal", () => {
+    setConsent({ marketing: true });
+    render(<TikTokPixel pixelId={ID} />);
+    document.cookie = "_tt_enable_cookie=1; path=/";
+    act(() => setConsent({ marketing: false }));
+    expect(document.cookie).not.toContain("_tt_enable_cookie");
+  });
+
   it("removes old TikTok cookies without consent, even when the pixel never loaded", () => {
     setTikTokCookies();
     setConsent({ marketing: false });
     render(<TikTokPixel pixelId={ID} />);
-    expect(document.cookie).not.toMatch(/_ttp|ttclid|ttcsid/);
+    expect(document.cookie).not.toMatch(TIKTOK_COOKIES);
     expect(document.cookie).toContain("own=1");
     expect(ttWindow().ttq).toBeUndefined();
     expect(scripts()).toHaveLength(0);
@@ -228,18 +251,29 @@ describe("TikTokPixel", () => {
     expect(trackTikTok("Lead")).toBe(false);
   });
 
-  it("revokes, keeping the cookies, once the last TikTokPixel goes away, and resumes with one page view", async () => {
+  it("holds, not revokes, keeping the cookies, once the last TikTokPixel goes away, and resumes with one page view", async () => {
     setConsent({ marketing: true });
     document.cookie = "_ttp=abc; path=/";
     const { unmount } = render(<TikTokPixel pixelId={ID} />);
     unmount();
     await act(async () => {});
-    expect(calls().at(-1)).toEqual(["revokeConsent"]);
+    expect(consentCalls()).toEqual(["holdConsent", "grantConsent", "holdConsent"]);
     expect(document.cookie).toContain("_ttp=abc");
 
     render(<TikTokPixel pixelId={ID} />);
     expect(calls().slice(-2)).toEqual([["grantConsent"], ["page"]]);
     expect(pages()).toHaveLength(2);
+    expect(trackTikTok("Lead")).toBe(true);
+  });
+
+  it("revokes on a withdrawal after the last TikTokPixel has gone away", async () => {
+    setConsent({ marketing: true });
+    const { unmount } = render(<App />);
+    unmount();
+    await act(async () => {});
+    act(() => setConsent({ marketing: false }));
+    render(<App />);
+    expect(consentCalls()).toEqual(["holdConsent", "grantConsent", "holdConsent", "revokeConsent"]);
   });
 
   it("does not let a release from before a stop let go of a later start", () => {
@@ -331,6 +365,67 @@ describe("TikTokPixel", () => {
   });
 });
 
+describe("an existing window.ttq", () => {
+  /** TikTok's base code as a site pastes it, without the consent mode methods unless asked for. */
+  function officialStub(consentMethods: boolean) {
+    const ttq = [] as unknown as Ttq & { methods: string[]; setAndDefer: (t: Ttq, e: string) => void };
+    ttWindow().TiktokAnalyticsObject = "ttq";
+    ttWindow().ttq = ttq;
+    ttq.methods = ["page", "track", "identify", "instances", "debug", "on", "off", "once", "ready", "alias", "group", "enableCookie", "disableCookie"];
+    if (consentMethods) ttq.methods.push("holdConsent", "revokeConsent", "grantConsent");
+    ttq.setAndDefer = (t, e) => {
+      t[e] = (...args: unknown[]) => {
+        t.push([e, ...args]);
+      };
+    };
+    for (const method of ttq.methods) ttq.setAndDefer(ttq, method);
+    return ttq;
+  }
+
+  it("keeps the official stub, and loads the pixel once", () => {
+    const ttq = officialStub(true);
+    setConsent({ marketing: true });
+    render(<TikTokPixel pixelId={ID} />);
+    expect(ttWindow().ttq).toBe(ttq);
+    expect(scripts()).toHaveLength(1);
+    expect(calls()).toEqual([["holdConsent"], ["grantConsent"], ["page"]]);
+  });
+
+  it("adds the consent methods to a stub without them", () => {
+    const ttq = officialStub(false);
+    setConsent({ marketing: true });
+    render(<TikTokPixel pixelId={ID} />);
+    expect(ttWindow().ttq).toBe(ttq);
+    expect(ttq.methods).toEqual(expect.arrayContaining(["holdConsent", "revokeConsent", "grantConsent"]));
+    expect(calls()).toEqual([["holdConsent"], ["grantConsent"], ["page"]]);
+    act(() => setConsent({ marketing: false }));
+    expect(calls().at(-1)).toEqual(["revokeConsent"]);
+  });
+
+  it("does not load again a pixel the page has already loaded", () => {
+    const ttq = officialStub(true) as Ttq & { _i?: Record<string, unknown> };
+    ttq._i = { [ID]: [] };
+    setConsent({ marketing: true });
+    render(<TikTokPixel pixelId={ID} />);
+    expect(scripts()).toHaveLength(0);
+    expect(calls()).toEqual([["holdConsent"], ["grantConsent"], ["page"]]);
+  });
+
+  it("does nothing, with a warning in development, for a ttq that is not an array", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const other = { page: vi.fn(), track: vi.fn() };
+    (window as unknown as { ttq: unknown }).ttq = other;
+    setConsent({ marketing: true });
+    render(<TikTokPixel pixelId={ID} />);
+    expect(warn).toHaveBeenCalled();
+    expect(scripts()).toHaveLength(0);
+    expect(ttWindow().ttq).toBe(other);
+    expect(other.page).not.toHaveBeenCalled();
+    expect(trackTikTok("Lead")).toBe(false);
+    expect(other.track).not.toHaveBeenCalled();
+  });
+});
+
 describe("isValidTikTokPixelId", () => {
   it("takes 10 to 32 capital letters and digits", () => {
     expect(isValidTikTokPixelId(ID)).toBe(true);
@@ -352,7 +447,7 @@ describe("trackTikTok", () => {
 
   it("sends nothing without consent, even when ttq is there", () => {
     const track = vi.fn();
-    ttWindow().ttq = { track } as unknown as Ttq;
+    ttWindow().ttq = Object.assign([], { track }) as unknown as Ttq;
     expect(trackTikTok("Purchase")).toBe(false);
     setConsent({ marketing: false });
     expect(trackTikTok("Purchase")).toBe(false);
@@ -403,7 +498,7 @@ describe("identifyTikTok", () => {
 
     const identify = vi.fn();
     delete ttWindow().ttq;
-    ttWindow().ttq = { identify } as unknown as Ttq;
+    ttWindow().ttq = Object.assign([], { identify }) as unknown as Ttq;
     setConsent({ marketing: false });
     expect(identifyTikTok({ email: "a@b.no" })).toBe(false);
     expect(identify).not.toHaveBeenCalled();
@@ -417,10 +512,18 @@ describe("identifyTikTok", () => {
     expect(identifyTikTok({ email: "  Ola.Nordmann@Example.NO ", phoneNumber: "+4712345678", externalId: "u-1" })).toBe(true);
     identifyTikTok({ phoneNumber: "12345678" });
     identifyTikTok({ phoneNumber: "+47 123 45 678" });
+    identifyTikTok({ phoneNumber: "+1 (555) 123-4567" });
+    identifyTikTok({ phoneNumber: "+47.123.45.678" });
+    identifyTikTok({ phoneNumber: "0047 123 45 678" });
+    identifyTikTok({ phoneNumber: "+47 123 45 678 ext 9" });
     identifyTikTok({});
 
     expect(calls().filter(c => c[0] === "identify")).toEqual([
       ["identify", { email: "ola.nordmann@example.no", phone_number: "+4712345678", external_id: "u-1" }],
+      ["identify", { email: "", phone_number: "", external_id: "" }],
+      ["identify", { email: "", phone_number: "+4712345678", external_id: "" }],
+      ["identify", { email: "", phone_number: "+15551234567", external_id: "" }],
+      ["identify", { email: "", phone_number: "+4712345678", external_id: "" }],
       ["identify", { email: "", phone_number: "", external_id: "" }],
       ["identify", { email: "", phone_number: "", external_id: "" }],
       ["identify", { email: "", phone_number: "", external_id: "" }],

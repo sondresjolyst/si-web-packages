@@ -17,7 +17,7 @@ export {
 } from "./consentStore";
 export type { ConsentChoice, ConsentOptions, ConsentRecord, ConsentState } from "./consentStore";
 export { isValidPixelId, META_PIXEL_SCRIPT_SRC, trackPixel } from "./pixel";
-export type { StartPixelOptions, TrackPixelOptions } from "./pixel";
+export type { TrackPixelOptions } from "./pixel";
 export { MetaPixel } from "./MetaPixel";
 export type { MetaPixelProps } from "./MetaPixel";
 export { identifyTikTok, isValidTikTokPixelId, TIKTOK_PIXEL_SCRIPT_SRC, trackTikTok } from "./tiktok";

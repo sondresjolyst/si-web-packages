@@ -19,9 +19,9 @@ export interface TikTokPixelProps {
 /**
  * Loads the TikTok Pixel once the visitor accepts marketing, and sends a page view for the page where
  * it starts. The pixel counts later client navigations itself. Before consent, nothing from TikTok is
- * loaded. On withdrawal it removes the pixel's cookies, revokes consent in the pixel, and sends
- * nothing more. When the last TikTokPixel goes away, it revokes in the pixel and keeps the cookies.
- * It renders nothing.
+ * loaded. On withdrawal it removes the pixel's cookies and revokes consent in the pixel. TikTok's
+ * script then sends one notice of the revoke, and nothing more. When the last TikTokPixel goes away,
+ * it holds consent in the pixel and keeps the cookies. It renders nothing.
  */
 export function TikTokPixel({ pixelId, noticeVersion, maxAgeDays }: TikTokPixelProps) {
   const consent = useConsent({ noticeVersion, maxAgeDays });

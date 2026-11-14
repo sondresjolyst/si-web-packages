@@ -17,7 +17,8 @@ const METHODS = [
 /** An array the base code queues calls on, with a method added for each name in `methods`. */
 type Deferred = unknown[][] & Record<string, unknown>;
 
-type Ttq = Deferred & {
+/** The parts of ttq the base code adds. A ttq another script made may lack some of them. */
+interface TtqParts {
   methods: string[];
   setAndDefer: (target: Deferred, method: string) => void;
   instance: (pixelId: string) => Deferred;
@@ -25,9 +26,11 @@ type Ttq = Deferred & {
   _i?: Record<string, Deferred & { _u?: string }>;
   _t?: Record<string, number>;
   _o?: Record<string, Record<string, unknown>>;
-};
+}
 
-type TikTokWindow = Window & { ttq?: Ttq; TiktokAnalyticsObject?: string };
+type Ttq = Deferred & TtqParts;
+
+type TikTokWindow = Window & { ttq?: unknown; TiktokAnalyticsObject?: string };
 
 /** What this page's pixel is doing. It hangs off the ttq it belongs to, so every mount shares it. */
 interface TikTokPixelState {
@@ -39,6 +42,8 @@ interface TikTokPixelState {
   holders: number;
   /** Counts the stops, so a release from before a stop does not let go of a later start. */
   generation: number;
+  /** Whether consent is granted in ttq now. A hold or a revoke ends it. */
+  granted: boolean;
   /** Whether consent is revoked in ttq now, so a repeated stop does not revoke again. */
   revoked: boolean;
 }
@@ -50,9 +55,10 @@ export function isValidTikTokPixelId(pixelId: unknown): pixelId is string {
   return typeof pixelId === "string" && /^[A-Z0-9]{10,32}$/.test(pixelId);
 }
 
+/** Gives the page's ttq. Only an array counts, as the base code makes one. */
 function pageTtq(): Ttq | undefined {
   const ttq = (window as TikTokWindow).ttq;
-  return typeof ttq === "object" && ttq !== null ? ttq : undefined;
+  return Array.isArray(ttq) ? (ttq as Ttq) : undefined;
 }
 
 function pageState(): TikTokPixelState | undefined {
@@ -87,26 +93,40 @@ function conflictsWithPage(pixelId: string, options: ConsentOptions): boolean {
 /**
  * TikTok's base code with the consent mode methods, without the load and the page view it does at
  * once. It adds the script before the page's first script, as the base code does, or to the head
- * when the page has no script.
+ * when the page has no script. A ttq already on the page is kept, and gets whatever it lacks of the
+ * base code, such as the consent mode methods. Returns undefined when `window.ttq` is something
+ * other than an array, since the base code would not run on it either.
  */
-function installTtq(w: TikTokWindow): Ttq {
-  if (w.ttq) return w.ttq;
-  w.TiktokAnalyticsObject = GLOBAL_NAME;
-  const ttq = [] as unknown as Ttq;
-  w.ttq = ttq;
-  ttq.methods = [...METHODS];
-  ttq.setAndDefer = (target, method) => {
+function installTtq(w: TikTokWindow): Ttq | undefined {
+  if (w.ttq !== undefined && !pageTtq()) {
+    if (process.env.NODE_ENV !== "production") {
+      console.warn("TikTokPixel: window.ttq is not TikTok's pixel, so the pixel does not start.");
+    }
+    return undefined;
+  }
+  let ttq = pageTtq();
+  if (!ttq) {
+    w.TiktokAnalyticsObject = GLOBAL_NAME;
+    ttq = [] as unknown as Ttq;
+    w.ttq = ttq;
+  }
+  const full = ttq;
+  const parts = ttq as Deferred & Partial<TtqParts>;
+  if (!Array.isArray(parts.methods)) parts.methods = [];
+  for (const method of METHODS) if (!parts.methods.includes(method)) parts.methods.push(method);
+  parts.setAndDefer ??= (target, method) => {
     target[method] = (...args: unknown[]) => {
       target.push([method, ...args]);
     };
   };
-  for (const method of ttq.methods) ttq.setAndDefer(ttq, method);
-  ttq.instance = pixelId => {
-    const instance = ttq._i?.[pixelId] ?? ([] as unknown as Deferred);
-    for (const method of ttq.methods) ttq.setAndDefer(instance, method);
+  for (const method of parts.methods) if (typeof full[method] !== "function") parts.setAndDefer(full, method);
+  parts.instance ??= pixelId => {
+    const instance = full._i?.[pixelId] ?? ([] as unknown as Deferred);
+    for (const method of full.methods) full.setAndDefer(instance, method);
     return instance;
   };
-  ttq.load = (pixelId, options) => {
+  parts.load ??= (pixelId, options) => {
+    const ttq = full;
     const src = TIKTOK_PIXEL_SCRIPT_SRC;
     ttq._i = ttq._i ?? {};
     const queue = [] as unknown as Deferred & { _u?: string };
@@ -143,17 +163,22 @@ function call(ttq: Ttq, method: string, ...args: unknown[]): void {
 export function startTikTokPixel(pixelId: string, options: ConsentOptions = {}): (() => void) | undefined {
   if (conflictsWithPage(pixelId, options)) return undefined;
   const ttq = installTtq(window as TikTokWindow);
+  if (!ttq) return undefined;
   let state = states.get(ttq);
   if (!state) {
-    state = { pixelId, options, holders: 0, generation: 0, revoked: true };
+    const { noticeVersion, maxAgeDays } = options;
+    state = { pixelId, options: { noticeVersion, maxAgeDays }, holders: 0, generation: 0, granted: false, revoked: false };
     states.set(ttq, state);
     // Consent mode: events wait in the pixel until consent is granted or revoked.
     call(ttq, "holdConsent");
-    // No options in load and no user data, so the pixel shares only what the app sends.
-    ttq.load(pixelId);
+    // No options in load and no user data from here. TikTok's automatic events and Automatic Advanced
+    // Matching are switched on or off in TikTok Events Manager, not in code. The script turns on what
+    // the server says, so the cookie page has to describe them, or the owner turns them off there.
+    if (!ttq._i?.[pixelId]) ttq.load(pixelId);
   }
   call(ttq, "grantConsent");
-  const resumed = state.revoked;
+  const resumed = !state.granted;
+  state.granted = true;
   state.revoked = false;
   state.holders++;
   // The pixel counts later client navigations itself, so only the page of a start is tracked here.
@@ -165,18 +190,20 @@ export function startTikTokPixel(pixelId: string, options: ConsentOptions = {}):
     if (released || held.generation !== generation) return;
     released = true;
     held.holders--;
-    // With no TikTokPixel left, revoke in ttq, so its own history tracking stops too. The cookies stay,
-    // since consent holds. A microtask lets a StrictMode or same-commit remount start again first.
+    // With no TikTokPixel left, hold consent in ttq, so its own history tracking waits too. It holds
+    // rather than revokes, since consent still holds and a revoke sends TikTok a notice. The cookies
+    // stay, and the next grant resumes. A microtask lets a StrictMode or same-commit remount start
+    // again first.
     queueMicrotask(() => {
-      if (held.holders > 0 || held.revoked) return;
-      held.revoked = true;
-      call(ttq, "revokeConsent");
+      if (held.holders > 0 || !held.granted) return;
+      held.granted = false;
+      call(ttq, "holdConsent");
     });
   };
 }
 
 /** The pixel's first-party cookies with a fixed name. Each `ttcsid_` cookie is found by its name. */
-const COOKIE_NAMES = ["_ttp", "ttclid", "ttcsid"];
+const COOKIE_NAMES = ["_ttp", "_tt_enable_cookie", "ttclid", "ttcsid"];
 
 /** Removes the cookies the pixel sets on this site, on the host and each parent domain. */
 export function clearTikTokPixelCookies(hostname: string = window.location.hostname): void {
@@ -195,7 +222,8 @@ export function clearTikTokPixelCookies(hostname: string = window.location.hostn
 
 /**
  * Removes the pixel's cookies, even those left from an earlier visit, and tells a loaded pixel that
- * consent is withdrawn. Nothing more is sent until `startTikTokPixel`.
+ * consent is withdrawn. TikTok's script then sends one notice of the revoke, and nothing more is sent
+ * until `startTikTokPixel`.
  */
 export function stopTikTokPixel(): void {
   clearTikTokPixelCookies();
@@ -205,6 +233,7 @@ export function stopTikTokPixel(): void {
   if (!state?.revoked) call(ttq, "revokeConsent");
   if (state) {
     state.revoked = true;
+    state.granted = false;
     state.holders = 0;
     state.generation++;
   }
@@ -247,7 +276,10 @@ export function trackTikTok(event: string, params?: Record<string, unknown>, opt
 export interface TikTokIdentity {
   /** The visitor's email. It is trimmed and lowercased. */
   email?: string | undefined;
-  /** The visitor's phone number in E.164, such as `+4712345678`. Anything else is left out. */
+  /**
+   * The visitor's phone number in E.164, such as `+4712345678`. Spaces, hyphens, dots and parentheses
+   * are removed first. A number without a leading `+` is left out.
+   */
   phoneNumber?: string | undefined;
   /** The app's own ID for the visitor. */
   externalId?: string | undefined;
@@ -260,7 +292,7 @@ export interface TikTokIdentity {
  * true only when the details were handed to ttq.
  */
 export function identifyTikTok(identity: TikTokIdentity): boolean {
-  const phone = identity.phoneNumber?.trim() ?? "";
+  const phone = identity.phoneNumber?.replace(/[\s\-.()]/g, "") ?? "";
   return send("identify", {
     email: identity.email?.trim().toLowerCase() ?? "",
     phone_number: /^\+[1-9][0-9]{6,14}$/.test(phone) ? phone : "",

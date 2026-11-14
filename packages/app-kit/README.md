@@ -1825,8 +1825,8 @@ guidelines 2/2023. A tracking pixel and its script may not be stored on or read 
 device before they consent. So `MetaPixel` injects nothing from Meta, not even `fbevents.js`,
 until the visitor has pressed Accept. Rejecting is one press, as easy as accepting, and the footer
 link makes withdrawing as easy too. The noscript image of Meta's base code is left out, since it
-loads without consent, and Advanced Matching stays off. `TikTokPixel` works the same way for
-TikTok's `events.js`.
+loads without consent, and Advanced Matching stays off. `TikTokPixel` likewise loads nothing from
+TikTok, not even `events.js`, until the visitor has pressed Accept.
 
 ```tsx
 // src/app/[locale]/layout.tsx
@@ -2074,8 +2074,15 @@ marketing consent is true, it adds TikTok's base code with `holdConsent`, `revok
 `grantConsent`, calls `ttq.holdConsent()` and then `ttq.load(pixelId)`, then `ttq.grantConsent()`,
 and sends `ttq.page()` for the page. The pixel counts later client navigations itself, so the page
 view is sent once per start, as with `MetaPixel`. On withdrawal it calls `ttq.revokeConsent()` once
-and removes the `_ttp`, `ttclid` and `ttcsid` cookies and each `ttcsid_` cookie, on the host and its
-parent domains. When the last `TikTokPixel` goes away, it revokes and keeps the cookies.
+and removes the `_ttp`, `_tt_enable_cookie`, `ttclid` and `ttcsid` cookies and each `ttcsid_` cookie,
+on the host and its parent domains. TikTok's script then sends one notice of the revoke to TikTok,
+and nothing more. When the last `TikTokPixel` goes away while consent holds, it calls
+`ttq.holdConsent()`, not `revokeConsent`, and keeps the cookies. The next start grants again.
+
+Unlike Meta's `autoConfig`, TikTok's automatic events and Automatic Advanced Matching cannot be
+switched off in code. `events.js` turns on what TikTok's server says for the pixel, such as
+automatic clicks, page metadata and Automatic Advanced Matching. They are set in TikTok Events
+Manager. So either the app's cookie page describes them, or the owner turns them off there.
 
 `trackTikTok(event, params?, { eventId? })` sends an event and returns true when it handed it to
 `ttq`. Event names are case-sensitive. `eventId` goes in the third argument as `event_id`, so
@@ -2083,8 +2090,9 @@ TikTok drops a duplicate of the same event. `price` is per item and `value` is t
 
 `identifyTikTok({ email?, phoneNumber?, externalId? })` sends the visitor's details for Advanced
 Matching. Call it right before the event it is for. Pass the raw values, since the pixel hashes them
-in the browser. The email is trimmed and lowercased. A phone number that is not in E.164, such as
-`+4712345678`, is left out. Each missing detail is sent as an empty string, as TikTok asks. It
+in the browser. The email is trimmed and lowercased. Spaces, hyphens, dots and parentheses are
+removed from the phone number, and a number that is then not in E.164, such as `+4712345678`, is
+left out. A number without a leading `+` is always left out. Each missing detail is sent as an empty string, as TikTok asks. It
 returns true when it handed the details to `ttq`. Both functions do nothing on the server, before
 the pixel has loaded, and without consent.
 
@@ -2116,6 +2124,7 @@ defineAppConfig({
   scriptSrc: tiktok,
   imgSrc: tiktok,
   connectSrc: tiktok,
+  frameSrc: ["bytedance:", "sslocal:"],
 });
 ```
 
