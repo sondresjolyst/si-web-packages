@@ -266,6 +266,45 @@ describe("TikTokPixel", () => {
     expect(trackTikTok("Lead")).toBe(true);
   });
 
+  it("revokes a held pixel on a withdrawal with nothing mounted, and grants only on a new start", async () => {
+    setConsent({ marketing: true });
+    const { unmount } = render(<TikTokPixel pixelId={ID} />);
+    unmount();
+    await act(async () => {});
+    expect(consentCalls()).toEqual(["holdConsent", "grantConsent", "holdConsent"]);
+    setTikTokCookies();
+
+    act(() => setConsent({ marketing: false }));
+    expect(consentCalls()).toEqual(["holdConsent", "grantConsent", "holdConsent", "revokeConsent"]);
+    expect(document.cookie).not.toMatch(TIKTOK_COOKIES);
+    expect(document.cookie).toContain("own=1");
+
+    act(() => setConsent({ marketing: true }));
+    expect(consentCalls()).toEqual(["holdConsent", "grantConsent", "holdConsent", "revokeConsent"]);
+
+    render(<TikTokPixel pixelId={ID} />);
+    expect(consentCalls()).toEqual(["holdConsent", "grantConsent", "holdConsent", "revokeConsent", "grantConsent"]);
+    expect(calls().slice(-2)).toEqual([["grantConsent"], ["page"]]);
+  });
+
+  it("revokes a held pixel when the choice expires with nothing mounted and is rechecked", async () => {
+    const start = new Date("2026-10-24T12:00:00Z");
+    vi.useFakeTimers({ now: start, toFake: ["Date"] });
+    try {
+      setConsent({ marketing: true });
+      const { unmount } = render(<TikTokPixel pixelId={ID} maxAgeDays={1} />);
+      unmount();
+      await act(async () => {});
+      expect(calls().at(-1)).toEqual(["holdConsent"]);
+
+      vi.setSystemTime(new Date(start.getTime() + 2 * 24 * 60 * 60 * 1000));
+      act(() => window.dispatchEvent(new Event("focus")));
+      expect(calls().at(-1)).toEqual(["revokeConsent"]);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("revokes on a withdrawal after the last TikTokPixel has gone away", async () => {
     setConsent({ marketing: true });
     const { unmount } = render(<App />);

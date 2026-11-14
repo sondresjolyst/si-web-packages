@@ -1,6 +1,6 @@
 // The TikTok Pixel calls, as plain functions with no "use client", so code outside React can track an
 // event. Nothing here loads TikTok's script unless TikTokPixel asks for it after consent.
-import { DEFAULT_CONSENT_MAX_AGE_DAYS, getConsent, getStoredConsent, type ConsentOptions } from "./consentStore";
+import { DEFAULT_CONSENT_MAX_AGE_DAYS, getConsent, getStoredConsent, subscribeConsent, type ConsentOptions } from "./consentStore";
 
 /** The script TikTok's base code loads. */
 export const TIKTOK_PIXEL_SCRIPT_SRC = "https://analytics.tiktok.com/i18n/pixel/events.js";
@@ -154,6 +154,17 @@ function call(ttq: Ttq, method: string, ...args: unknown[]): void {
 }
 
 /**
+ * Withdraws in the pixel when the choice no longer counts under the page's rules, also with no
+ * TikTokPixel mounted. A pixel held after the last mount went away still caches page views, and a
+ * later grant would send them. A withdrawal, or a choice that expires and is rechecked, revokes
+ * here instead, so that queue is dropped.
+ */
+function onConsentChange(): void {
+  const state = pageState();
+  if (state && !state.revoked && !getConsent(state.options).marketing) stopTikTokPixel();
+}
+
+/**
  * Loads the pixel and starts it for `pixelId`. Call it only once the visitor has consented. The pixel
  * holds consent before it loads and is granted here. The first start, and the first after a stop,
  * sends a page view for the page it happens on. Returns a function that lets go of this start, such
@@ -164,6 +175,9 @@ export function startTikTokPixel(pixelId: string, options: ConsentOptions = {}):
   if (conflictsWithPage(pixelId, options)) return undefined;
   const ttq = installTtq(window as TikTokWindow);
   if (!ttq) return undefined;
+  // The store keeps its listeners in a set, so this adds the listener once for the page. Each start
+  // adds it again, so it comes back if the store's listeners were cleared.
+  subscribeConsent(onConsentChange);
   let state = states.get(ttq);
   if (!state) {
     const { noticeVersion, maxAgeDays } = options;
