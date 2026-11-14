@@ -28,6 +28,8 @@ interface PixelState {
   pixelId: string;
   /** The rules of the first start. Every event checks the choice against them again. */
   options: ConsentOptions;
+  /** Whether the first start left Meta's automatic configuration on. It is set before `init`, so it holds. */
+  autoConfig: boolean;
   /** How many MetaPixel mounts run the pixel now. Events are sent only while one does. */
   holders: number;
   /** Counts the stops, so a release from before a stop does not let go of a later start. */
@@ -56,17 +58,23 @@ export function pageRules(): ConsentOptions | undefined {
 const sameRules = (a: ConsentOptions, b: ConsentOptions) =>
   a.noticeVersion === b.noticeVersion && (a.maxAgeDays ?? DEFAULT_CONSENT_MAX_AGE_DAYS) === (b.maxAgeDays ?? DEFAULT_CONSENT_MAX_AGE_DAYS);
 
+/** Options for `startPixel`. */
+export interface StartPixelOptions extends ConsentOptions {
+  /** Whether to leave Meta's automatic configuration on. Defaults to false. */
+  autoConfig?: boolean | undefined;
+}
+
 /**
  * Checks whether the pixel already runs with another ID or other rules. The first start decides both
  * for the rest of the page, since fbq cannot drop an ID, and a mount that disagrees is ignored with a
- * warning in development.
+ * warning in development. A different `autoConfig` counts as other rules, since it is set before `init`.
  */
-function conflictsWithPage(pixelId: string, options: ConsentOptions): boolean {
+function conflictsWithPage(pixelId: string, options: ConsentOptions, autoConfig: boolean): boolean {
   const state = pageState();
-  if (!state || (state.pixelId === pixelId && sameRules(state.options, options))) return false;
+  if (!state || (state.pixelId === pixelId && sameRules(state.options, options) && state.autoConfig === autoConfig)) return false;
   if (process.env.NODE_ENV !== "production") {
     console.warn(
-      `MetaPixel: the pixel already runs with ${state.pixelId} and its first noticeVersion and maxAgeDays, ` +
+      `MetaPixel: the pixel already runs with ${state.pixelId} and its first noticeVersion, maxAgeDays and autoConfig, ` +
         `so ${pixelId} with these rules is ignored until the page reloads.`,
     );
   }
@@ -98,21 +106,24 @@ function installFbq(w: PixelWindow): Fbq {
 
 /**
  * Loads the pixel and starts it for `pixelId`. Call it only once the visitor has consented. The first
- * start, and the first after a stop, sends a PageView for the page it happens on. Returns a function
+ * start, and the first after a stop, sends a PageView for the page it happens on. `options.autoConfig`
+ * leaves Meta's automatic events on, and the first start decides it for the page. Returns a function
  * that lets go of this start, such as when the mount goes away, or undefined when the pixel already
  * runs with another ID or other rules. Once every start is let go, no event is sent.
  */
-export function startPixel(pixelId: string, options: ConsentOptions = {}): (() => void) | undefined {
-  if (conflictsWithPage(pixelId, options)) return undefined;
+export function startPixel(pixelId: string, options: StartPixelOptions = {}): (() => void) | undefined {
+  const { autoConfig = false, noticeVersion, maxAgeDays } = options;
+  if (conflictsWithPage(pixelId, options, autoConfig)) return undefined;
   const fbq = installFbq(window as PixelWindow);
   fbq("consent", "grant");
   let state = states.get(fbq);
   if (!state) {
-    state = { pixelId, options, holders: 0, generation: 0, revoked: true };
+    state = { pixelId, options: { noticeVersion, maxAgeDays }, autoConfig, holders: 0, generation: 0, revoked: true };
     states.set(fbq, state);
-    // No automatic events, such as button clicks and page metadata. The pixel sends page views and the
-    // events the app tracks, as the cookie page says, and nothing more.
-    fbq("set", "autoConfig", false, pixelId);
+    // By default there are no automatic events, such as button clicks and page metadata. The pixel
+    // sends page views and the events the app tracks, and nothing more. With autoConfig, Meta's own
+    // default holds and the pixel sends those automatic events too.
+    if (!autoConfig) fbq("set", "autoConfig", false, pixelId);
     // No user data in init, so Advanced Matching stays off.
     fbq("init", pixelId);
   }

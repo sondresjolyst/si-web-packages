@@ -346,6 +346,29 @@ describe("MetaPixel", () => {
     }
   });
 
+  it("leaves Meta's automatic configuration on with autoConfig", () => {
+    setConsent({ marketing: true });
+    render(<MetaPixel pixelId={ID} autoConfig />);
+    expect(calls()).toEqual([["consent", "grant"], ["init", ID], ["track", "PageView"]]);
+  });
+
+  it("turns automatic configuration off with autoConfig false", () => {
+    setConsent({ marketing: true });
+    render(<MetaPixel pixelId={ID} autoConfig={false} />);
+    expect(calls()).toEqual([["consent", "grant"], ["set", "autoConfig", false, ID], ["init", ID], ["track", "PageView"]]);
+  });
+
+  it("ignores a mount with another autoConfig, since it is set before init", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    setConsent({ marketing: true });
+    render(<MetaPixel pixelId={ID} />);
+    render(<MetaPixel pixelId={ID} autoConfig />);
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(calls().filter(c => c[0] === "consent")).toEqual([["consent", "grant"]]);
+    expect(startPixel(ID, { autoConfig: true })).toBeUndefined();
+    expect(startPixel(ID, { autoConfig: false })).toBeTypeOf("function");
+  });
+
   it("withdraws from a mount with other rules too, under the page's rules", async () => {
     vi.spyOn(console, "warn").mockImplementation(() => {});
     const first = render(<App noticeVersion="n1" />);
