@@ -118,7 +118,7 @@ The components use Tailwind CSS 4. Import the package's stylesheet after Tailwin
 | [`@sjolystinnovation/app-kit/seo`](#sjolystinnovationapp-kitseo) | Canonical URLs, metadata, sitemaps, `robots.txt`, and structured data. |
 | [`@sjolystinnovation/app-kit/seo/og`](#sjolystinnovationapp-kitseoog) | The default Open Graph share image. |
 | [`@sjolystinnovation/app-kit/payments`](#sjolystinnovationapp-kitpayments) | The page a user returns to from a payment provider, and the kroner and øre helpers. |
-| [`@sjolystinnovation/app-kit/consent`](#sjolystinnovationapp-kitconsent) | The consent banner, the consent store, and the Meta Pixel loaded only after consent. |
+| [`@sjolystinnovation/app-kit/consent`](#sjolystinnovationapp-kitconsent) | The consent banner, the consent store, and the Meta Pixel and TikTok Pixel loaded only after consent. |
 | [`@sjolystinnovation/app-kit/locales/nb`](#sjolystinnovationapp-kitlocalesnb) | Norwegian (bokmål) text for every component that takes `strings`. Imports no peer dependency. |
 | [`@sjolystinnovation/app-kit/testing`](#sjolystinnovationapp-kittesting) | vitest doubles for next-auth, next/navigation, and sonner. |
 | [`@sjolystinnovation/app-kit/styles.css`](#theming) | The theme variables and styles the components use. |
@@ -1817,7 +1817,7 @@ kroner(5950); // "59,50"
 
 ## `@sjolystinnovation/app-kit/consent`
 
-Consent to marketing tools, and the Meta Pixel loaded only after it. The entry point needs no
+Consent to marketing tools, and the Meta Pixel and TikTok Pixel loaded only after it. The entry point needs no
 optional peer, only Next and React.
 
 The legal ground is the Norwegian Electronic Communications Act (ekomloven) § 3-15 and the EDPB
@@ -1825,7 +1825,8 @@ guidelines 2/2023. A tracking pixel and its script may not be stored on or read 
 device before they consent. So `MetaPixel` injects nothing from Meta, not even `fbevents.js`,
 until the visitor has pressed Accept. Rejecting is one press, as easy as accepting, and the footer
 link makes withdrawing as easy too. The noscript image of Meta's base code is left out, since it
-loads without consent, and Advanced Matching stays off.
+loads without consent, and Advanced Matching stays off. `TikTokPixel` likewise loads nothing from
+TikTok, not even `events.js`, until the visitor has pressed Accept.
 
 ```tsx
 // src/app/[locale]/layout.tsx
@@ -1976,6 +1977,12 @@ PageView for the page. Before `init` it calls `fbq('set', 'autoConfig', false, p
 turns off Meta's automatic events, such as button clicks and page metadata. The pixel sends page
 views and the events the app tracks, which is what a cookie page can promise, and nothing more.
 
+Pass `autoConfig` to leave Meta's
+[automatic configuration](https://developers.facebook.com/documentation/meta-pixel/advanced) on.
+`MetaPixel` then skips the `set` call, and Meta's default holds: the pixel also sends automatic
+events from button clicks and page metadata. The cookie page should then say so. It defaults to
+false.
+
 That PageView is for the page where the pixel starts: the first page load with consent, or the
 page where the visitor accepts. A new Accept after a withdrawal sends one more. `MetaPixel` tracks
 no PageView of its own on client navigation. Meta's `fbevents.js` counts each client navigation as
@@ -2014,7 +2021,7 @@ Events are sent only while a `MetaPixel` runs the pixel. Once the last one unmou
 stored choice is for another notice, before any navigation or focus has rechecked it.
 
 Meta's pixel cannot drop an ID once it has had `init`. So the first `pixelId` a page starts stays
-until the page reloads, and so do its `noticeVersion` and `maxAgeDays`. A `MetaPixel` with a
+until the page reloads, and so do its `noticeVersion`, `maxAgeDays` and `autoConfig`. A `MetaPixel` with a
 different ID or different rules after that does not start or hold the pixel, and warns in
 development when it tries to. It still withdraws, as above. A new notice version therefore takes
 effect from the next page load.
@@ -2052,8 +2059,78 @@ defineAppConfig({
 });
 ```
 
-The app's cookie and privacy pages still have to describe the pixel, the cookies it sets, and how
-to withdraw. The banner and the loader only make sure that nothing reaches Meta before consent.
+### `TikTokPixel`, `trackTikTok` and `identifyTikTok`
+
+`TikTokPixel` takes `pixelId`, 10 to 32 capital letters and digits, and renders nothing for
+anything else. It takes the same `noticeVersion` and `maxAgeDays` as the banner, and follows the
+same rules as `MetaPixel`: it loads nothing before consent, counts StrictMode as one mount, keeps
+the first ID and rules for the page, and sends events only while a `TikTokPixel` runs the pixel.
+Pass `enabled={isValidPixelId(metaId) || isValidTikTokPixelId(tiktokId)}` to the banner when the
+app uses either.
+
+It uses TikTok's
+[consent mode](https://business-api.tiktok.com/portal/docs/pixel-cookie-consent-mode/v1.3). Once
+marketing consent is true, it adds TikTok's base code with `holdConsent`, `revokeConsent` and
+`grantConsent`, calls `ttq.holdConsent()` and then `ttq.load(pixelId)`, then `ttq.grantConsent()`,
+and sends `ttq.page()` for the page. The pixel counts later client navigations itself, so the page
+view is sent once per start, as with `MetaPixel`. On withdrawal it calls `ttq.revokeConsent()` once
+and removes the `_ttp`, `_tt_enable_cookie`, `ttclid` and `ttcsid` cookies and each `ttcsid_` cookie,
+on the host and its parent domains. TikTok's script then sends one notice of the revoke to TikTok,
+and nothing more. When the last `TikTokPixel` goes away while consent holds, it calls
+`ttq.holdConsent()`, not `revokeConsent`, and keeps the cookies. The next start grants again.
+
+Unlike Meta's `autoConfig`, TikTok's automatic events and Automatic Advanced Matching cannot be
+switched off in code. `events.js` turns on what TikTok's server says for the pixel, such as
+automatic clicks, page metadata and Automatic Advanced Matching. They are set in TikTok Events
+Manager. So either the app's cookie page describes them, or the owner turns them off there.
+
+`trackTikTok(event, params?, { eventId? })` sends an event and returns true when it handed it to
+`ttq`. Event names are case-sensitive. `eventId` goes in the third argument as `event_id`, so
+TikTok drops a duplicate of the same event. `price` is per item and `value` is the order total.
+
+`identifyTikTok({ email?, phoneNumber?, externalId? })` sends the visitor's details for Advanced
+Matching. Call it right before the event it is for. Pass the raw values, since the pixel hashes them
+in the browser. The email is trimmed and lowercased. Spaces, hyphens, dots and parentheses are
+removed from the phone number, and a number that is then not in E.164, such as `+4712345678`, is
+left out. A number without a leading `+` is always left out. Each missing detail is sent as an empty string, as TikTok asks. It
+returns true when it handed the details to `ttq`. Both functions do nothing on the server, before
+the pixel has loaded, and without consent.
+
+```ts
+import { identifyTikTok, trackTikTok } from "@sjolystinnovation/app-kit/consent";
+
+identifyTikTok({ email, externalId: userId });
+trackTikTok(
+  "Purchase",
+  {
+    contents: [{ content_id: slug, content_name: name, quantity: 1, price: 499 }],
+    content_type: "product",
+    value: 499,
+    currency: "NOK",
+  },
+  { eventId: orderReference },
+);
+```
+
+`isValidTikTokPixelId(id)` is the check `TikTokPixel` uses. `TIKTOK_PIXEL_SCRIPT_SRC` is the
+script's URL. The pixel needs these sources in the Content-Security-Policy:
+
+```ts
+const tiktok = ["https://analytics.tiktok.com", "https://analytics-ipv6.tiktokw.us", "https://ads.tiktok.com"];
+
+defineAppConfig({
+  apiUrl: process.env.NEXT_PUBLIC_API_URL,
+  dev: process.env.NODE_ENV !== "production",
+  scriptSrc: tiktok,
+  imgSrc: tiktok,
+  connectSrc: tiktok,
+  frameSrc: ["bytedance:", "sslocal:"],
+});
+```
+
+The app's cookie and privacy pages still have to describe each pixel, the cookies it sets, and how
+to withdraw. The banner and the loaders only make sure that nothing reaches Meta or TikTok before
+consent.
 
 ## `@sjolystinnovation/app-kit/locales/nb`
 

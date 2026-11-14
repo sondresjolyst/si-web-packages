@@ -14,6 +14,12 @@ export interface MetaPixelProps {
   noticeVersion?: string | undefined;
   /** The same `maxAgeDays` as `ConsentBanner` gets. An older choice counts as no consent. */
   maxAgeDays?: number | undefined;
+  /**
+   * Whether to leave Meta's automatic configuration on, which sends automatic events such as button
+   * clicks and page metadata. Defaults to false, which turns them off. The first start decides it for
+   * the page, so a mount with another value does not start.
+   */
+  autoConfig?: boolean | undefined;
 }
 
 /**
@@ -23,7 +29,7 @@ export interface MetaPixelProps {
  * nothing more. When the last MetaPixel goes away, it revokes in the pixel and keeps the cookies. It
  * renders nothing.
  */
-export function MetaPixel({ pixelId, noticeVersion, maxAgeDays }: MetaPixelProps) {
+export function MetaPixel({ pixelId, noticeVersion, maxAgeDays, autoConfig }: MetaPixelProps) {
   const consent = useConsent({ noticeVersion, maxAgeDays });
   const { ready, marketing } = consent;
   const pathname = usePathname();
@@ -45,8 +51,8 @@ export function MetaPixel({ pixelId, noticeVersion, maxAgeDays }: MetaPixelProps
     if (!id || !ready || !marketing) return;
     // The first start's ID and rules hold for the page, so a mount that disagrees does not start. On
     // unmount, a cleared ID, or a change of rules, this mount lets go, so no event is sent for it.
-    return startPixel(id, { noticeVersion, maxAgeDays });
-  }, [id, ready, marketing, noticeVersion, maxAgeDays]);
+    return startPixel(id, { noticeVersion, maxAgeDays, autoConfig });
+  }, [id, ready, marketing, noticeVersion, maxAgeDays, autoConfig]);
 
   return null;
 }
