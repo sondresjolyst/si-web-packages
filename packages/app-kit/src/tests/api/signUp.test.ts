@@ -4,6 +4,7 @@ import {
   apiErrorCode,
   apiFieldErrorDetails,
   createSignUpService,
+  fieldErrorTexts,
   request,
   termsChangedDocument,
   type AcceptTermsRequest,
@@ -115,6 +116,13 @@ describe("createSignUpService", () => {
 
     expect(apiErrorCode(conflict)).toBe("termsChanged");
     expect(termsChangedDocument(conflict)).toBe("privacy");
+  });
+
+  it("shows a user name the API finds too short with the minimum in the app's text", async () => {
+    const problem = { errors: { UserName: ["At least 3 characters."] }, codes: { UserName: ["tooShort"] }, limits: { UserName: 3 } };
+    const error = await signUp(() => problem, 400).register(registration).catch((e: unknown) => e);
+
+    expect(fieldErrorTexts(error, { tooShort: "Use at least {max} characters." })).toEqual({ userName: ["Use at least 3 characters."] });
   });
 
   it("types the request and the pending documents", () => {

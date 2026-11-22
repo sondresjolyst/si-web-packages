@@ -257,8 +257,9 @@ What the options do:
   - `SIGN_IN_ERRORS.invalidCredentials` for every other failure, including an unreadable token and
     an answer without both tokens.
 - **Sign-up state:** for an API that opted in to sign-up, the login and refresh answers also hold
-  `emailVerified` and `pendingConsents`. The session keeps both from each answer. An API without
-  sign-up sends neither, and the session leaves them out.
+  `emailVerified` and `pendingConsents`. The session keeps both from each answer, so a change shows
+  at the next refresh. A failed refresh keeps the last state until a later one answers. An API
+  without sign-up sends neither, and the session leaves them out.
 - **Refresh** runs ahead of expiry: five minutes before it, or a quarter of the token's lifetime
   before it when that is shorter. The options never schedule it sooner than 30 seconds out, so a
   token that lives under 30 seconds gets its refresh after it expires. Parallel reads of one session
@@ -271,9 +272,6 @@ What the options do:
   it was refreshed.
 - **Session:** it carries `user`, `accessToken`, `error`, and `absoluteExpiresAt`, the end of the
   seven days in milliseconds. With sign-up it also carries `emailVerified` and `pendingConsents`.
-- **Update:** `update()` from `useSession` refreshes the tokens at once, so the session reads the
-  sign-up state again, such as after `acceptTerms`. The options never use the data the client sends
-  with it.
 - **Sign-in page:** `pages.signIn` is `config.loginRoute`.
 
 Follow two rules so that you never lose a refresh:
@@ -722,23 +720,32 @@ try {
 
 The API checks every field, the user name rules included, so show its field errors. The keys follow
 `apiFieldErrors`. A document left out is `termsNotAccepted` on `documents.privacy`, and a user name
-the API refuses is on `userName`, such as `tooLong` with its limit or `userNameTaken`.
+the API refuses is on `userName`, such as `tooShort` or `tooLong` with its limit, or `userNameTaken`.
+The limit fills `{max}` in the app's text for either code, as in
+`{ tooShort: "Use at least {max} characters.", tooLong: "Use {max} characters or fewer." }`.
 
 The session tells the app what the person still has to do:
 
 - `session.emailVerified` is false until the email is confirmed. Gate the features that need it.
   `verifyEmail` ends every session at the API, so after it the person signs in again.
-- `session.pendingConsents` lists each document to accept again, with its current version. Show the
-  current page, then accept it and update the session:
+- `session.pendingConsents` lists each document to accept again. Fetch each page in the app's
+  locale, show it, and send back the `version` of the page the person read:
 
 ```ts
-const { data: session, update } = useSession();
+const { data: session } = useSession();
+const [accepted, setAccepted] = useState<string[]>([]);
+const pending = (session?.pendingConsents ?? []).filter(({ document }) => !accepted.includes(document));
 
-for (const { document, version } of session?.pendingConsents ?? []) {
-  await SignUpService.acceptTerms({ document, termsVersion: version, locale: "en" });
+// `page` is the one the person read, from LegalService.get(document, locale).
+async function accept(page: LegalPage) {
+  await SignUpService.acceptTerms({ document: page.key, termsVersion: page.version, locale: page.locale });
+  setAccepted(done => [...done, page.key]);
 }
-await update();
 ```
+
+The API takes the acceptance at once, but the session shows it only at the next refresh. Until then,
+hide what the person accepted, as `accepted` does above. Accepting the same version again is
+harmless, the API stores one more row.
 
 Without `document`, `acceptTerms` accepts the terms. It answers `409 termsChanged` when a newer
 version came out in between, and `termsChangedDocument` then gives the document it named. A name the

@@ -779,24 +779,45 @@ describe("the sign-up state", () => {
     expect(refreshed).not.toHaveProperty("pendingConsents");
   });
 
-  it("refreshes at once when the app calls update, so an acceptance shows without waiting", async () => {
+  it("treats update like any read and never rotates before the refresh is due", async () => {
     answer({ emailVerified: true, pendingConsents: [] });
     const token = sessionToken({ emailVerified: true, pendingConsents: pending } as Partial<Token>);
 
-    const result = await jwtCallback({ token, trigger: "update", session: { pendingConsents: [] } });
+    const result = await jwtCallback({ token, trigger: "update", session: { emailVerified: false, pendingConsents: [] } });
 
-    expect(calls).toBe(1);
-    expect(result.pendingConsents).toEqual([]);
-    expect(result.refreshToken).not.toBe(token.refreshToken);
+    expect(calls).toBe(0);
+    expect(result).toEqual(token);
   });
 
-  it("never takes the state from the data the client sends with update", async () => {
-    answer({ emailVerified: false, pendingConsents: pending });
+  it("gives an update and an overlapping read the same token pair, so neither can put an old one back", async () => {
+    answer({ emailVerified: true, pendingConsents: [] });
+    const token = sessionToken({ pendingConsents: pending } as Partial<Token>);
 
-    const result = await jwtCallback({ token: sessionToken(), trigger: "update", session: { emailVerified: true, pendingConsents: [] } });
+    const [updated, read] = await Promise.all([jwtCallback({ token, trigger: "update" }), runJwt(token)]);
 
-    expect(result.emailVerified).toBe(false);
-    expect(result.pendingConsents).toEqual(pending);
+    expect(calls).toBe(0);
+    expect(updated.refreshToken).toBe(token.refreshToken);
+    expect(read.refreshToken).toBe(token.refreshToken);
+  });
+
+  it("sends nothing to the API however often the app calls update", async () => {
+    answer({});
+    const token = sessionToken();
+
+    for (let i = 0; i < 20; i++) await jwtCallback({ token, trigger: "update" });
+
+    expect(calls).toBe(0);
+  });
+
+  it("keeps the state of a session whose refresh fails, until a later refresh answers", async () => {
+    failWith(500);
+    vi.spyOn(console, "error").mockImplementation(() => {});
+
+    const result = await runJwt(sessionToken({ refreshAt: 0, emailVerified: false, pendingConsents: pending } as Partial<Token>));
+
+    expect(calls).toBe(1);
+    expect(result).toMatchObject({ emailVerified: false, pendingConsents: pending });
+    vi.restoreAllMocks();
   });
 
   it("does not call the API on update for a session that has ended", async () => {

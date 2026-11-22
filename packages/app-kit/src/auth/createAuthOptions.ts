@@ -304,7 +304,7 @@ export function createAuthOptions(config: SessionConfig, settings: AuthOptionsSe
       },
     },
     callbacks: {
-      async jwt({ token: current, user, trigger }) {
+      async jwt({ token: current, user }) {
         let token = current as AppToken;
         if (user) {
           const signedIn = user as AuthorizedUser;
@@ -338,9 +338,7 @@ export function createAuthOptions(config: SessionConfig, settings: AuthOptionsSe
           return token;
         }
 
-        // An update from the app, such as after accept-terms, refreshes now to read the new state from
-        // the API. The data the client sends with it is never used.
-        if (trigger !== "update" && token.refreshAt && Date.now() < token.refreshAt) {
+        if (token.refreshAt && Date.now() < token.refreshAt) {
           return token;
         }
 
