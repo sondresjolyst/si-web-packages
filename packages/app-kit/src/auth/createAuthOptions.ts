@@ -4,6 +4,7 @@ import type { NextAuthOptions, Session, User } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import type { JWT } from "next-auth/jwt";
 import { apiErrorCode } from "../api/apiErrorCode";
+import type { PendingConsent } from "../api/signUp";
 import { resolveJwtSecret, type SessionConfig } from "../config";
 import { ABSOLUTE_SESSION_MAX_AGE, CLOCK_TOLERANCE_S, SESSION_ERRORS, SIGN_IN_ERRORS, isTerminalSessionError } from "../session/expiry";
 
@@ -15,9 +16,18 @@ export interface SessionUser {
   roles: string[];
 }
 
+// An app that opted in to sign-up also gets the email state and the documents to accept again.
 interface TokenPair {
   token: string;
   refreshToken: string;
+  emailVerified?: unknown;
+  pendingConsents?: unknown;
+}
+
+// What the session keeps of the sign-up state. Both are left out for an app without sign-up.
+interface SignUpState {
+  emailVerified?: boolean;
+  pendingConsents?: PendingConsent[];
 }
 
 interface ApiClaims {
@@ -37,9 +47,9 @@ type AppToken = JWT & {
   loginAt?: number;
   user?: SessionUser;
   error?: string;
-};
+} & SignUpState;
 
-interface AuthorizedUser extends User {
+interface AuthorizedUser extends User, SignUpState {
   roles: string[];
   accessToken: string;
   refreshToken: string;
@@ -93,6 +103,20 @@ function nextRefreshAt(claims: ApiClaims): number {
   const refreshAt = expiresAt - Math.min(MAX_REFRESH_SKEW_MS, lifetimeMs / 4);
   if (!Number.isFinite(refreshAt)) return Date.now() + MIN_REFRESH_GAP_MS;
   return Math.max(Date.now() + MIN_REFRESH_GAP_MS, refreshAt);
+}
+
+// The sign-up state of a login or refresh answer. A value of the wrong shape is left out, and so is
+// a document without a name and a version.
+function signUpState(tokens: { emailVerified?: unknown; pendingConsents?: unknown }): SignUpState {
+  const state: SignUpState = {};
+  if (typeof tokens.emailVerified === "boolean") state.emailVerified = tokens.emailVerified;
+  if (Array.isArray(tokens.pendingConsents)) {
+    state.pendingConsents = (tokens.pendingConsents as unknown[]).flatMap(item => {
+      const { document, version } = (item ?? {}) as { document?: unknown; version?: unknown };
+      return typeof document === "string" && typeof version === "string" ? [{ document, version }] : [];
+    });
+  }
+  return state;
 }
 
 // No answer, or a gateway that could not reach the API. A plain 500 is left out, because the API
@@ -201,6 +225,10 @@ export function createAuthOptions(config: SessionConfig, settings: AuthOptionsSe
       refreshToken: refreshed.refreshToken,
     };
     delete next.error;
+    // Each answer replaces the sign-up state, so an acceptance or a verification shows.
+    delete next.emailVerified;
+    delete next.pendingConsents;
+    Object.assign(next, signUpState(refreshed));
 
     try {
       const claims = readClaims(refreshed.token);
@@ -244,6 +272,7 @@ export function createAuthOptions(config: SessionConfig, settings: AuthOptionsSe
               roles: rolesOf(claims),
               accessToken: tokens.token,
               refreshToken: tokens.refreshToken,
+              ...signUpState(tokens),
             };
             return user;
           } catch (error) {
@@ -275,7 +304,7 @@ export function createAuthOptions(config: SessionConfig, settings: AuthOptionsSe
       },
     },
     callbacks: {
-      async jwt({ token: current, user }) {
+      async jwt({ token: current, user, trigger }) {
         let token = current as AppToken;
         if (user) {
           const signedIn = user as AuthorizedUser;
@@ -294,6 +323,9 @@ export function createAuthOptions(config: SessionConfig, settings: AuthOptionsSe
             },
           };
           delete token.error;
+          delete token.emailVerified;
+          delete token.pendingConsents;
+          Object.assign(token, signUpState(signedIn));
         }
 
         // A session without a sign-in time counts as expired.
@@ -306,7 +338,9 @@ export function createAuthOptions(config: SessionConfig, settings: AuthOptionsSe
           return token;
         }
 
-        if (token.refreshAt && Date.now() < token.refreshAt) {
+        // An update from the app, such as after accept-terms, refreshes now to read the new state from
+        // the API. The data the client sends with it is never used.
+        if (trigger !== "update" && token.refreshAt && Date.now() < token.refreshAt) {
           return token;
         }
 
@@ -324,6 +358,8 @@ export function createAuthOptions(config: SessionConfig, settings: AuthOptionsSe
           user: token.user,
           accessToken: token.accessToken,
           error: token.error,
+          emailVerified: token.emailVerified,
+          pendingConsents: token.pendingConsents,
           // Lets the UI warn before the seven days run out.
           absoluteExpiresAt: token.loginAt ? token.loginAt + ABSOLUTE_SESSION_MAX_AGE : undefined,
         } as Session;

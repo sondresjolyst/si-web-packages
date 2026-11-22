@@ -46,3 +46,9 @@ describe("entry points", () => {
     expect(Object.keys(testing)).toEqual(expect.arrayContaining(["nextAuthMock", "resetTestMocks"]));
   });
 });
+
+describe("the sign-up exports", () => {
+  it("are on the api entry", () => {
+    expect(Object.keys(api)).toEqual(expect.arrayContaining(["createSignUpService", "termsChangedDocument"]));
+  });
+});

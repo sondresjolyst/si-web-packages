@@ -1,4 +1,4 @@
-export { apiErrorCode } from "./apiErrorCode";
+export { apiErrorCode, termsChangedDocument } from "./apiErrorCode";
 export { apiFieldErrors, apiFieldErrorDetails } from "./apiFieldErrors";
 export type { ApiFieldError } from "./apiFieldErrors";
 export { errorText, fieldErrorText, fieldErrorTexts } from "./fieldErrorText";
@@ -20,5 +20,7 @@ export {
   createEmailStatsService,
 } from "./services";
 export type { LegalServiceOptions } from "./services";
+export { createSignUpService } from "./signUp";
+export type { AcceptTermsRequest, PendingConsent, SignUpRequest } from "./signUp";
 export type { OnSaved, UserProfile, SiteSettings, AdminUser, EmailStats } from "./services";
 export type { LegalPage, LegalPageRevision, LegalPageRevisionSummary } from "./legalPage";

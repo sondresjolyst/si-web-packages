@@ -256,6 +256,9 @@ What the options do:
     sign-ins. The API gives it whether the password was right or wrong.
   - `SIGN_IN_ERRORS.invalidCredentials` for every other failure, including an unreadable token and
     an answer without both tokens.
+- **Sign-up state:** for an API that opted in to sign-up, the login and refresh answers also hold
+  `emailVerified` and `pendingConsents`. The session keeps both from each answer. An API without
+  sign-up sends neither, and the session leaves them out.
 - **Refresh** runs ahead of expiry: five minutes before it, or a quarter of the token's lifetime
   before it when that is shorter. The options never schedule it sooner than 30 seconds out, so a
   token that lives under 30 seconds gets its refresh after it expires. Parallel reads of one session
@@ -267,7 +270,10 @@ What the options do:
 - **Cap:** the session ends seven days after sign-in with `AbsoluteSessionExpired`, however recently
   it was refreshed.
 - **Session:** it carries `user`, `accessToken`, `error`, and `absoluteExpiresAt`, the end of the
-  seven days in milliseconds.
+  seven days in milliseconds. With sign-up it also carries `emailVerified` and `pendingConsents`.
+- **Update:** `update()` from `useSession` refreshes the tokens at once, so the session reads the
+  sign-up state again, such as after `acceptTerms`. The options never use the data the client sends
+  with it.
 - **Sign-in page:** `pages.signIn` is `config.loginRoute`.
 
 Follow two rules so that you never lose a refresh:
@@ -294,7 +300,7 @@ import "@sjolystinnovation/app-kit/next-auth";
 
 The session carries `user` (`id`, `name`, `email`, `roles`), `accessToken`, `error`, and
 `absoluteExpiresAt`. The token carries `accessToken`, `refreshToken`, `refreshAt`, `loginAt`,
-`user`, and `error`.
+`user`, and `error`. With sign-up, both also carry `emailVerified` and `pendingConsents`.
 
 ## `@sjolystinnovation/app-kit/session`
 
@@ -520,8 +526,9 @@ empty `baseURL` throws, and requests only go to `baseURL`.
 `Error` with the message that `formatApiError` gives it. When the API answers with a validation
 problem, the error also keeps its per-field messages and their codes for `apiFieldErrors` and for
 the field errors of the shared forms. When the API answers with a code for the whole call, such as
-`{ "message": "...", "code": "invalidResetCode" }`, the error keeps the code for `apiErrorCode`. It
-keeps nothing else from the response. A canceled call rethrows the cancel unchanged.
+`{ "message": "...", "code": "invalidResetCode" }`, the error keeps the code for `apiErrorCode`. For
+a `termsChanged` conflict it also keeps the document for `termsChangedDocument`. It keeps nothing
+else from the response. A canceled call rethrows the cancel unchanged.
 
 ```ts
 import { requireEnv } from "@sjolystinnovation/app-kit";
@@ -641,6 +648,7 @@ own English fallback. The error keeps the field errors for `apiFieldErrors` and 
 | Factory | Methods | .NET package |
 | --- | --- | --- |
 | `createUserService(api, publicApi)` | `requestPasswordReset`, `resetPassword`, and for the signed-in user `getProfile`, `updateProfile`, `changePassword`, `exportData`, and `deleteAccount` | Auth |
+| `createSignUpService(api, publicApi)` | `register`, and for the signed-in user `verifyEmail({ code })`, `resendVerification`, and `acceptTerms({ termsVersion, document?, locale? })`. See [Sign-up](#sign-up). | Auth |
 | `createAdminUsersService(api)` | `getUsers(includeDeleted?)`, `roles`, `addRole`, `removeRole`, `deleteUser`, and `invite({ email, firstName, lastName, role })` | Auth |
 | `createSettingsService(api, { onSaved? })` | `get` and `update` | SiteSettings |
 | `createBrandingService(api, publicApi, { onSaved? })` | `get`, which answers `{}` when the API cannot be read, and `update(form)` | SiteSettings |
@@ -672,6 +680,74 @@ export default createUserService(createApiClient(apiUrl), createPublicClient(api
 
 The package also exports the response types `UserProfile`, `AdminUser`, `SiteSettings`,
 `LegalPage`, `LegalPageRevisionSummary`, `LegalPageRevision`, and `EmailStats`, the `OnSaved` callback type, and the `LegalServiceOptions` type.
+
+### Sign-up
+
+`createSignUpService(api, publicApi)` calls the opt-in sign-up of SjolystInnovation.AppKit.Auth.
+`register` goes through `publicApi`. `verifyEmail`, `resendVerification`, and `acceptTerms` go
+through `api` for the signed-in user. The first three answer the API's `{ message }`, and
+`acceptTerms` answers nothing.
+
+A person accepts each document in the version they read. Fetch the pages with `createLegalService`
+and send back each page's `version`, in the same `locale`. The terms go in `termsAccepted` and
+`termsVersion`. Each further document the API lists, such as `privacy`, goes in `documents`:
+
+```ts
+import { apiErrorCode, fieldErrorTexts, termsChangedDocument } from "@sjolystinnovation/app-kit/api";
+import LegalService from "@/services/legalService";
+import SignUpService from "@/services/signUpService";
+
+const [terms, privacy] = await Promise.all([LegalService.get("terms", "en"), LegalService.get("privacy", "en")]);
+
+try {
+  await SignUpService.register({
+    email,
+    password,
+    ageConfirmed: true,
+    termsAccepted: true,
+    termsVersion: terms!.version,
+    documents: { privacy: privacy!.version },
+    locale: "en",
+  });
+  // The API answers the same for a new and a taken address. Tell the person to check their email.
+} catch (err) {
+  if (apiErrorCode(err) === "termsChanged") {
+    // Undefined means the terms changed. Otherwise it names the document, such as "privacy".
+    showAgain(termsChangedDocument(err) ?? "terms");
+  } else {
+    setFieldErrors(fieldErrorTexts(err, validation));
+  }
+}
+```
+
+The API checks every field, the user name rules included, so show its field errors. The keys follow
+`apiFieldErrors`. A document left out is `termsNotAccepted` on `documents.privacy`, and a user name
+the API refuses is on `userName`, such as `tooLong` with its limit or `userNameTaken`.
+
+The session tells the app what the person still has to do:
+
+- `session.emailVerified` is false until the email is confirmed. Gate the features that need it.
+  `verifyEmail` ends every session at the API, so after it the person signs in again.
+- `session.pendingConsents` lists each document to accept again, with its current version. Show the
+  current page, then accept it and update the session:
+
+```ts
+const { data: session, update } = useSession();
+
+for (const { document, version } of session?.pendingConsents ?? []) {
+  await SignUpService.acceptTerms({ document, termsVersion: version, locale: "en" });
+}
+await update();
+```
+
+Without `document`, `acceptTerms` accepts the terms. It answers `409 termsChanged` when a newer
+version came out in between, and `termsChangedDocument` then gives the document it named. A name the
+API does not list is `unknownDocument` on `document`.
+
+A person who signs up without a user name gets a random one from the API, and that becomes
+`session.user.name`. Show the first name or the email instead.
+
+The package also exports the `SignUpRequest`, `AcceptTermsRequest`, and `PendingConsent` types.
 
 ### `mergeCompanyInfo` and `formatOrgNumber`
 
