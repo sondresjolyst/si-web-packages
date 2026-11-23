@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.8.0](https://github.com/sondresjolyst/si-web-packages/compare/app-kit-v1.7.0...app-kit-v1.8.0) (2026-11-23)
+
+
+### Features
+
+* **api:** add sign-up calls and keep the sign-up state on the session ([#157](https://github.com/sondresjolyst/si-web-packages/issues/157)) ([dbf8eb4](https://github.com/sondresjolyst/si-web-packages/commit/dbf8eb4c70a7c9ef7e9700a87db6787f3b5d360d))
+
 ## [1.7.0](https://github.com/sondresjolyst/si-web-packages/compare/app-kit-v1.6.1...app-kit-v1.7.0) (2026-11-14)
 
 
