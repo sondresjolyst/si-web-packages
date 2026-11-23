@@ -3,6 +3,7 @@
 import "next-auth";
 import "next-auth/jwt";
 import type { SessionUser } from "./auth/createAuthOptions";
+import type { PendingConsent } from "./api/signUp";
 import type { SessionError } from "./session/expiry";
 
 declare module "next-auth" {
@@ -11,6 +12,8 @@ declare module "next-auth" {
     accessToken: string;
     error?: SessionError | undefined;
     absoluteExpiresAt?: number | undefined;
+    emailVerified?: boolean | undefined;
+    pendingConsents?: PendingConsent[] | undefined;
   }
 }
 
@@ -22,5 +25,7 @@ declare module "next-auth/jwt" {
     loginAt?: number | undefined;
     user?: SessionUser | undefined;
     error?: SessionError | undefined;
+    emailVerified?: boolean | undefined;
+    pendingConsents?: PendingConsent[] | undefined;
   }
 }

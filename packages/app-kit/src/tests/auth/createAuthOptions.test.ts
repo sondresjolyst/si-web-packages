@@ -678,3 +678,154 @@ describe("the options", () => {
     expect(() => createAuthOptions(config, { apiUrl: "", env: {} })).toThrow("API base URL");
   });
 });
+
+describe("the sign-up state", () => {
+  type SignUpToken = Token & { emailVerified?: boolean; pendingConsents?: { document: string; version: string }[] };
+
+  const pending = [{ document: "privacy", version: "2026-12-01" }];
+
+  const authorize = (credentials: { email: string; password: string }) =>
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (authOptions.providers[0] as any).options.authorize(credentials, {});
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const jwtCallback = (args: object): Promise<SignUpToken> => (authOptions.callbacks!.jwt as any)(args);
+
+  const runSession = (token: SignUpToken) =>
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (authOptions.callbacks!.session as any)({ session: { user: null, expires: "" }, token });
+
+  function answer(extra: object) {
+    apiClient.defaults.adapter = async config => {
+      calls += 1;
+      return { data: { token: apiToken(), refreshToken: `RT-${++tokenSeq}`, ...extra }, status: 200, statusText: "OK", headers: {}, config };
+    };
+  }
+
+  beforeEach(() => {
+    calls = 0;
+  });
+
+  afterEach(() => {
+    apiClient.defaults.adapter = originalAdapter;
+  });
+
+  it("keeps the email state and the pending documents from the login answer on the session", async () => {
+    answer({ emailVerified: false, pendingConsents: pending });
+
+    const user = await authorize({ email: "a@b.no", password: "pw" });
+    const token = await jwtCallback({ token: {}, user });
+    const session = await runSession(token);
+
+    expect(token.emailVerified).toBe(false);
+    expect(token.pendingConsents).toEqual(pending);
+    expect(session.emailVerified).toBe(false);
+    expect(session.pendingConsents).toEqual(pending);
+  });
+
+  it("leaves both out for an app without sign-up, whose login answer has neither", async () => {
+    answer({});
+
+    const user = await authorize({ email: "a@b.no", password: "pw" });
+    const token = await jwtCallback({ token: {}, user });
+    const session = await runSession(token);
+
+    expect(token).not.toHaveProperty("emailVerified");
+    expect(token).not.toHaveProperty("pendingConsents");
+    expect(session.emailVerified).toBeUndefined();
+    expect(session.pendingConsents).toBeUndefined();
+  });
+
+  it("replaces the state of an earlier sign-in in the same cookie", async () => {
+    answer({});
+
+    const user = await authorize({ email: "a@b.no", password: "pw" });
+    const token = await jwtCallback({ token: { emailVerified: false, pendingConsents: pending }, user });
+
+    expect(token).not.toHaveProperty("emailVerified");
+    expect(token).not.toHaveProperty("pendingConsents");
+  });
+
+  it("takes both from each refresh answer", async () => {
+    answer({ emailVerified: true, pendingConsents: [] });
+
+    const result = await runJwt(sessionToken({ refreshAt: 0, emailVerified: false, pendingConsents: pending } as Partial<Token>));
+
+    expect(result).toMatchObject({ emailVerified: true, pendingConsents: [] });
+  });
+
+  it("drops both when a refresh answer has neither", async () => {
+    answer({});
+
+    const result = await runJwt(sessionToken({ refreshAt: 0, emailVerified: false, pendingConsents: pending } as Partial<Token>));
+
+    expect(result).not.toHaveProperty("emailVerified");
+    expect(result).not.toHaveProperty("pendingConsents");
+  });
+
+  it("ignores values of the wrong shape and keeps only well-formed documents", async () => {
+    answer({ emailVerified: "true", pendingConsents: [{ document: "terms", version: "v2" }, { document: 7, version: "v1" }, null, "privacy", { document: "cookies" }] });
+
+    const user = await authorize({ email: "a@b.no", password: "pw" });
+    const token = await jwtCallback({ token: {}, user });
+
+    expect(token).not.toHaveProperty("emailVerified");
+    expect(token.pendingConsents).toEqual([{ document: "terms", version: "v2" }]);
+
+    answer({ emailVerified: true, pendingConsents: { document: "terms", version: "v2" } });
+    const refreshed = await runJwt(sessionToken({ refreshAt: 0 }));
+
+    expect(refreshed).toMatchObject({ emailVerified: true });
+    expect(refreshed).not.toHaveProperty("pendingConsents");
+  });
+
+  it("treats update like any read and never rotates before the refresh is due", async () => {
+    answer({ emailVerified: true, pendingConsents: [] });
+    const token = sessionToken({ emailVerified: true, pendingConsents: pending } as Partial<Token>);
+
+    const result = await jwtCallback({ token, trigger: "update", session: { emailVerified: false, pendingConsents: [] } });
+
+    expect(calls).toBe(0);
+    expect(result).toEqual(token);
+  });
+
+  it("gives an update and an overlapping read the same token pair, so neither can put an old one back", async () => {
+    answer({ emailVerified: true, pendingConsents: [] });
+    const token = sessionToken({ pendingConsents: pending } as Partial<Token>);
+
+    const [updated, read] = await Promise.all([jwtCallback({ token, trigger: "update" }), runJwt(token)]);
+
+    expect(calls).toBe(0);
+    expect(updated.refreshToken).toBe(token.refreshToken);
+    expect(read.refreshToken).toBe(token.refreshToken);
+  });
+
+  it("sends nothing to the API however often the app calls update", async () => {
+    answer({});
+    const token = sessionToken();
+
+    for (let i = 0; i < 20; i++) await jwtCallback({ token, trigger: "update" });
+
+    expect(calls).toBe(0);
+  });
+
+  it("keeps the state of a session whose refresh fails, until a later refresh answers", async () => {
+    failWith(500);
+    vi.spyOn(console, "error").mockImplementation(() => {});
+
+    const result = await runJwt(sessionToken({ refreshAt: 0, emailVerified: false, pendingConsents: pending } as Partial<Token>));
+
+    expect(calls).toBe(1);
+    expect(result).toMatchObject({ emailVerified: false, pendingConsents: pending });
+    vi.restoreAllMocks();
+  });
+
+  it("does not call the API on update for a session that has ended", async () => {
+    answer({});
+
+    const result = await jwtCallback({ token: sessionToken({ error: SESSION_ERRORS.refreshRejected }), trigger: "update" });
+
+    expect(calls).toBe(0);
+    expect(result.error).toBe(SESSION_ERRORS.refreshRejected);
+  });
+});
